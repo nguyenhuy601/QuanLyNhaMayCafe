@@ -1,16 +1,40 @@
 import { useState } from "react";
 import ConfirmSuccessModal from "../../components/kiemDinh/ConfirmSuccessModal";
+import ConfirmFailModal from "../../components/kiemDinh/ConfirmFailModal";
+import ConfirmExitModal from "../../components/kiemDinh/ConfirmExitModal";
 import NoteModal from "../../components/kiemDinh/NoteModal";
 import { CheckCircle, XCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const KiemDinhDetail = () => {
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showFail, setShowFail] = useState(false);
   const [showNote, setShowNote] = useState(false);
-  const [ketQua, setKetQua] = useState("Đạt"); // State theo dõi kết quả kiểm định
+  const [showExit, setShowExit] = useState(false);
+  const [ketQua, setKetQua] = useState("Đạt");
+
+  const navigate = useNavigate();
+
+  const handleSelectChange = (e) => {
+    const value = e.target.value;
+    setKetQua(value);
+
+    // Nếu chọn "Không đạt", bật modal ghi chú trước
+    if (value === "Không đạt") {
+      setShowNote(true);
+    }
+  };
+
+  const handleConfirmResult = () => {
+    if (ketQua === "Đạt") {
+      setShowSuccess(true);
+    } else {
+      setShowFail(true);
+    }
+  };
 
   return (
     <div className="p-6 bg-[#fffdfb] rounded-lg shadow-md max-w-4xl mx-auto">
-      {/* Tiêu đề */}
       <h2 className="text-2xl font-bold text-center mb-8 text-[#5a2e0f] tracking-wide">
         CẬP NHẬT KẾT QUẢ KIỂM ĐỊNH
       </h2>
@@ -22,7 +46,7 @@ const KiemDinhDetail = () => {
           <input
             value="Xưởng chế biến - C1"
             readOnly
-            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full text-base focus:ring-2 focus:ring-[#a0522d] outline-none"
+            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full"
           />
         </div>
 
@@ -31,7 +55,7 @@ const KiemDinhDetail = () => {
           <input
             value="SL001"
             readOnly
-            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full text-base"
+            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full"
           />
         </div>
 
@@ -40,7 +64,7 @@ const KiemDinhDetail = () => {
           <input
             value="23/08/2025"
             readOnly
-            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full text-base"
+            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full"
           />
         </div>
 
@@ -49,7 +73,7 @@ const KiemDinhDetail = () => {
           <input
             value="Nguyễn Văn A"
             readOnly
-            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full text-base"
+            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full"
           />
         </div>
 
@@ -58,7 +82,7 @@ const KiemDinhDetail = () => {
           <input
             value="Bột cà phê xay nhuyễn"
             readOnly
-            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full text-base"
+            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full"
           />
         </div>
 
@@ -67,23 +91,18 @@ const KiemDinhDetail = () => {
           <input
             value="200"
             readOnly
-            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full text-base"
+            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full"
           />
         </div>
 
         <div>
           <label className="block font-semibold mb-1">Kết quả kiểm định:</label>
           <select
-            className={`border border-[#e5d2b2] rounded-md px-3 py-2 w-full text-base ${ketQua === "Đạt" ? "text-green-600" : "text-red-600"
-              }`}
+            className={`border border-[#e5d2b2] rounded-md px-3 py-2 w-full text-base ${
+              ketQua === "Đạt" ? "text-green-600" : "text-red-600"
+            }`}
             value={ketQua}
-            onChange={(e) => {
-              const value = e.target.value;
-              setKetQua(value);
-              if (value === "Không đạt") {
-                setShowNote(true); // bật modal
-              }
-            }}
+            onChange={handleSelectChange}
           >
             <option value="Đạt">Đạt</option>
             <option value="Không đạt">Không đạt</option>
@@ -94,7 +113,7 @@ const KiemDinhDetail = () => {
         <div className="flex justify-center mt-6 gap-4">
           <button
             type="button"
-            onClick={() => setShowNote(true)}
+            onClick={() => setShowExit(true)}
             className="flex items-center gap-2 bg-[#c54b3a] hover:bg-[#a13b2c] text-white px-5 py-2.5 rounded-md shadow-md transition-all duration-200 hover:shadow-lg"
           >
             <XCircle size={18} />
@@ -103,7 +122,7 @@ const KiemDinhDetail = () => {
 
           <button
             type="button"
-            onClick={() => setShowSuccess(true)}
+            onClick={handleConfirmResult}
             className="flex items-center gap-2 bg-[#4a9b5b] hover:bg-[#3a8148] text-white px-5 py-2.5 rounded-md shadow-md transition-all duration-200 hover:shadow-lg"
           >
             <CheckCircle size={18} />
@@ -112,9 +131,19 @@ const KiemDinhDetail = () => {
         </div>
       </form>
 
-      {/* Modal */}
+      {/* Các modal */}
       {showSuccess && <ConfirmSuccessModal onClose={() => setShowSuccess(false)} />}
+      {showFail && <ConfirmFailModal onClose={() => setShowFail(false)} />}
       {showNote && <NoteModal onClose={() => setShowNote(false)} />}
+      {showExit && (
+        <ConfirmExitModal
+          onClose={() => setShowExit(false)}
+          onConfirm={() => {
+            setShowExit(false);
+            navigate("/qc/kiem-dinh");
+          }}
+        />
+      )}
     </div>
   );
 };
