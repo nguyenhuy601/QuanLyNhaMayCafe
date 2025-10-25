@@ -1,21 +1,50 @@
+// src/components/Topbar.jsx
+import React from "react";
+
+const styles = {
+  header: {
+    height: 72,
+    background: "linear-gradient(90deg,#7b3f22,#5d2f18)",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "10px 18px",
+    boxSizing: "border-box",
+  },
+  search: {
+    width: 520,
+    maxWidth: "60%",
+    padding: 10,
+    borderRadius: 6,
+    border: "2px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.03)",
+    color: "#fff",
+  },
+  right: { display: "flex", alignItems: "center", gap: 14 },
+  iconBtn: { background: "transparent", border: "none", color: "#fff", fontSize: 18, cursor: "pointer" },
+  profile: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    borderLeft: "1px solid rgba(255,255,255,0.08)",
+    paddingLeft: 12,
+  },
+  avatar: { width: 46, height: 46, borderRadius: "50%", background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center" },
+};
+
 export default function Topbar() {
   return (
-    <header className="h-16 bg-[#7B3F22] text-white flex items-center justify-between px-6">
-      <input
-        type="text"
-        placeholder="Tìm kiếm..."
-        className="bg-[#6A341D] text-white px-3 py-2 rounded-lg w-80 outline-none placeholder:text-gray-300"
-      />
-      <div className="flex items-center gap-4">
-        <button className="text-xl">🔔</button>
-        <button className="text-xl">⚙️</button>
-        <div className="flex items-center gap-2 border-l border-white/30 pl-3">
-          <div className="bg-[#6A341D] w-10 h-10 rounded-full flex items-center justify-center text-xl">
-            👤
-          </div>
-          <div>
-            <p className="font-semibold leading-4">Your Name</p>
-            <p className="text-xs opacity-90">Xưởng trưởng</p>
+    <header style={styles.header}>
+      <input style={styles.search} placeholder="Tìm kiếm..." />
+      <div style={styles.right}>
+        <button style={styles.iconBtn} title="Thông báo">🔔</button>
+        <button style={styles.iconBtn} title="Cài đặt">⚙️</button>
+        <div style={styles.profile}>
+          <div style={styles.avatar}>👤</div>
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontWeight: 700 }}>Your Name</div>
+            <div style={{ fontSize: 12, opacity: 0.9 }}>Xưởng trưởng</div>
           </div>
         </div>
       </div>

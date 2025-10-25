@@ -1,9 +1,12 @@
-export default function Welcome() {
+import React from 'react'
+
+function Welcome() {
   return (
-    <main className="flex-1 flex items-center justify-center">
-      <h1 className="text-3xl font-extrabold text-black">
-        CHÀO MỪNG BẠN ĐÃ QUAY TRỞ LẠI
-      </h1>
-    </main>
-  );
+    <div>
+      <h1>☕ Welcome to Coffee Factory Management ☕</h1>
+      <p>Ứng dụng quản lý nhà máy cà phê - Dự án PTUD</p>
+    </div>
+  )
 }
+
+export default Welcome

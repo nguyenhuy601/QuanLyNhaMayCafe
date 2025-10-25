@@ -1,44 +1,48 @@
-export default function Sidebar() {
-  return (
-    <aside className="w-64 bg-[#5C2C12] text-white flex flex-col justify-between p-4 rounded-l-2xl">
-      <div>
-        <h1 className="text-lg font-bold mb-4">Coffee Company</h1>
+import React from "react";
+import {
+  Home,
+  ClipboardList,
+  BarChart,
+  Calendar,
+  CheckCircle,
+} from "lucide-react";
 
-        <div className="flex items-center gap-3 mb-6 bg-[#78421F] p-3 rounded-xl">
-          <div className="bg-[#A06437] p-2 rounded-lg">☕</div>
-          <div>
-            <p className="font-semibold">Coffee App</p>
-            <p className="text-xs opacity-80">Dashboard v1.0</p>
-          </div>
+function Sidebar() {
+  return (
+    <div className="w-64 bg-[#6b3e1d] text-white flex flex-col justify-between">
+      <div>
+        <div className="px-6 py-4 border-b border-[#855a32]">
+          <h1 className="text-lg font-bold">Coffee Company</h1>
+          <p className="text-sm text-gray-300">Coffee App - Dashboard v1.0</p>
         </div>
 
-        <nav className="flex flex-col gap-2">
-          {[
-            { icon: "🏠", text: "Trang chủ", active: true },
-            { icon: "📅", text: "Phân công công việc" },
-            { icon: "📊", text: "Thống kê kết quả sản xuất" },
-            { icon: "🗂️", text: "Xem kế hoạch" },
-            { icon: "🧾", text: "Kiểm tra thành phẩm" },
-          ].map((item) => (
-            <a
-              key={item.text}
-              className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer ${
-                item.active
-                  ? "bg-[#78421F] shadow-inner font-semibold"
-                  : "hover:bg-[#78421F]/60"
-              }`}
-            >
-              <span>{item.icon}</span>
-              {item.text}
-            </a>
-          ))}
+        <nav className="mt-4 space-y-1">
+          <SidebarItem icon={<Home size={18} />} text="Trang chủ" active />
+          <SidebarItem icon={<ClipboardList size={18} />} text="Phân công công việc" />
+          <SidebarItem icon={<BarChart size={18} />} text="Thống kê kết quả sản xuất" />
+          <SidebarItem icon={<Calendar size={18} />} text="Xem kế hoạch" />
+          <SidebarItem icon={<CheckCircle size={18} />} text="Kiểm tra thành phẩm" />
         </nav>
       </div>
 
-      <div className="flex items-center gap-3 bg-[#78421F] p-3 rounded-xl mt-6">
-        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-        <span className="text-sm">Trạng thái hệ thống</span>
+      <div className="p-4 border-t border-[#855a32] flex items-center justify-between bg-[#814c25] rounded-t-lg">
+        <span className="text-sm">🟢 Trạng thái hệ thống</span>
       </div>
-    </aside>
+    </div>
   );
 }
+
+function SidebarItem({ icon, text, active }) {
+  return (
+    <div
+      className={`flex items-center px-6 py-3 cursor-pointer ${
+        active ? "bg-[#a96738] rounded-lg" : "hover:bg-[#8b5530]"
+      }`}
+    >
+      <span className="mr-3">{icon}</span>
+      <span>{text}</span>
+    </div>
+  );
+}
+
+export default Sidebar;

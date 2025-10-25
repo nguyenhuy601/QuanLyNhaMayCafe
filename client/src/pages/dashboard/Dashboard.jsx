@@ -1,10 +1,11 @@
-// src/pages/dashboard/Dashboard.jsx
-const Dashboard = () => {
+import React from "react";
+
+function Dashboard() {
   return (
-    <h1 className="text-2xl font-bold text-center">
+    <div className="flex-1 bg-white flex items-center justify-center text-2xl font-bold">
       CHÀO MỪNG BẠN ĐÃ QUAY TRỞ LẠI
-    </h1>
+    </div>
   );
-};
+}
 
 export default Dashboard;
