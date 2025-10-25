@@ -2,8 +2,9 @@ import React from "react";
 
 function Dashboard() {
   return (
-    <div className="flex-1 bg-white flex items-center justify-center text-2xl font-bold">
-      CHÀO MỪNG BẠN ĐÃ QUAY TRỞ LẠI
+    <div>
+      <h1 className="text-2xl font-bold mb-4">Trang chủ</h1>
+      <p>Chào mừng bạn đến với hệ thống quản lý nhà máy cà phê ☕</p>
     </div>
   );
 }
