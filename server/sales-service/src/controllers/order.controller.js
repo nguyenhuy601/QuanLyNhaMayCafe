@@ -3,7 +3,7 @@ const amqp = require("amqplib");
 
 /** Gửi event sang RabbitMQ */
 async function publishEvent(event, payload) {
-  const connection = await amqp.connect("amqp://localhost");
+  const connection = await amqp.connect(process.env.RABBITMQ_URI);
   const channel = await connection.createChannel();
   await channel.assertExchange("order_events", "fanout", { durable: false });
   channel.publish("order_events", "", Buffer.from(JSON.stringify({ event, payload })));

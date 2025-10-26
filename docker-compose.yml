@@ -62,7 +62,7 @@ services:
   # 🔐 Auth Service
   auth-service:
     build: ./server/auth-service
-    container_name: auth-service
+    container_name: auth-serviceCF
     depends_on:
       rabbitmq:
         condition: service_healthy

@@ -2,7 +2,7 @@ const amqp = require("amqplib");
 const QCRequest = require("../models/QCRequest");
 
 exports.listenFactoryEvents = async () => {
-  const connection = await amqp.connect("amqp://localhost");
+  const connection = await amqp.connect(process.env.RABBITMQ_URI);
   const channel = await connection.createChannel();
   await channel.assertExchange("factory_events", "fanout", { durable: false });
 

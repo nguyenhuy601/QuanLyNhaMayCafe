@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Globe, Mail, Lock, AlertCircle, CheckCircle } from "lucide-react";
-
+import { useNavigate } from "react-router-dom";
+import { Globe, Mail, Lock, AlertCircle } from "lucide-react";
 import authAPI from "../../api/authAPI";
 
 const Login = () => {
@@ -13,12 +13,42 @@ const Login = () => {
   // Hàm redirect theo role
   const redirectByRole = (role) => {
     const roleMap = {
-      worker: "/worker",
-      "công nhân": "/worker",
-      director: "/director",
-      "giám đốc": "/director",
-      qc: "/qc",
-      "quality control": "/qc",
+      // Công nhân
+    worker: "/worker",
+    "công nhân": "/worker",
+
+    // Ban giám đốc
+    director: "/director",
+    "giám đốc": "/director",
+
+    // QC - Kiểm định
+    qc: "/qc",
+    "quality control": "/qc",
+    "kiểm định": "/qc",
+
+    // Quản lý kế hoạch
+    "plan manager": "/plan",
+    "quản lý kế hoạch": "/plan",
+
+    // Bán hàng
+    "sales manager": "/sales",
+    "bán hàng": "/sales",
+
+    // Xưởng trưởng
+    "factory manager": "/xuong",
+    "xưởng trưởng": "/xuong",
+
+    // Tổ trưởng
+    "team leader": "/to-truong",
+    "tổ trưởng": "/to-truong",
+
+    // Quản lý kho nguyên vật liệu
+    "warehouse manager materials": "/kho-nvl",
+    "quản lý kho nguyên vật liệu": "/kho-nvl",
+
+    // Quản lý kho thành phẩm
+    "warehouse manager finished": "/kho-tp",
+    "quản lý kho thành phẩm": "/kho-tp",
     };
 
     const path = roleMap[role?.toLowerCase()] || "/login";
@@ -32,19 +62,8 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Gọi API login
-      const response = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Đăng nhập thất bại");
-      }
-
-      const data = await response.json();
+      // Gọi API login từ authAPI.js
+      const data = await authAPI.login(email, password);
 
       // Lưu token và role
       localStorage.setItem("token", data.token);
@@ -156,18 +175,6 @@ const Login = () => {
               {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
           </form>
-        </div>
-
-        {/* Info */}
-        <div className="mt-4 p-4 bg-white rounded-lg shadow-sm">
-          <p className="text-xs text-gray-600 font-medium mb-2">
-            🔐 Chức năng bảo mật
-          </p>
-          <div className="space-y-1 text-xs text-gray-500">
-            <p>✅ Redirect tự động theo role</p>
-            <p>✅ Protected routes cho từng role</p>
-            <p>✅ Token được lưu an toàn</p>
-          </div>
         </div>
       </div>
     </div>

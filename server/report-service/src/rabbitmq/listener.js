@@ -2,7 +2,7 @@ const amqp = require("amqplib");
 const { aggregateEventData } = require("../utils/dataAggregator");
 
 exports.listenEvents = async () => {
-  const connection = await amqp.connect("amqp://localhost");
+  const connection = await amqp.connect(process.env.RABBITMQ_URI);
   const channel = await connection.createChannel();
 
   // Gom tất cả event vào 1 exchange tổng

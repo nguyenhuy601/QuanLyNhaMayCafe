@@ -4,7 +4,7 @@ const { publishEvent } = require("../utils/eventPublisher");
 
 /** Lắng nghe sự kiện ORDER_CREATED */
 exports.listenOrderEvents = async () => {
-  const connection = await amqp.connect("amqp://localhost");
+  const connection = await amqp.connect(process.env.RABBITMQ_URI);
   const channel = await connection.createChannel();
   await channel.assertExchange("order_events", "fanout", { durable: false });
 

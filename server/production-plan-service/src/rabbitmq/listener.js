@@ -2,7 +2,7 @@ const amqp = require("amqplib");
 const { createProductionPlan } = require("../controllers/plan.controller");
 
 exports.listenDirectorEvents = async () => {
-  const connection = await amqp.connect("amqp://localhost");
+  const connection = await amqp.connect(process.env.RABBITMQ_URI);
   const channel = await connection.createChannel();
   await channel.assertExchange("director_events", "fanout", { durable: false });
 

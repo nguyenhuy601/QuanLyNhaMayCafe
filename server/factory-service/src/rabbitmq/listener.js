@@ -2,7 +2,7 @@ const amqp = require("amqplib");
 const WorkAssignment = require("../models/WorkAssignment");
 
 exports.listenPlanEvents = async () => {
-  const connection = await amqp.connect("amqp://localhost");
+  const connection = await amqp.connect(process.env.RABBITMQ_URI);
   const channel = await connection.createChannel();
   await channel.assertExchange("plan_events", "fanout", { durable: false });
 

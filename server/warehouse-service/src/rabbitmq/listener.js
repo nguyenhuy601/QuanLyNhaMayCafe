@@ -4,7 +4,7 @@ const MaterialRequest = require("../models/MaterialRequest");
 const { publishEvent } = require("../utils/eventPublisher");
 
 exports.listenEvents = async () => {
-  const connection = await amqp.connect("amqp://localhost");
+  const connection = await amqp.connect(process.env.RABBITMQ_URI);
   const channel = await connection.createChannel();
 
   // Lắng nghe event từ QC-Service

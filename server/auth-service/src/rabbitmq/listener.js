@@ -3,7 +3,7 @@ const Account = require("../models/Account");
 const bcrypt = require("bcrypt");
 
 exports.listenUserEvents = async () => {
-  const connection = await amqp.connect("amqp://localhost");
+  const connection = await amqp.connect(process.env.RABBITMQ_URI);
   const channel = await connection.createChannel();
   await channel.assertExchange("user_events", "fanout", { durable: false });
 

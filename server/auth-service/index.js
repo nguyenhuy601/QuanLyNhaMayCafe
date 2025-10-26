@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 // Gắn route chính
-app.use("/api/auth", authRoutes);
+app.use("/", authRoutes);
 listenUserEvents();
 
 // Cổng mặc định

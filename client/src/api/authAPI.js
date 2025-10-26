@@ -1,6 +1,6 @@
 import axiosInstance from './axiosConfig';
 
-export const authAPI = {
+const authAPI = {
   // Đăng nhập
   login: async (email, password) => {
     const response = await axiosInstance.post('/auth/login', { 
@@ -22,3 +22,5 @@ export const authAPI = {
     localStorage.removeItem('role');
   },
 };
+
+export default authAPI;
