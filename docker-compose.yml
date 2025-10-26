@@ -1,0 +1,196 @@
+services:
+  # 🐇 RabbitMQ (message broker)
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmqCF
+    ports:
+      - "5672:5672"      # Port AMQP
+      - "15672:15672"    # Port Web UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 🍃 MongoDB (database)
+  mongodb:
+    image: mongo:6
+    container_name: mongodbCF
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 🌐 API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gatewayCF
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+    ports:
+      - "4000:4000"
+
+  # 👑 Admin Service
+  admin-service:
+    build: ./server/admin-service
+    container_name: admin-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      MONGO_URI: mongodb://mongodb:27017/adminDB
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: 85ec246b2867d825498dcc05b6c4531eab9d7c2a0484f59944012578fed400a98e36c13501c574ecadecf5e561a5a839a7426d0eda53fe61ce323114b940a5dd
+    ports:
+      - "3001:3001"
+
+  # 🔐 Auth Service
+  auth-service:
+    build: ./server/auth-service
+    container_name: auth-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      PORT: 3002
+      MONGO_URI: mongodb://mongodb:27017/authDB
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: 85ec246b2867d825498dcc05b6c4531eab9d7c2a0484f59944012578fed400a98e36c13501c574ecadecf5e561a5a839a7426d0eda53fe61ce323114b940a5dd
+    ports:
+      - "3002:3002"
+
+    # 🧭 Director Service
+  director-service:
+    build: ./server/director-service
+    container_name: director-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      PORT: 3003
+      MONGO_URI: mongodb://mongodb:27017/directorDB
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: 85ec246b2867d825498dcc05b6c4531eab9d7c2a0484f59944012578fed400a98e36c13501c574ecadecf5e561a5a839a7426d0eda53fe61ce323114b940a5dd
+    ports:
+      - "3003:3003" 
+
+  # ⚙️ Factory Service
+  factory-service:
+    build: ./server/factory-service
+    container_name: factory-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      PORT: 3004
+      MONGO_URI: mongodb://mongodb:27017/factoryDB
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: 85ec246b2867d825498dcc05b6c4531eab9d7c2a0484f59944012578fed400a98e36c13501c574ecadecf5e561a5a839a7426d0eda53fe61ce323114b940a5dd
+    ports:
+      - "3004:3004" 
+  # 🏗️ Production Plan Service
+  production-plan-service:
+    build: ./server/production-plan-service
+    container_name: production-plan-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      PORT: 3005
+      MONGO_URI: mongodb://mongodb:27017/productionPlanDB
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: 85ec246b2867d825498dcc05b6c4531eab9d7c2a0484f59944012578fed400a98e36c13501c574ecadecf5e561a5a839a7426d0eda53fe61ce323114b940a5dd
+    ports:
+      - "3005:3005"
+  # 🔍 QC Service
+  qc-service:
+    build: ./server/qc-service
+    container_name: qc-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      PORT: 3006
+      MONGO_URI: mongodb://mongodb:27017/qcDB
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: 85ec246b2867d825498dcc05b6c4531eab9d7c2a0484f59944012578fed400a98e36c13501c574ecadecf5e561a5a839a7426d0eda53fe61ce323114b940a5dd
+    ports:
+      - "3006:3006"
+  # 📊 Report Service
+  report-service:
+    build: ./server/report-service
+    container_name: report-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      PORT: 3007
+      MONGO_URI: mongodb://mongodb:27017/reportDB
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: 85ec246b2867d825498dcc05b6c4531eab9d7c2a0484f59944012578fed400a98e36c13501c574ecadecf5e561a5a839a7426d0eda53fe61ce323114b940a5dd
+    ports:
+      - "3007:3007"
+
+  # 💰 Sales Service
+  sales-service:
+    build: ./server/sales-service
+    container_name: sales-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      PORT: 3008
+      MONGO_URI: mongodb://mongodb:27017/salesDB
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: 85ec246b2867d825498dcc05b6c4531eab9d7c2a0484f59944012578fed400a98e36c13501c574ecadecf5e561a5a839a7426d0eda53fe61ce323114b940a5dd
+    ports:
+      - "3008:3008"
+
+  # 🏬 Warehouse Service
+  warehouse-service:
+    build: ./server/warehouse-service
+    container_name: warehouse-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      PORT: 3009
+      MONGO_URI: mongodb://mongodb:27017/warehouseDB
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      JWT_SECRET: 85ec246b2867d825498dcc05b6c4531eab9d7c2a0484f59944012578fed400a98e36c13501c574ecadecf5e561a5a839a7426d0eda53fe61ce323114b940a5dd
+    ports:
+      - "3009:3009"
+
+volumes:
+  mongo_data:
