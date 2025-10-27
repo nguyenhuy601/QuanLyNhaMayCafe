@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Filter } from "lucide-react";
 
-const DSKiemDinh = () => {
+const KiemDinhList = () => {
   const navigate = useNavigate();
 
   const [filterTrangThai, setFilterTrangThai] = useState("Tất cả");
@@ -147,4 +147,4 @@ const DSKiemDinh = () => {
   );
 };
 
-export default DSKiemDinh;
+export default KiemDinhList;

@@ -1,12 +1,12 @@
 import { useState } from "react";
-import KDThanhCong from "../../components/kiemDinh/KDThanhCong";
-import KDThatBai from "../../components/kiemDinh/KDThatBai";
-import KDThoat from "../../components/kiemDinh/KDThoat";
-import GhiChu from "../../components/kiemDinh/GhiChu";
+import ConfirmSuccessModal from "../../components/kiemDinh/ConfirmSuccessModal";
+import ConfirmFailModal from "../../components/kiemDinh/ConfirmFailModal";
+import ConfirmExitModal from "../../components/kiemDinh/ConfirmExitModal";
+import NoteModal from "../../components/kiemDinh/NoteModal";
 import { CheckCircle, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const ChiTietKiemDinh = () => {
+const KiemDinhDetail = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showFail, setShowFail] = useState(false);
   const [showNote, setShowNote] = useState(false);
@@ -130,11 +130,11 @@ const ChiTietKiemDinh = () => {
       </form>
 
       {/* Các modal */}
-      {showSuccess && <KDThanhCong onClose={() => setShowSuccess(false)} />}
-      {showFail && <KDThatBai onClose={() => setShowFail(false)} />}
-      {showNote && <GhiChu onClose={() => setShowNote(false)} />}
+      {showSuccess && <ConfirmSuccessModal onClose={() => setShowSuccess(false)} />}
+      {showFail && <ConfirmFailModal onClose={() => setShowFail(false)} />}
+      {showNote && <NoteModal onClose={() => setShowNote(false)} />}
       {showExit && (
-        <KDThoat
+        <ConfirmExitModal
           onClose={() => setShowExit(false)}
           onConfirm={() => {
             setShowExit(false);
@@ -146,4 +146,4 @@ const ChiTietKiemDinh = () => {
   );
 };
 
-export default ChiTietKiemDinh;
+export default KiemDinhDetail;
