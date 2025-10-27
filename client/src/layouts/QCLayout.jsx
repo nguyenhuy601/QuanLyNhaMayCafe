@@ -3,7 +3,7 @@ import { Bell, Settings, User, Home, ClipboardList } from "lucide-react";
 import { useState } from "react";
 
 const QCLayOut = () => {
-  const [active, setActive] = useState("kiemDinh");
+  const [active, setActive] = useState("qc");
 
   return (
     <div className="flex h-screen bg-[#fffdfb] font-sans">

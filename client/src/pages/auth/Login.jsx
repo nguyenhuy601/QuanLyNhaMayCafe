@@ -52,9 +52,9 @@ const Login = () => {
     "quản lý kho nguyên vật liệu": "/kho-nvl",
 
     // Quản lý kho thành phẩm
-    khotp: "/kho-tp",
-    "warehouse manager finished": "/kho-tp",
-    "quản lý kho thành phẩm": "/kho-tp",
+    warehouseproduct: "/WarehouseProduct",
+    "warehouse manager finished": "/WarehouseProduct",
+    "quản lý kho thành phẩm": "/WarehouseProduct",
     };
 
     const path = roleMap[role?.toLowerCase()] || "/login";

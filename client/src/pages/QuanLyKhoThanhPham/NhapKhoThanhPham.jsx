@@ -2,8 +2,6 @@
 import React, { useState } from "react";
 import Header from "../../components/QuanLyKhoThanhPham/header";
 import Sidebar from "../../components/QuanLyKhoThanhPham/sidebar";
-import Topbar from "../../components/QuanLyKhoThanhPham/topbar";
-import Welcome from "../../components/QuanLyKhoThanhPham/welcome";
 import PhieuNhapThanhPham from "../../components/QuanLyKhoThanhPham/PhieuNhapThanhPham";
 
 const NhapKhoThanhPham = () => {

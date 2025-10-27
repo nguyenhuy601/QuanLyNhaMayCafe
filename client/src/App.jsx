@@ -26,6 +26,9 @@ import Home from"./components/order/Home.jsx";
 import CreateOrder from"./components/order/CreateOrder.jsx";
 import OrderList from"./components/order/OrderList.jsx";
 
+//Quan ly kho thanh pham
+import NhapKhoThanhPham from "./pages/QuanLyKhoThanhPham/NhapKhoThanhPham.jsx";
+
 // --- QC routes
 import QCRoute from "./routes/QCRoute";
 
@@ -44,7 +47,7 @@ export default function App() {
         <Route
           path="/worker"
           element={
-            <ProtectedRoute allowedRoles={["worker", "công nhân"]}>
+            <ProtectedRoute allowedRoles={["worker"]}>
               <CongNhanLayout />
             </ProtectedRoute>
           }
@@ -58,7 +61,7 @@ export default function App() {
         <Route
           path="/director"
           element={
-            <ProtectedRoute allowedRoles={["director", "giám đốc"]}>
+            <ProtectedRoute allowedRoles={["director"]}>
               <BanGiamDocLayout />
             </ProtectedRoute>
           }
@@ -70,10 +73,10 @@ export default function App() {
         </Route>
 
         {/* Protected Routes - QC */}
-        <Route
+        <Route  
           path="/qc/*"
           element={
-            <ProtectedRoute allowedRoles={["qc", "quality control"]}>
+            <ProtectedRoute allowedRoles={["qc"]}>
               <QCRoute />
             </ProtectedRoute>
           }
@@ -100,6 +103,16 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["plan", "plan manager"]}>
               <PlanManagement />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected Routes - WareHouse */}
+        <Route
+          path="/warehouseproduct"
+          element={
+            <ProtectedRoute allowedRoles={["warehouseproduct"]}>
+              <NhapKhoThanhPham />
             </ProtectedRoute>
           }
         />
