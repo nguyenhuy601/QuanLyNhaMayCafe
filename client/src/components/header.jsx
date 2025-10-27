@@ -1,33 +1,82 @@
 import React from "react";
-import { Search, Bell, Settings, User } from "lucide-react";
 
-function Header() {
+export default function Header() {
   return (
-    <div className="bg-[#8b5530] text-white flex justify-between items-center px-6 py-3 shadow-md">
-      {/* Search */}
-      <div className="flex items-center bg-[#a96738] px-3 py-2 rounded-md w-1/3">
-        <Search size={18} className="mr-2 text-white" />
+    <header
+      style={{
+        backgroundColor: "#8b5a2b",
+        height: "60px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 20px",
+        color: "white",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Ô tìm kiếm */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          backgroundColor: "#a97458",
+          borderRadius: "8px",
+          padding: "6px 12px",
+          width: "300px",
+          flexShrink: 0,
+        }}
+      >
+        <span style={{ fontSize: "14px" }}>🔍</span>
         <input
           type="text"
           placeholder="Tìm kiếm..."
-          className="bg-transparent outline-none text-white w-full placeholder:text-gray-200"
+          style={{
+            background: "transparent",
+            border: "none",
+            outline: "none",
+            color: "white",
+            paddingLeft: "10px",
+            width: "100%",
+            fontSize: "14px",
+          }}
         />
       </div>
 
-      {/* Icons + User */}
-      <div className="flex items-center space-x-5">
-        <Bell size={20} />
-        <Settings size={20} />
-        <div className="flex items-center space-x-2 bg-[#a96738] px-3 py-1 rounded-full">
-          <User size={18} />
-          <div>
-            <p className="font-semibold text-sm">Your Name</p>
-            <p className="text-xs text-gray-200">Xưởng trưởng</p>
+      {/* Icon + User Info */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "16px",
+          flexShrink: 0,
+        }}
+      >
+        <span style={{ fontSize: "18px", cursor: "pointer" }}>🔔</span>
+        <span style={{ fontSize: "18px", cursor: "pointer" }}>⚙️</span>
+
+        {/* Thông tin người dùng */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            backgroundColor: "#d1884f",
+            borderRadius: "12px",
+            padding: "6px 12px",
+            minWidth: "150px",
+            justifyContent: "flex-start",
+          }}
+        >
+          <span style={{ fontSize: "20px" }}>👤</span>
+          <div style={{ marginLeft: "8px", lineHeight: "1.2" }}>
+            <p style={{ fontWeight: "bold", fontSize: "14px", margin: 0 }}>
+              Your Name
+            </p>
+            <p style={{ fontSize: "12px", opacity: 0.9, margin: 0 }}>
+              Xưởng trưởng
+            </p>
           </div>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
-
-export default Header;
