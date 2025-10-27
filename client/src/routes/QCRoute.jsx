@@ -1,14 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 import QCLayOut from "../layouts/QCLayout";
-import DSKiemDinh from "../pages/kiemDinh/DSKiemDinh";
-import ChiTietKiemDinh from "../pages/kiemDinh/ChiTietKiemDinh";
+import KiemDinhList from "../pages/kiemDinh/KiemDinhList";
+import KiemDinhDetail from "../pages/kiemDinh/KiemDinhDetail";
 
 const QCRoute = () => {
   return (
     <Routes>
       <Route element={<QCLayOut />}>
-        <Route path="kiem-dinh" element={<DSKiemDinh />} />
-        <Route path="kiem-dinh/:id" element={<ChiTietKiemDinh />} />
+        <Route path="kiem-dinh" element={<KiemDinhList />} />
+        <Route path="kiem-dinh/:id" element={<KiemDinhDetail />} />
       </Route>
     </Routes>
   );
