@@ -1,7 +1,86 @@
-import React from "react";
-import { Globe, Mail, Lock } from "lucide-react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Globe, Mail, Lock, AlertCircle } from "lucide-react";
+import authAPI from "../../api/authAPI";
 
 const Login = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Hàm redirect theo role
+  const redirectByRole = (role) => {
+    const roleMap = {
+      // Công nhân
+    worker: "/worker",
+    "công nhân": "/worker",
+
+    // Ban giám đốc
+    director: "/director",
+    "giám đốc": "/director",
+
+    // QC - Kiểm định
+    qc: "/qc",
+    "quality control": "/qc",
+    "kiểm định": "/qc",
+
+    // Quản lý kế hoạch
+    "plan manager": "/plan",
+    "quản lý kế hoạch": "/plan",
+
+    // Bán hàng
+    "sales manager": "/sales",
+    "bán hàng": "/sales",
+
+    // Xưởng trưởng
+    "factory manager": "/xuong",
+    "xưởng trưởng": "/xuong",
+
+    // Tổ trưởng
+    "team leader": "/to-truong",
+    "tổ trưởng": "/to-truong",
+
+    // Quản lý kho nguyên vật liệu
+    "warehouse manager materials": "/kho-nvl",
+    "quản lý kho nguyên vật liệu": "/kho-nvl",
+
+    // Quản lý kho thành phẩm
+    "warehouse manager finished": "/kho-tp",
+    "quản lý kho thành phẩm": "/kho-tp",
+    };
+
+    const path = roleMap[role?.toLowerCase()] || "/login";
+    navigate(path, { replace: true });
+  };
+
+  // Xử lý đăng nhập
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      // Gọi API login từ authAPI.js
+      const data = await authAPI.login(email, password);
+
+      // Lưu token và role
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role);
+      window.userToken = data.token;
+      window.userRole = data.role;
+
+      // Redirect theo role
+      redirectByRole(data.role);
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FEF6E4]">
       <div className="w-full max-w-md px-6 py-10">
@@ -9,7 +88,6 @@ const Login = () => {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
             <div className="bg-[#FEF6E4] border-4 border-[#E78C1F] rounded-full p-3">
-              {/* Icon ly cà phê */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -42,18 +120,29 @@ const Login = () => {
 
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-md p-6">
-          <form>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+              <AlertCircle size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin}>
             {/* Email */}
             <div className="mb-4">
               <label className="block text-gray-700 font-medium mb-1">
                 Email
               </label>
-              <div className="flex items-center border border-gray-300 rounded-lg px-3">
+              <div className="flex items-center border border-gray-300 rounded-lg px-3 focus-within:border-[#E78C1F] transition">
                 <Mail size={18} className="text-gray-400" />
                 <input
                   type="email"
                   placeholder="Nhập email của bạn"
-                  className="w-full py-2 px-2 outline-none text-gray-700"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                  className="w-full py-2 px-2 outline-none text-gray-700 bg-transparent"
                 />
               </div>
             </div>
@@ -63,12 +152,16 @@ const Login = () => {
               <label className="block text-gray-700 font-medium mb-1">
                 Mật khẩu
               </label>
-              <div className="flex items-center border border-gray-300 rounded-lg px-3">
+              <div className="flex items-center border border-gray-300 rounded-lg px-3 focus-within:border-[#E78C1F] transition">
                 <Lock size={18} className="text-gray-400" />
                 <input
                   type="password"
                   placeholder="Nhập mật khẩu"
-                  className="w-full py-2 px-2 outline-none text-gray-700"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                  className="w-full py-2 px-2 outline-none text-gray-700 bg-transparent"
                 />
               </div>
             </div>
@@ -76,9 +169,10 @@ const Login = () => {
             {/* Button */}
             <button
               type="submit"
-              className="w-full bg-[#E78C1F] hover:bg-[#d27817] text-white font-medium py-2 rounded-lg transition"
+              disabled={loading}
+              className="w-full bg-[#E78C1F] hover:bg-[#d27817] text-white font-medium py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Đăng nhập
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
           </form>
         </div>
