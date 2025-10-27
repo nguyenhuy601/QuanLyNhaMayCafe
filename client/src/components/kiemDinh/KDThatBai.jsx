@@ -1,6 +1,6 @@
 import { XCircle } from "lucide-react";
 
-const ConfirmFailModal = ({ onClose }) => {
+const KDThatBai = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       {/* Hộp modal */}
@@ -40,4 +40,4 @@ const ConfirmFailModal = ({ onClose }) => {
   );
 };
 
-export default ConfirmFailModal;
+export default KDThatBai;

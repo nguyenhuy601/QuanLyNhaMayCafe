@@ -1,12 +1,12 @@
 import { useState } from "react";
-import ConfirmSuccessModal from "../../components/kiemDinh/ConfirmSuccessModal";
-import ConfirmFailModal from "../../components/kiemDinh/ConfirmFailModal";
-import ConfirmExitModal from "../../components/kiemDinh/ConfirmExitModal";
-import NoteModal from "../../components/kiemDinh/NoteModal";
+import KDThanhCong from "../../components/kiemDinh/KDThanhCong";
+import KDThatBai from "../../components/kiemDinh/KDThatBai";
+import KDThoat from "../../components/kiemDinh/KDThoat";
+import GhiChu from "../../components/kiemDinh/GhiChu";
 import { CheckCircle, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const KiemDinhDetail = () => {
+const ChiTietKiemDinh = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showFail, setShowFail] = useState(false);
   const [showNote, setShowNote] = useState(false);
@@ -26,12 +26,10 @@ const KiemDinhDetail = () => {
   };
 
   const handleConfirmResult = () => {
-    if (ketQua === "Đạt") {
-      setShowSuccess(true);
-    } else {
-      setShowFail(true);
-    }
+    // Bất kể đạt hay không đạt, vẫn xem là lưu thành công
+    setShowSuccess(true);
   };
+
 
   return (
     <div className="p-6 bg-[#fffdfb] rounded-lg shadow-md max-w-4xl mx-auto">
@@ -132,11 +130,11 @@ const KiemDinhDetail = () => {
       </form>
 
       {/* Các modal */}
-      {showSuccess && <ConfirmSuccessModal onClose={() => setShowSuccess(false)} />}
-      {showFail && <ConfirmFailModal onClose={() => setShowFail(false)} />}
-      {showNote && <NoteModal onClose={() => setShowNote(false)} />}
+      {showSuccess && <KDThanhCong onClose={() => setShowSuccess(false)} />}
+      {showFail && <KDThatBai onClose={() => setShowFail(false)} />}
+      {showNote && <GhiChu onClose={() => setShowNote(false)} />}
       {showExit && (
-        <ConfirmExitModal
+        <KDThoat
           onClose={() => setShowExit(false)}
           onConfirm={() => {
             setShowExit(false);
@@ -148,4 +146,4 @@ const KiemDinhDetail = () => {
   );
 };
 
-export default KiemDinhDetail;
+export default ChiTietKiemDinh;

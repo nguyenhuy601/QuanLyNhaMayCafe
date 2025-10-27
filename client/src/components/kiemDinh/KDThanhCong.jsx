@@ -1,6 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 
-const ConfirmSuccessModal = ({ onClose }) => {
+const KDThanhCong = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       {/* Hộp modal */}
@@ -40,4 +40,4 @@ const ConfirmSuccessModal = ({ onClose }) => {
   );
 };
 
-export default ConfirmSuccessModal;
+export default KDThanhCong;
