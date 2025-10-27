@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { XCircle, FileText } from "lucide-react";
 
-const GhiChu = ({ onClose }) => {
+const NoteModal = ({ onClose }) => {
   const [note, setNote] = useState("");
 
   return (
@@ -57,4 +57,4 @@ const GhiChu = ({ onClose }) => {
   );
 };
 
-export default GhiChu;
+export default NoteModal;
