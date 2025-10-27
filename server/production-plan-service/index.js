@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // Gắn route chính
-app.use("/api/plans", routes);
+app.use("/", routes);
 listenDirectorEvents();
 
 // Cổng mặc định

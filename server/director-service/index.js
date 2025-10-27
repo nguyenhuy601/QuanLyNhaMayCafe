@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/director", approvalRoutes);
+app.use("/", approvalRoutes);
 
 // Bắt sự kiện ORDER_CREATED từ sales-service
 listenOrderEvents();

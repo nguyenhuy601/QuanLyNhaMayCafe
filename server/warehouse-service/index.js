@@ -12,8 +12,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/warehouse/materials", materialRoutes);
-app.use("/api/warehouse/products", productRoutes);
+app.use("/materials", materialRoutes);
+app.use("/products", productRoutes);
 
 listenEvents();
 

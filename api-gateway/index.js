@@ -57,7 +57,6 @@ app.use("/report", (req, res) => {
 });
 
 app.use("/sales", (req, res) => {
-  req.url = `/sales${req.url}`;
   proxy.web(req, res, { target: SALES_SERVICE_URL });
 });
 

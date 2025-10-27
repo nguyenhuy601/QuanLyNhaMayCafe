@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 // Gắn route chính
-app.use("/api/orders", routes);
+app.use("/", routes);
 
 // Cổng mặc định
 const PORT = process.env.PORT;

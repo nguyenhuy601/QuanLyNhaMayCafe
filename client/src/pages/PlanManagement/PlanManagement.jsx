@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/Sidebar';
-import Header from '../components/Header';
-import PlanTable from '../components/PlanTable';
-import { fetchOrders, approveOrders } from '../services/orderService';
+import Sidebar from '../../components/PlanManagement/Sidebar';
+import Header from '../../components/PlanManagement/Header';
+import PlanTable from '../../components/PlanManagement/PlanTable';
+import { fetchOrders, approveOrders } from '../../services/orderService';
 
 const PlanManagement = () => {
   const [activeMenu, setActiveMenu] = useState('production');

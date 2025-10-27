@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 // --- Login
 import Login from "./pages/auth/Login.jsx";
 
+// --- Plan Management (Quản lý kế hoạch)
+import PlanManagement from "./pages/PlanManagement/PlanManagement.jsx";
+
 // --- Worker (Công nhân)
 import CongNhanLayout from "./layouts/CongNhan.jsx";
 import WorkerHome from "./pages/worker/Home.jsx";
@@ -16,6 +19,13 @@ import ApprovePlan from "./pages/director/ApprovePlan.jsx";
 import ApproveOrders from "./pages/director/ApproveOrders.jsx";
 import Reports from "./pages/director/Reports.jsx";
 
+// --- Order (Nhân viên bán hàng)
+import OrderLayout from "./layouts/OrderLayout.jsx";
+import Order from "./pages/order/Order.jsx";
+import Home from"./components/order/Home.jsx";
+import CreateOrder from"./components/order/CreateOrder.jsx";
+import OrderList from"./components/order/OrderList.jsx";
+
 // --- QC routes
 import QCRoute from "./routes/QCRoute";
 
@@ -28,6 +38,7 @@ export default function App() {
       <Routes>
         {/* Public Route - Login */}
         <Route path="/login" element={<Login />} />
+
 
         {/* Protected Routes - Worker */}
         <Route
@@ -64,6 +75,31 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={["qc", "quality control"]}>
               <QCRoute />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/sales/*"
+          element={
+            <ProtectedRoute allowedRoles={["sales", "sales order"]}>
+              <OrderLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route element={<Order />}>
+            <Route index element={<Home />} />
+            <Route path="create" element={<CreateOrder />} />
+            <Route path="list" element={<OrderList />} />
+          </Route>
+        </Route>
+
+        {/* Protected Routes - Plan Management */}
+        <Route
+          path="/plan"
+          element={
+            <ProtectedRoute allowedRoles={["plan", "plan manager"]}>
+              <PlanManagement />
             </ProtectedRoute>
           }
         />

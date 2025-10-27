@@ -12,8 +12,8 @@ app.use(cors());
 app.use(express.json());
 
 // Gắn route chính
-app.use("/api/qc/requests", routes);
-app.use("/api/qc/results", routes);
+app.use("/", routes);
+app.use("/", routes);
 
 // Nhận event PRODUCTION_DONE từ factory
 listenFactoryEvents();

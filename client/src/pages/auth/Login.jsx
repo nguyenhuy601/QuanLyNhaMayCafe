@@ -27,26 +27,32 @@ const Login = () => {
     "kiểm định": "/qc",
 
     // Quản lý kế hoạch
+    plan: "/plan",
     "plan manager": "/plan",
     "quản lý kế hoạch": "/plan",
 
     // Bán hàng
+    sales: "/sales",
     "sales manager": "/sales",
     "bán hàng": "/sales",
 
     // Xưởng trưởng
+    xuong: "/xuong",
     "factory manager": "/xuong",
     "xưởng trưởng": "/xuong",
 
     // Tổ trưởng
+    totruong: "/to-truong",
     "team leader": "/to-truong",
     "tổ trưởng": "/to-truong",
 
     // Quản lý kho nguyên vật liệu
+    khonvl: "/kho-nvl",
     "warehouse manager materials": "/kho-nvl",
     "quản lý kho nguyên vật liệu": "/kho-nvl",
 
     // Quản lý kho thành phẩm
+    khotp: "/kho-tp",
     "warehouse manager finished": "/kho-tp",
     "quản lý kho thành phẩm": "/kho-tp",
     };

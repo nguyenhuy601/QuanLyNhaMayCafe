@@ -12,8 +12,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/assignments", assignmentRoutes);
-app.use("/api/logs", logRoutes);
+app.use("/", assignmentRoutes);
+app.use("/", logRoutes);
 
 // Nhận event từ kế hoạch sản xuất
 listenPlanEvents();

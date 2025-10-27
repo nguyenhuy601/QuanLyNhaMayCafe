@@ -2,6 +2,8 @@ import React from 'react';
 import { Search, Bell, Settings, User } from 'lucide-react';
 
 const Header = () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
   return (
     <div className="bg-gradient-to-r from-amber-700 to-amber-800 text-white p-4 flex items-center justify-between shadow-lg">
       <div className="flex-1 max-w-md">
@@ -27,7 +29,7 @@ const Header = () => {
             <User size={22} />
           </div>
           <div>
-            <div className="font-semibold">Your Name</div>
+            <div className="font-semibold">{user.hoTen || 'Your Name'}</div>
             <div className="text-xs text-amber-200">Quản lý kế hoạch</div>
           </div>
         </div>

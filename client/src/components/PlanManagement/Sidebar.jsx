@@ -1,7 +1,16 @@
 import React from 'react';
 import { Home, FileText, ClipboardList, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Sidebar = ({ activeMenu, setActiveMenu, orderCount, approvedCount }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
   return (
     <div className="w-52 bg-gradient-to-b from-amber-800 to-amber-900 text-white flex flex-col">
       <div className="p-4 border-b border-amber-700">
@@ -63,7 +72,10 @@ const Sidebar = ({ activeMenu, setActiveMenu, orderCount, approvedCount }) => {
           <span className="text-amber-300">●</span>
           <span>Trang thái hệ thống</span>
         </button>
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-amber-700 transition-colors">
+        <button 
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-amber-700 transition-colors"
+        >
           <LogOut size={18} />
           <span>Đăng xuất</span>
         </button>
