@@ -14,7 +14,7 @@ app.use(async (req, res, next) => {
 
 const ADMIN_SERVICE_URL = process.env.ADMIN_SERVICE_URL
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL;
-const DIRECTOR_SERVICE_url = process.env.DIRECTOR_SERVICE_url;
+const DIRECTOR_SERVICE_URL = process.env.DIRECTOR_SERVICE_URL;
 const FACTORY_SERVICE_URL = process.env.FACTORY_SERVICE_URL;
 const PRODUCTION_PLAN_SERVICE_URL = process.env.PRODUCTION_PLAN_SERVICE_URL;
 const QC_SERVICE_URL = process.env.QC_SERVICE_URL;
@@ -32,36 +32,30 @@ app.use("/auth", (req, res) => {
 });
 
 app.use("/director", (req, res) => {
-  req.url = `/finance${req.url}`;
-  proxy.web(req, res, { target: DIRECTOR_SERVICE_url });
+  proxy.web(req, res, { target: DIRECTOR_SERVICE_URL });
 });
 
 app.use("/factory", (req, res) => {
-  req.url = `/hr${req.url}`;
   proxy.web(req, res, { target: FACTORY_SERVICE_URL });
 });
 
 app.use("/production", (req, res) => {
-  req.url = `/material${req.url}`;
   proxy.web(req, res, { target: PRODUCTION_PLAN_SERVICE_URL });
 });
 
 app.use("/qc", (req, res) => {
-  req.url = `/production${req.url}`;
   proxy.web(req, res, { target: QC_SERVICE_URL });
 });
 
 app.use("/report", (req, res) => {
-  req.url = `/qc${req.url}`;
   proxy.web(req, res, { target: REPORT_SERVICE_URL });
 });
 
-app.use("/sales", (req, res) => {
+app.use("/orders", (req, res) => {
   proxy.web(req, res, { target: SALES_SERVICE_URL });
 });
 
 app.use("/warehouse", (req, res) => {
-  req.url = `/sales${req.url}`;
   proxy.web(req, res, { target: WAREHOUSE_SERVICE_URL });
 });
 

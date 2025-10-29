@@ -36,6 +36,12 @@ export const mockProducts = [
   { id: 7, name: 'cafe hòa tan robusta', price: 45000, unit: 'Túi' }
 ];
 
+// Lấy đơn hàng theo ID
+export const getOrderById = (id) => {
+  const orders = JSON.parse(localStorage.getItem('salesOrders') || '[]');
+  return orders.find(order => order.id === id) || null;
+};
+
 // Tìm kiếm khách hàng theo số điện thoại
 export const searchCustomerByPhone = (phone) => {
   return mockCustomers.find(customer => customer.phone === phone) || null;

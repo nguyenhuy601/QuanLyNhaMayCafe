@@ -22,9 +22,10 @@ import Reports from "./pages/director/Reports.jsx";
 // --- Order (Nhân viên bán hàng)
 import OrderLayout from "./layouts/OrderLayout.jsx";
 import Order from "./pages/order/Order.jsx";
-import Home from"./components/order/Home.jsx";
+import OrderHome from"./components/order/OrderHome.jsx";
 import CreateOrder from"./components/order/CreateOrder.jsx";
 import OrderList from"./components/order/OrderList.jsx";
+import OrderEdit from "./pages/order/OrderEdit.jsx";
 
 //Quan ly kho thanh pham
 import NhapKhoThanhPham from "./pages/QuanLyKhoThanhPham/NhapKhoThanhPham.jsx";
@@ -82,18 +83,21 @@ export default function App() {
           }
         />
 
+        {/* Sales (Nhân viên bán hàng) */}
         <Route
-          path="/sales/*"
+          path="/orders/*"
           element={
-            <ProtectedRoute allowedRoles={["sales", "sales order"]}>
+            <ProtectedRoute allowedRoles={["sales", "orders"]}>
               <OrderLayout />
             </ProtectedRoute>
           }
         >
+          {/* Outlet chính (Order.jsx) */}
           <Route element={<Order />}>
-            <Route index element={<Home />} />
+            <Route index element={<OrderHome />} />
             <Route path="create" element={<CreateOrder />} />
             <Route path="list" element={<OrderList />} />
+            <Route path="/orders/edit/:id" element={<OrderEdit />} />
           </Route>
         </Route>
 

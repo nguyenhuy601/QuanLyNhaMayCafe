@@ -5,13 +5,16 @@ require("dotenv").config();
 require('./src/config/connectdb');
 
 const app = express();
-const routes = require('./src/routers/index');
+const OrderRoutes = require('./src/routers/order.routes')
+const Cusroutes = require('./src/routers/customer.routes');
 
 app.use(cors());
 app.use(express.json());
 
 // Gắn route chính
-app.use("/", routes);
+
+app.use("/orders", OrderRoutes);
+app.use("/Customers", Cusroutes);
 
 // Cổng mặc định
 const PORT = process.env.PORT;

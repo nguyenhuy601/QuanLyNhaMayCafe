@@ -8,12 +8,12 @@ const { authorizeRoles } = require("../middlewares/role.middleware");
 router.get("/", verifyToken, customerController.getAllCustomers);
 
 // Tạo khách hàng mới
-router.post("/", verifyToken, authorizeRoles(["Admin", "Kinh doanh"]), customerController.createCustomer);
+router.post("/createCus", verifyToken, authorizeRoles(["Admin", "Kinh doanh"]), customerController.createCustomer);
 
 // Cập nhật khách hàng
-router.put("/:id", verifyToken, authorizeRoles(["Admin", "Kinh doanh"]), customerController.updateCustomer);
+router.put("/updateCus/:id", verifyToken, authorizeRoles(["Admin", "Kinh doanh"]), customerController.updateCustomer);
 
 // Xóa khách hàng
-router.delete("/:id", verifyToken, authorizeRoles(["Admin"]), customerController.deleteCustomer);
+router.delete("/deleteCus/:id", verifyToken, authorizeRoles(["Admin"]), customerController.deleteCustomer);
 
 module.exports = router;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/PlanManagement/Sidebar';
 import Header from '../../components/PlanManagement/Header';
 import PlanTable from '../../components/PlanManagement/PlanTable';
+import PlanListView from '../../components/PlanManagement/PlanListView';
 import { fetchOrders, approveOrders } from '../../services/orderService';
 
 const PlanManagement = () => {
@@ -78,14 +79,15 @@ const PlanManagement = () => {
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <h1 className="text-3xl font-bold text-gray-700 mb-2">
-                  CHÀO MỪNG ĐÉN VỚI QUẢN LÝ KẾ HOẠCH
+                  CHÀO MỪNG ĐẾN VỚI QUẢN LÝ KẾ HOẠCH
                 </h1>
                 <p className="text-gray-500">Hệ thống quản lý kế hoạch sản xuất</p>
               </div>
             </div>
           )}
 
-          {(activeMenu === 'production' || activeMenu === 'list') && (
+          {/* Hiển thị PlanTable cho menu 'production' */}
+          {activeMenu === 'production' && (
             <PlanTable
               activeFilter={activeFilter}
               setActiveFilter={setActiveFilter}
@@ -95,6 +97,17 @@ const PlanManagement = () => {
               onSelectOrder={handleSelectOrder}
               onApprove={handleApproveOrders}
               activeMenu={activeMenu}
+            />
+          )}
+
+          {/* Hiển thị PlanListView cho menu 'list' */}
+          {activeMenu === 'list' && (
+            <PlanListView
+              plans={orders}
+              loading={loading}
+              onView={(plan) => console.log('View:', plan)}
+              onEdit={(plan) => console.log('Edit:', plan)}
+              onDelete={(id) => console.log('Delete:', id)}
             />
           )}
         </div>

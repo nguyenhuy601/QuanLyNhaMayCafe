@@ -39,6 +39,15 @@ services:
     environment:
       PORT: 4000
       RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      ADMIN_SERVICE_URL: http://admin-service:3001
+      AUTH_SERVICE_URL: http://auth-service:3002
+      DIRECTOR_SERVICE_URL: http://director-service:3003
+      FACTORY_SERVICE_URL: http://factory-service:3004
+      PRODUCTION_PLAN_SERVICE_URL: http://production-plan-service:3005
+      QC_SERVICE_URL: http://qc-service:3006
+      REPORT_SERVICE_URL: http://report-service:3007
+      SALES_SERVICE_URL: http://sales-service:3008
+      WAREHOUSE_SERVICE_URL: http://warehouse-service:3009
     ports:
       - "4000:4000"
 

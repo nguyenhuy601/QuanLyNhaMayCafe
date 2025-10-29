@@ -32,9 +32,9 @@ const Login = () => {
     "quản lý kế hoạch": "/plan",
 
     // Bán hàng
-    sales: "/sales",
-    "sales manager": "/sales",
-    "bán hàng": "/sales",
+    orders: "/orders",
+    "sales manager": "/orders",
+    "bán hàng": "/orders",
 
     // Xưởng trưởng
     xuong: "/xuong",

@@ -13,7 +13,7 @@ const Sidebar = () => {
       <div className="p-4">
         <h1 className="text-xl font-bold mb-1">Coffee Company</h1>
       </div>
-      
+
       <div className="bg-amber-700 p-4 m-4 rounded-lg">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
@@ -28,24 +28,24 @@ const Sidebar = () => {
 
       <nav className="mt-2 flex flex-col gap-1 px-2">
         <button
-          onClick={() => navigate('/sales')}
-          className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-700 transition ${isActive('/sales')}`}
+          onClick={() => navigate('/orders')}
+          className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-700 transition ${isActive('/orders')}`}
         >
           <Home size={20} />
           <span>Trang chủ</span>
         </button>
 
         <button
-          onClick={() => navigate('/sales/create')}
-          className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-700 transition ${isActive('/sales/create')}`}
+          onClick={() => navigate('/orders/create')}
+          className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-700 transition ${isActive('/orders/create')}`}
         >
           <Plus size={20} />
           <span>Tạo đơn hàng</span>
         </button>
 
         <button
-          onClick={() => navigate('/sales/list')}
-          className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-700 transition ${isActive('/sales/list')}`}
+          onClick={() => navigate('/orders/list')}
+          className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-700 transition ${isActive('/orders/list')}`}
         >
           <List size={20} />
           <span>Danh sách đơn hàng</span>

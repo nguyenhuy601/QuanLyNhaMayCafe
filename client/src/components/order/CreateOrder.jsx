@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { ChevronLeft, Calendar, X, Check } from "lucide-react";
-import { searchCustomerByPhone, getAllProducts } from "../../services/salesService";
-import { useOutletContext, useNavigate } from "react-router-dom";
+import { searchCustomerByPhone, getAllProducts, getOrderById } from "../../services/salesService";
+import { useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 
 const CreateOrder = () => {
-  // 👉 Lấy context từ Order.jsx
-  const {
-    handleCreateOrder,
-    handleUpdateOrder,
-    editingOrder,
-    setEditingOrder,
-  } = useOutletContext();
+  // 👉 Lấy context từ Outlet (nếu dùng layout hoặc context chung)
+  const { handleCreateOrder, handleUpdateOrder, editingOrder, setEditingOrder } = useOutletContext() || {};
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [searchPhone, setSearchPhone] = useState("");
   const [customerFound, setCustomerFound] = useState(null);
@@ -29,6 +25,18 @@ const CreateOrder = () => {
 
   const products = getAllProducts();
 
+  // 🧩 Nếu có id trên URL → tự lấy đơn để chỉnh sửa
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (id) {
+      const existing = getOrderById ? getOrderById(id) : null;
+      if (existing) {
+        setEditingOrder?.(existing);
+      }
+    }
+  }, [searchParams]);
+
+  // 🧩 Khi editingOrder thay đổi → đổ dữ liệu vào form
   useEffect(() => {
     if (editingOrder) {
       setFormData({
@@ -86,18 +94,12 @@ const CreateOrder = () => {
     });
     setSearchPhone("");
     setCustomerFound(null);
-    setEditingOrder(null);
-    navigate("/sales/list");
+    setEditingOrder?.(null);
+    navigate("/orders/list");
   };
 
   const handleSubmit = async () => {
-    if (
-      !formData.product ||
-      !formData.deliveryDate ||
-      !formData.quantity ||
-      !formData.customerName ||
-      !formData.phone
-    ) {
+    if (!formData.product || !formData.deliveryDate || !formData.quantity || !formData.customerName || !formData.phone) {
       alert("Vui lòng điền đầy đủ thông tin!");
       return;
     }
@@ -122,11 +124,9 @@ const CreateOrder = () => {
       if (success) alert("Tạo đơn hàng thành công!");
     }
 
-    if (success) {
-      handleCancel();
-    } else {
-      alert("Có lỗi xảy ra!");
-    }
+    if (success) handleCancel();
+    else alert("Có lỗi xảy ra!");
+
     setLoading(false);
   };
 
@@ -134,7 +134,7 @@ const CreateOrder = () => {
     <div className="bg-white rounded-lg shadow-lg p-8 max-w-4xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
         <button
-          onClick={() => navigate("/sales/list")}
+          onClick={() => navigate("/orders")}
           className="flex items-center gap-2 text-amber-700 hover:text-amber-800"
         >
           <ChevronLeft size={20} />
@@ -148,9 +148,7 @@ const CreateOrder = () => {
 
       {!editingOrder && (
         <div className="mb-6 p-4 bg-amber-50 rounded-lg">
-          <label className="block text-sm font-semibold mb-2">
-            Tìm kiếm khách hàng:
-          </label>
+          <label className="block text-sm font-semibold mb-2">Tìm kiếm khách hàng:</label>
           <div className="flex gap-2">
             <input
               type="text"
@@ -179,49 +177,39 @@ const CreateOrder = () => {
         </div>
       )}
 
+      {/* Form nội dung */}
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-semibold mb-2">
-            Sản phẩm: <span className="text-red-500">*</span>
-          </label>
+          <label className="block text-sm font-semibold mb-2">Sản phẩm: <span className="text-red-500">*</span></label>
           <select
             name="product"
             value={formData.product}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           >
             <option value="">Chọn sản phẩm</option>
             {products.map((product) => (
-              <option key={product.id} value={product.name}>
-                {product.name}
-              </option>
+              <option key={product.id} value={product.name}>{product.name}</option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold mb-2">
-            Ngày giao: <span className="text-red-500">*</span>
-          </label>
+          <label className="block text-sm font-semibold mb-2">Ngày giao: <span className="text-red-500">*</span></label>
           <div className="relative">
             <input
               type="date"
               name="deliveryDate"
               value={formData.deliveryDate}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
             />
-            <Calendar
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
-              size={20}
-            />
+            <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold mb-2">
-            Số lượng sản phẩm: <span className="text-red-500">*</span>
-          </label>
+          <label className="block text-sm font-semibold mb-2">Số lượng sản phẩm: <span className="text-red-500">*</span></label>
           <input
             type="number"
             name="quantity"
@@ -229,35 +217,31 @@ const CreateOrder = () => {
             onChange={handleInputChange}
             placeholder="Số lượng"
             min="1"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold mb-2">
-            Họ tên Khách hàng: <span className="text-red-500">*</span>
-          </label>
+          <label className="block text-sm font-semibold mb-2">Họ tên khách hàng: <span className="text-red-500">*</span></label>
           <input
             type="text"
             name="customerName"
             value={formData.customerName}
             onChange={handleInputChange}
             placeholder="Họ và tên"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold mb-2">
-            Số điện thoại: <span className="text-red-500">*</span>
-          </label>
+          <label className="block text-sm font-semibold mb-2">Số điện thoại: <span className="text-red-500">*</span></label>
           <input
             type="tel"
             name="phone"
             value={formData.phone}
             onChange={handleInputChange}
             placeholder="Số điện thoại"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           />
         </div>
 
@@ -269,7 +253,7 @@ const CreateOrder = () => {
             value={formData.address}
             onChange={handleInputChange}
             placeholder="Địa chỉ khách hàng"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           />
         </div>
 
@@ -281,7 +265,7 @@ const CreateOrder = () => {
             value={formData.email}
             onChange={handleInputChange}
             placeholder="Email"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           />
         </div>
       </div>
@@ -292,16 +276,14 @@ const CreateOrder = () => {
           disabled={loading}
           className="flex items-center gap-2 px-8 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-semibold disabled:opacity-50"
         >
-          <X size={20} />
-          Hủy
+          <X size={20} /> Hủy
         </button>
         <button
           onClick={handleSubmit}
           disabled={loading}
           className="flex items-center gap-2 px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50"
         >
-          <Check size={20} />
-          {loading ? "Đang xử lý..." : editingOrder ? "Cập nhật" : "Xác nhận"}
+          <Check size={20} /> {loading ? "Đang xử lý..." : editingOrder ? "Cập nhật" : "Xác nhận"}
         </button>
       </div>
     </div>

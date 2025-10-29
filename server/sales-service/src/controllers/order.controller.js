@@ -27,6 +27,7 @@ exports.getAllOrders = async (req, res) => {
 exports.createOrder = async (req, res) => {
   try {
     const order = await Order.create(req.body);
+
     res.status(201).json({ message: "Tạo đơn hàng thành công", order });
 
     // Gửi event sang director-service để duyệt
