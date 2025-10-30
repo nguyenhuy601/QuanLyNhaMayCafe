@@ -19,6 +19,8 @@ const QCResultSchema = new mongoose.Schema({
     }
   ],
   phanLoaiLoi: [{ type: mongoose.Schema.Types.ObjectId, ref: "DefectCategory" }], // nếu có lỗi
+  // soluongloi
+  // so luongdat
   ghiChu: String
 }, { timestamps: true });
 

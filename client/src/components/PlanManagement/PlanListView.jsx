@@ -9,7 +9,7 @@ const PlanListView = ({ plans = [], onEdit, onDelete, onView, loading = false })
 
   // 🔹 Mock data nếu không có kế hoạch thật
   const effectivePlans = useMemo(() => {
-    if (plans && plans.length > 0) return plans;
+    if (Array.isArray(plans) && plans.length > 0) return plans;
     return [
       {
         _id: "1",
@@ -147,56 +147,42 @@ const PlanListView = ({ plans = [], onEdit, onDelete, onView, loading = false })
 
           {/* Sort dropdown */}
           <div className="relative">
-            <button
-              onClick={() => setShowSortMenu((prev) => !prev)}
-              className="w-full flex items-center justify-between gap-2 bg-[#8B4513] hover:bg-[#5A2E0E] text-white px-4 py-2 rounded-lg transition shadow-sm text-sm whitespace-nowrap"
-            >
-              <span className="truncate">
-                {sortType === "date" && "Ngày gần nhất"}
-                {sortType === "product" && "Tên sản phẩm"}
-                {sortType === "factory" && "Xưởng sản xuất"}
-              </span>
-              <ChevronDown size={16} className="flex-shrink-0" />
-            </button>
+          <button
+            onClick={() => setShowSortMenu((prev) => !prev)}
+            className="w-full flex items-center justify-between gap-2 bg-[#8B4513] hover:bg-[#5A2E0E] text-white px-4 py-2 rounded-lg transition shadow-sm text-sm whitespace-nowrap"
+          >
+            <span className="truncate">
+              {sortType === "date" && "Ngày gần nhất"}
+              {sortType === "product" && "Tên sản phẩm"}
+              {sortType === "factory" && "Xưởng sản xuất"}
+            </span>
+            <ChevronDown size={16} className="flex-shrink-0" />
+          </button>
 
-            {showSortMenu && (
-              <div className="absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-full sm:w-64">
-                <button
-                  onClick={() => {
-                    setSortType("date");
-                    setShowSortMenu(false);
-                  }}
-                  className={`block w-full text-left px-4 py-3 text-sm hover:bg-amber-50 transition ${
-                    sortType === "date" ? "bg-amber-100 font-medium" : ""
-                  }`}
-                >
-                  📅 Sắp theo ngày gần nhất
-                </button>
-                <button
-                  onClick={() => {
-                    setSortType("product");
-                    setShowSortMenu(false);
-                  }}
-                  className={`block w-full text-left px-4 py-3 text-sm hover:bg-amber-50 transition ${
-                    sortType === "product" ? "bg-amber-100 font-medium" : ""
-                  }`}
-                >
-                  🏷️ Sắp theo tên sản phẩm
-                </button>
-                <button
-                  onClick={() => {
-                    setSortType("factory");
-                    setShowSortMenu(false);
-                  }}
-                  className={`block w-full text-left px-4 py-3 text-sm hover:bg-amber-50 transition ${
-                    sortType === "factory" ? "bg-amber-100 font-medium" : ""
-                  }`}
-                >
-                  🏭 Sắp theo xưởng sản xuất
-                </button>
-              </div>
-            )}
-          </div>
+          {showSortMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-full">
+              <button
+                onClick={() => handleSortChange("date")}
+                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+              >
+                Ngày gần nhất
+              </button>
+              <button
+                onClick={() => handleSortChange("product")}
+                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+              >
+                Tên sản phẩm
+              </button>
+              <button
+                onClick={() => handleSortChange("factory")}
+                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+              >
+                Xưởng sản xuất
+              </button>
+            </div>
+          )}
+        </div>
+
         </div>
       </div>
 
