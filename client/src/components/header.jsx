@@ -1,10 +1,11 @@
 import React from "react";
+import { Bell, Settings, User, Search } from "lucide-react";
 
 export default function Header() {
   return (
     <header
       style={{
-        backgroundColor: "#8b5a2b",
+        backgroundColor: "#7a4a1b",
         height: "60px",
         display: "flex",
         alignItems: "center",
@@ -23,10 +24,9 @@ export default function Header() {
           borderRadius: "8px",
           padding: "6px 12px",
           width: "300px",
-          flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: "14px" }}>🔍</span>
+        <Search size={16} color="white" />
         <input
           type="text"
           placeholder="Tìm kiếm..."
@@ -42,31 +42,22 @@ export default function Header() {
         />
       </div>
 
-      {/* Icon + User Info */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "16px",
-          flexShrink: 0,
-        }}
-      >
-        <span style={{ fontSize: "18px", cursor: "pointer" }}>🔔</span>
-        <span style={{ fontSize: "18px", cursor: "pointer" }}>⚙️</span>
+      {/* Biểu tượng + Thông tin người dùng */}
+      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <Bell size={18} color="white" style={{ cursor: "pointer" }} />
+        <Settings size={18} color="white" style={{ cursor: "pointer" }} />
 
-        {/* Thông tin người dùng */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             backgroundColor: "#d1884f",
-            borderRadius: "12px",
+            borderRadius: "20px",
             padding: "6px 12px",
-            minWidth: "150px",
-            justifyContent: "flex-start",
+            minWidth: "160px",
           }}
         >
-          <span style={{ fontSize: "20px" }}>👤</span>
+          <User size={20} color="white" />
           <div style={{ marginLeft: "8px", lineHeight: "1.2" }}>
             <p style={{ fontWeight: "bold", fontSize: "14px", margin: 0 }}>
               Your Name

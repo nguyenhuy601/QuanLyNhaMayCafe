@@ -3,18 +3,64 @@ import React, { useState } from "react";
 export default function PhanCong() {
   const [tab, setTab] = useState("danh-sach");
   const [showPopup, setShowPopup] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 2000);
+  const [formData, setFormData] = useState({
+    maTo: "",
+    ngay: "",
+    tenTo: "",
+    maKH: "",
+    congViec: "",
+    nguoi: "",
+  });
+
+  // ✅ Dùng state để lưu danh sách công việc
+  const [jobs, setJobs] = useState([
+    { maTo: "A001", tenTo: "Tổ 1", congViec: "Rang cà phê", nguoi: "Xưởng trưởng A", ngay: "2025-05-01", maKH: "DH001" },
+    { maTo: "A002", tenTo: "Tổ 2", congViec: "Xay cà phê", nguoi: "Xưởng trưởng A", ngay: "2025-06-05", maKH: "DH010" },
+    { maTo: "A003", tenTo: "Tổ 3", congViec: "Đóng gói", nguoi: "Xưởng trưởng A", ngay: "2025-05-10", maKH: "DH011" },
+  ]);
+
+  // --- Hàm xử lý thay đổi ---
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
 
-  const data = [
-    { maTo: "A001", tenTo: "Tổ 1", congViec: "Rang cà phê", nguoi: "Xưởng trưởng A", ngay: "01/05/2025", maKH: "DH001" },
-    { maTo: "A002", tenTo: "Tổ 2", congViec: "Xay cà phê", nguoi: "Xưởng trưởng A", ngay: "05/06/2025", maKH: "DH010" },
-    { maTo: "A003", tenTo: "Tổ 3", congViec: "Đóng gói", nguoi: "Xưởng trưởng A", ngay: "10/05/2025", maKH: "DH011" },
-  ];
+  // --- Hàm submit ---
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const { maTo, ngay, tenTo, maKH, congViec, nguoi } = formData;
+    if (!maTo || !ngay || !tenTo || !maKH || !congViec || !nguoi) {
+      setError("⚠️ Vui lòng nhập đầy đủ tất cả thông tin trước khi lưu!");
+      return;
+    }
+
+    setError("");
+
+    // ✅ Thêm dữ liệu mới vào danh sách
+    const newJob = { ...formData };
+    setJobs([...jobs, newJob]);
+
+    // Hiện popup và reset form
+    setShowPopup(true);
+    setTimeout(() => {
+      setShowPopup(false);
+      setTab("danh-sach"); // ✅ Tự chuyển sang tab danh sách
+    }, 1500);
+
+    setFormData({
+      maTo: "",
+      ngay: "",
+      tenTo: "",
+      maKH: "",
+      congViec: "",
+      nguoi: "",
+    });
+  };
 
   return (
     <div style={{ padding: "20px" }}>
@@ -71,8 +117,8 @@ export default function PhanCong() {
               </tr>
             </thead>
             <tbody>
-              {data.map((row) => (
-                <tr key={row.maTo} style={{ borderBottom: "1px solid #ccc", textAlign: "center" }}>
+              {jobs.map((row, i) => (
+                <tr key={i} style={{ borderBottom: "1px solid #ccc", textAlign: "center" }}>
                   <td>{row.maTo}</td>
                   <td>{row.tenTo}</td>
                   <td>{row.congViec}</td>
@@ -103,45 +149,68 @@ export default function PhanCong() {
           >
             <div>
               <label>Mã tổ</label>
-              <select className="input" style={selectStyle}>
-                <option>A001</option>
-                <option>A002</option>
-                <option>A003</option>
+              <select name="maTo" value={formData.maTo} onChange={handleChange} style={selectStyle}>
+                <option value="">-- Chọn mã tổ --</option>
+                <option value="A001">A001</option>
+                <option value="A002">A002</option>
+                <option value="A003">A003</option>
               </select>
             </div>
 
             <div>
               <label>Ngày phân công</label>
-              <input type="date" className="input" style={inputStyle} />
+              <input type="date" name="ngay" value={formData.ngay} onChange={handleChange} style={inputStyle} />
             </div>
 
             <div>
               <label>Tên tổ</label>
-              <select className="input" style={selectStyle}>
-                <option>Tổ 1</option>
-                <option>Tổ 2</option>
-                <option>Tổ 3</option>
+              <select name="tenTo" value={formData.tenTo} onChange={handleChange} style={selectStyle}>
+                <option value="">-- Chọn tổ --</option>
+                <option value="Tổ 1">Tổ 1</option>
+                <option value="Tổ 2">Tổ 2</option>
+                <option value="Tổ 3">Tổ 3</option>
               </select>
             </div>
 
             <div>
               <label>Mã kế hoạch</label>
-              <select className="input" style={selectStyle}>
-                <option>DH001</option>
-                <option>DH010</option>
-                <option>DH011</option>
+              <select name="maKH" value={formData.maKH} onChange={handleChange} style={selectStyle}>
+                <option value="">-- Chọn mã kế hoạch --</option>
+                <option value="DH001">DH001</option>
+                <option value="DH010">DH010</option>
+                <option value="DH011">DH011</option>
               </select>
             </div>
 
             <div style={{ gridColumn: "span 2" }}>
               <label>Tên công việc</label>
-              <input type="text" placeholder="Nhập công việc" style={inputStyle} />
+              <input
+                type="text"
+                name="congViec"
+                placeholder="Nhập công việc"
+                value={formData.congViec}
+                onChange={handleChange}
+                style={inputStyle}
+              />
             </div>
 
             <div style={{ gridColumn: "span 2" }}>
               <label>Người phân công</label>
-              <input type="text" placeholder="Nhập chức vụ người phân công" style={inputStyle} />
+              <input
+                type="text"
+                name="nguoi"
+                placeholder="Nhập tên người phân công"
+                value={formData.nguoi}
+                onChange={handleChange}
+                style={inputStyle}
+              />
             </div>
+
+            {error && (
+              <div style={{ gridColumn: "span 2", color: "red", textAlign: "center", fontWeight: "bold" }}>
+                {error}
+              </div>
+            )}
 
             <div style={{ gridColumn: "span 2", textAlign: "center" }}>
               <button
@@ -185,7 +254,7 @@ export default function PhanCong() {
               fontWeight: "bold",
             }}
           >
-            Tạo bảng phân công thành công
+            ✅ Tạo bảng phân công thành công
           </div>
         </div>
       )}
@@ -193,7 +262,7 @@ export default function PhanCong() {
   );
 }
 
-// --- CSS nội tuyến chung ---
+// --- CSS nội tuyến ---
 const inputStyle = {
   width: "100%",
   padding: "8px",
