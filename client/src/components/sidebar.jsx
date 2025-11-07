@@ -4,9 +4,7 @@ import {
   ClipboardList,
   BarChart3,
   FileText,
-  CheckCircle,
   LogOut,
-  Coffee,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -16,44 +14,33 @@ export default function SidebarXuongTruong() {
     { path: "/phan-cong", label: "Phân công công việc", icon: <ClipboardList size={18} /> },
     { path: "/thong-ke", label: "Thống kê kết quả sản xuất", icon: <BarChart3 size={18} /> },
     { path: "/xem-ke-hoach", label: "Xem kế hoạch", icon: <FileText size={18} /> },
-    { path: "/kiem-tra", label: "Kiểm tra thành phẩm", icon: <CheckCircle size={18} /> },
   ];
 
   return (
     <aside
       style={{
-        width: "280px",
-        backgroundColor: "#5a2e05",
+        width: "230px",
+        background: "linear-gradient(to bottom, #92400e, #78350f)",
         color: "white",
         display: "flex",
         flexDirection: "column",
         height: "100vh",
-        padding: "15px 0",
+        padding: "20px 10px",
+        boxShadow: "2px 0 6px rgba(0,0,0,0.15)",
       }}
     >
-      {/* Logo + Tên App */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          padding: "0 20px 20px",
-          borderBottom: "1px solid rgba(255,255,255,0.1)",
-        }}
-      >
-        <Coffee size={32} color="white" />
-        <div>
-          <h2 style={{ fontWeight: "bold", fontSize: "18px", margin: 0 }}>
-            Coffee Company
-          </h2>
-          <p style={{ fontSize: "12px", opacity: 0.8, margin: 0 }}>
-            Coffee App - Dashboard v1.0
-          </p>
-        </div>
+      {/* Logo */}
+      <div style={{ textAlign: "center", marginBottom: "25px" }}>
+        <h2 style={{ fontWeight: "bold", fontSize: "20px", color: "#fde68a" }}>
+          Coffee Company
+        </h2>
+        <p style={{ fontSize: "13px", color: "#fbbf24" }}>
+          Dashboard Quản Lý Sản Xuất
+        </p>
       </div>
 
-      {/* Danh mục menu */}
-      <div style={{ display: "flex", flexDirection: "column", marginTop: "20px", gap: "4px" }}>
+      {/* Menu */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {menu.map((item) => (
           <NavLink
             key={item.path}
@@ -61,13 +48,12 @@ export default function SidebarXuongTruong() {
             style={({ isActive }) => ({
               display: "flex",
               alignItems: "center",
-              gap: "12px",
-              padding: "10px 20px",
-              borderRadius: "10px",
-              margin: "2px 10px",
+              gap: "10px",
+              padding: "10px 15px",
+              borderRadius: "8px",
               textDecoration: "none",
-              backgroundColor: isActive ? "#a97458" : "transparent",
-              color: "white",
+              backgroundColor: isActive ? "#b45309" : "transparent",
+              color: isActive ? "#fff" : "#fde68a",
               fontWeight: isActive ? "bold" : "normal",
               transition: "0.2s ease",
             })}
@@ -78,16 +64,17 @@ export default function SidebarXuongTruong() {
         ))}
       </div>
 
-      {/* Trạng thái hệ thống + Đăng xuất */}
-      <div style={{ marginTop: "auto", padding: "20px" }}>
+      {/* Footer */}
+      <div style={{ marginTop: "auto", paddingTop: "20px" }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            background: "#a97458",
-            borderRadius: "10px",
-            padding: "10px 15px",
-            marginBottom: "12px",
+            background: "#b45309",
+            borderRadius: "8px",
+            padding: "8px 10px",
+            marginBottom: "10px",
+            color: "#fde68a",
           }}
         >
           <span
@@ -95,12 +82,12 @@ export default function SidebarXuongTruong() {
               display: "inline-block",
               width: "10px",
               height: "10px",
-              backgroundColor: "#00ff00",
+              backgroundColor: "#fcd34d",
               borderRadius: "50%",
               marginRight: "8px",
             }}
           ></span>
-          <span style={{ fontSize: "14px" }}>Trạng thái hệ thống</span>
+          <span>Trạng thái hệ thống</span>
         </div>
 
         <button
@@ -108,15 +95,22 @@ export default function SidebarXuongTruong() {
             display: "flex",
             alignItems: "center",
             gap: "10px",
-            backgroundColor: "#8b3f2c",
+            backgroundColor: "#92400e",
             border: "none",
             color: "white",
             padding: "10px 15px",
-            borderRadius: "10px",
+            borderRadius: "8px",
             cursor: "pointer",
             width: "100%",
+            transition: "0.2s ease",
           }}
           onClick={() => alert("Đăng xuất thành công!")}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.backgroundColor = "#b45309")
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.backgroundColor = "#92400e")
+          }
         >
           <LogOut size={18} /> Đăng xuất
         </button>

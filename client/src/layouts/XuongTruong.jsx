@@ -1,93 +1,45 @@
 import React from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import SidebarXuongTruong from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
+import { Outlet } from "react-router-dom";
+ // Nếu dùng React Router v6
 
-export default function XuongTruong() {
-  const location = useLocation();
-
+export default function LayoutXuongTruong() {
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      {/* Sidebar */}
-      <aside
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        backgroundColor: "#f8f3ee",
+        overflow: "hidden",
+      }}
+    >
+      {/* Sidebar bên trái */}
+      <SidebarXuongTruong />
+
+      {/* Khu vực nội dung */}
+      <div
         style={{
-          width: "230px",
-          backgroundColor: "#4b2c14",
-          color: "white",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
+          flex: 1,
+          overflow: "hidden",
         }}
       >
-        <div>
-          <div style={{ padding: "20px", borderBottom: "1px solid #704220" }}>
-            <h2 style={{ margin: "0", fontSize: "18px" }}>Coffee Company</h2>
-            <p style={{ marginTop: "5px", fontSize: "12px" }}>
-              Coffee App - Dashboard v1.0
-            </p>
-          </div>
+        {/* Header nằm trên cùng */}
+        <Header />
 
-          <nav style={{ marginTop: "10px" }}>
-            <Link
-              to="/dashboard"
-              style={{
-                display: "block",
-                padding: "10px 20px",
-                textDecoration: "none",
-                color: "white",
-                backgroundColor:
-                  location.pathname === "/dashboard" ? "#a97458" : "transparent",
-              }}
-            >
-              Trang chủ
-            </Link>
-
-            <Link
-              to="/dashboard/phancong"
-              style={{
-                display: "block",
-                padding: "10px 20px",
-                textDecoration: "none",
-                color: "white",
-                backgroundColor:
-                  location.pathname === "/dashboard/phancong" ? "#a97458" : "transparent",
-              }}
-            >
-              Phân công công việc
-            </Link>
-
-            <Link
-              to="#"
-              style={{
-                display: "block",
-                padding: "10px 20px",
-                textDecoration: "none",
-                color: "white",
-              }}
-            >
-              Thống kê sản xuất
-            </Link>
-          </nav>
-        </div>
-
-        <div
+        {/* Nội dung trang */}
+        <main
           style={{
-            backgroundColor: "#704220",
-            padding: "10px 20px",
-            fontSize: "13px",
-            borderTop: "1px solid #5b371d",
+            flex: 1,
+            overflowY: "auto",
+            padding: "20px 30px",
           }}
         >
-          🟢 Trạng thái hệ thống
-        </div>
-      </aside>
-
-      {/* Nội dung */}
-      <main style={{ flex: 1, backgroundColor: "#fffaf5", overflowY: "auto" }}>
-        <Header />
-        <div style={{ padding: "20px" }}>
-          <Outlet />
-        </div>
-      </main>
+          <Outlet /> {/* render các trang con */}
+        </main>
+      </div>
     </div>
   );
 }
