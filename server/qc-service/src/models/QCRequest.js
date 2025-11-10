@@ -1,8 +1,5 @@
 const mongoose = require("mongoose");
 
-/**
- * QCRequest - Phiếu yêu cầu kiểm tra thành phẩm (do xưởng trưởng tạo)
- */
 const QCRequestSchema = new mongoose.Schema({
   maPhieuQC: { type: String, required: true, unique: true },
   keHoach: { type: mongoose.Schema.Types.ObjectId, ref: "ProductionPlan" },
@@ -11,8 +8,8 @@ const QCRequestSchema = new mongoose.Schema({
   soLuong: Number,
   xuong: String,
   ngayYeuCau: { type: Date, default: Date.now },
-  nguoiYeuCau: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" }, // xưởng trưởng
-  trangThai: { type: String, enum: ["Cho kiem tra","Da kiem tra"], default: "Cho kiem tra" },
+  nguoiYeuCau: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+  trangThai: { type: String, enum: ["Chưa kiểm định","Đã kiểm định"], default: "Chưa kiểm định" },
   ghiChu: String
 }, { timestamps: true });
 

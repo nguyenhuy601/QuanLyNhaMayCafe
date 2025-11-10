@@ -1,23 +1,30 @@
 const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
 require("dotenv").config();
-require('./src/config/connectdb');
+require("./src/config/connectdb"); // đảm bảo connectdb xuất mongoose.connect
+const cors = require("cors");
+
+const qcRequestRoute = require("./src/routers/qcRequest.routes");
+const qcResultRoute = require("./src/routers/qcResult.routes");
+const { listenFactoryEvents } = require("./src/rabbitmq/listener"); // giữ nếu bạn có listener
 
 const app = express();
-const routes = require("./src/routers/index");
-const { listenFactoryEvents } = require("./src/rabbitmq/listener");
-
 app.use(cors());
 app.use(express.json());
 
-// Gắn route chính
-app.use("/", routes);
-app.use("/", routes);
-
-// Nhận event PRODUCTION_DONE từ factory
-listenFactoryEvents();
+// mount routers
+app.use("/qc-request", qcRequestRoute);
+app.use("/qc-result", qcResultRoute);
 
 // Cổng mặc định
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3006;
 app.listen(PORT, () => console.log(`🚀 QC-Service running on port ${PORT}`));
+
+(async () => {
+  try {
+    await listenFactoryEvents();
+    console.log("✅ RabbitMQ listener started");
+  } catch (error) {
+    console.error("❌ Failed to connect to RabbitMQ:", error.message);
+  }
+})();
+

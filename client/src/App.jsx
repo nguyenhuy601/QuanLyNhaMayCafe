@@ -76,9 +76,9 @@ export default function App() {
         <Route  
           path="/qc/*"
           element={
-            <ProtectedRoute allowedRoles={["qc"]}>
-              <QCRoute />
-            </ProtectedRoute>
+            // <ProtectedRoute allowedRoles={["qc"]}>
+               <QCRoute />
+            // </ProtectedRoute>
           }
         />
 
@@ -101,9 +101,10 @@ export default function App() {
         <Route
           path="/plan"
           element={
-            <ProtectedRoute allowedRoles={["plan", "plan manager"]}>
-              <PlanManagement />
-            </ProtectedRoute>
+            // <ProtectedRoute 
+            // allowedRoles={["plan", "plan manager"]}>
+            <PlanManagement />
+            // </ProtectedRoute>
           }
         />
 

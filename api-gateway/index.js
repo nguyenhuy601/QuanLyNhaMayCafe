@@ -46,8 +46,12 @@ app.use("/production", (req, res) => {
   proxy.web(req, res, { target: PRODUCTION_PLAN_SERVICE_URL });
 });
 
-app.use("/qc", (req, res) => {
-  req.url = `/production${req.url}`;
+// Tạo proxy riêng cho /qc-request và /qc-result
+app.use("/qc-request", (req, res) => {
+  proxy.web(req, res, { target: QC_SERVICE_URL });
+});
+
+app.use("/qc-result", (req, res) => {
   proxy.web(req, res, { target: QC_SERVICE_URL });
 });
 
