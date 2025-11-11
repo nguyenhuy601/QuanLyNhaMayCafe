@@ -1,89 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Mock data đầy đủ
-const MOCK_ORDERS = [
-  {
-    _id: '1',
-    maDH: 'DH001',
-    khachHang: { tenKH: 'Công ty TNHH ABC' },
-    ngayDat: '2025-03-01',
-    ngayYeuCauGiao: '2025-05-01',
-    trangThai: 'Da duyet',
-    chiTiet: [
-      { 
-        sanPham: { tenSP: 'Cafe rang xay Arabica', donViTinh: 'Túi' }, 
-        soLuong: 5000, 
-        donGia: 50000 
-      }
-    ],
-    tongTien: 250000000
-  },
-  {
-    _id: '2',
-    maDH: 'DH002',
-    khachHang: { tenKH: 'Công ty CP XYZ' },
-    ngayDat: '2025-03-05',
-    ngayYeuCauGiao: '2025-05-10',
-    trangThai: 'Dang cho duyet',
-    chiTiet: [
-      { 
-        sanPham: { tenSP: 'Cafe rang xay Robusta', donViTinh: 'Túi' }, 
-        soLuong: 3000, 
-        donGia: 45000 
-      }
-    ],
-    tongTien: 135000000
-  },
-  {
-    _id: '3',
-    maDH: 'DH003',
-    khachHang: { tenKH: 'Công ty TNHH DEF' },
-    ngayDat: '2025-03-10',
-    ngayYeuCauGiao: '2025-05-15',
-    trangThai: 'Da duyet',
-    chiTiet: [
-      { 
-        sanPham: { tenSP: 'Cafe hòa tan 3in1', donViTinh: 'Hộp' }, 
-        soLuong: 10000, 
-        donGia: 25000 
-      }
-    ],
-    tongTien: 250000000
-  },
-  {
-    _id: '4',
-    maDH: 'DH004',
-    khachHang: { tenKH: 'Siêu thị CoopMart' },
-    ngayDat: '2025-03-12',
-    ngayYeuCauGiao: '2025-05-20',
-    trangThai: 'Dang cho duyet',
-    chiTiet: [
-      { 
-        sanPham: { tenSP: 'Cafe phin giấy', donViTinh: 'Hộp' }, 
-        soLuong: 8000, 
-        donGia: 30000 
-      }
-    ],
-    tongTien: 240000000
-  },
-  {
-    _id: '5',
-    maDH: 'DH005',
-    khachHang: { tenKH: 'Nhà hàng Golden Gate' },
-    ngayDat: '2025-03-15',
-    ngayYeuCauGiao: '2025-05-25',
-    trangThai: 'Da duyet',
-    chiTiet: [
-      { 
-        sanPham: { tenSP: 'Cafe espresso premium', donViTinh: 'Kg' }, 
-        soLuong: 500, 
-        donGia: 180000 
-      }
-    ],
-    tongTien: 90000000
-  }
-];
-
 export const fetchOrders = async () => {
   try {
     const token = localStorage.getItem('token');
@@ -152,80 +68,59 @@ const getMockOrdersWithPending = () => {
 
 export const fetchOrderById = async (id) => {
   try {
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-      // Fallback to mock data
-      return MOCK_ORDERS.find(order => order._id === id) || {
-        _id: id,
-        maDH: "DH001",
-        khachHang: { tenKH: "Nguyễn Văn A" },
-        ngayDat: "2025-10-28",
-        ngayYeuCauGiao: "2025-10-31",
-        trangThai: "Đang xử lý",
-        tongTien: 1500000,
-      };
-    }
+    const token = localStorage.getItem("token");
 
     const response = await fetch(`${API_URL}/orders/${id}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch order');
-    }
+    if (!response.ok) throw new Error("Failed to fetch order");
 
-    return await response.json();
-    
+    const data = await response.json();
+    console.log("✅ Order fetched by ID:", data);
+    return data;
   } catch (error) {
-    console.error('❌ Fetch order by ID error:', error);
-    
-    // Fallback to mock data
-    return MOCK_ORDERS.find(order => order._id === id) || {
-      _id: id,
-      maDH: "DH001",
-      khachHang: { tenKH: "Nguyễn Văn A" },
-      ngayDat: "2025-10-28",
-      ngayYeuCauGiao: "2025-10-31",
-      trangThai: "Đang xử lý",
-      tongTien: 1500000,
-    };
+    console.error("❌ Fetch order by ID error:", error);
+    return null;
   }
 };
 
+
 export const updateOrder = async (id, updatedData) => {
   try {
-    const token = localStorage.getItem('token');
-    
+    const token = localStorage.getItem("token");
+
     if (!token) {
-      console.log("🔄 Mock update order:", id, updatedData);
+      console.log("⚠️ No token — fallback mock update:", id, updatedData);
       return { success: true };
     }
 
     const response = await fetch(`${API_URL}/orders/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(updatedData)
+      body: JSON.stringify(updatedData),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to update order');
+      const errorData = await response.text();
+      throw new Error(`Update failed: ${errorData}`);
     }
 
-    return await response.json();
-    
+    const result = await response.json();
+    console.log("✅ Updated order via API:", result);
+    return result;
   } catch (error) {
-    console.error('❌ Update order error:', error);
-    console.log("🔄 Mock update order:", id, updatedData);
-    return { success: true };
+    console.error("❌ Update order error:", error);
+    return { success: false, message: error.message };
   }
 };
+
 
 export const approveOrders = async (orderIds) => {
   try {

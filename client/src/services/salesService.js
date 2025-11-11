@@ -42,13 +42,64 @@ export const getOrderById = (id) => {
   return orders.find(order => order.id === id) || null;
 };
 
-// Tìm kiếm khách hàng theo số điện thoại
-export const searchCustomerByPhone = (phone) => {
-  return mockCustomers.find(customer => customer.phone === phone) || null;
+export const searchCustomerByPhone = async (phone) => {
+  if (!phone) return null;
+
+  try {
+    if (API_URL) {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/customers/search/${phone}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          id: data._id,
+          name: data.tenKH,
+          phone: data.sdt,
+          email: data.email || "",
+          address: data.diaChi || ""
+        };
+      }
+
+      if (response.status === 404) return null;
+    }
+  } catch (err) {
+    console.error("❌ Error fetching customer:", err);
+  }
+
+  // fallback nếu chưa có BE
+  return mockCustomers.find(c => c.phone === phone) || null;
 };
 
+
 // Lấy tất cả sản phẩm
-export const getAllProducts = () => {
+export const getAllProducts = async () => {
+  try {
+    if (API_URL) {
+      const response = await fetch(`${API_URL}/products`, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.map((p) => ({
+          id: p._id,
+          name: p.tenSP,
+          price: p.donGia,
+          unit: p.donViTinh,
+        }));
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error fetching products from API:", err);
+  }
+
+  // fallback nếu API lỗi
   return mockProducts;
 };
 
@@ -66,7 +117,7 @@ export const salesAPI = {
       
       // Nếu có API backend
       if (API_URL) {
-        const response = await fetch(`${API_URL}/orders/sales`, {
+        const response = await fetch(`${API_URL}/orders`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -106,6 +157,7 @@ export const salesAPI = {
   createOrder: async (orderData) => {
     try {
       const token = localStorage.getItem('token');
+      console.log("Creating order with data:", orderData);
       
       // Nếu có API backend
       if (API_URL) {
@@ -115,31 +167,17 @@ export const salesAPI = {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            khachHang: {
-              tenKH: orderData.customerName,
-              sdt: orderData.phone,
-              email: orderData.email,
-              diaChi: orderData.address
-            },
-            ngayDat: new Date().toISOString(),
-            ngayYeuCauGiao: new Date(orderData.deliveryDate).toISOString(),
-            trangThai: 'Dang cho duyet',
-            chiTiet: [
-              {
-                sanPham: {
-                  tenSP: orderData.product,
-                  donViTinh: 'Túi'
-                },
-                soLuong: parseInt(orderData.quantity.replace('/Túi', '')),
-                donGia: mockProducts.find(p => p.name === orderData.product)?.price || 0
-              }
-            ]
-          })
+          body: JSON.stringify(orderData)
         });
 
+        console.log("Response status:", response.status);
+        const data = await response.text();
+        console.log("Response data:", data);
+
         if (response.ok) {
-          return await response.json();
+          return true;
+        } else {
+          throw new Error(data);
         }
       }
       

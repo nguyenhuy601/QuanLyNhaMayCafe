@@ -1,15 +1,17 @@
 /**
- * Middleware kiểm tra quyền người dùng
- * @param {string[]} allowedRoles - danh sách quyền hợp lệ
+ * Middleware to check if the user has allowed roles
+ * @param {string[]} allowedRoles - array of valid roles
  */
 exports.authorizeRoles = (allowedRoles = []) => {
   return (req, res, next) => {
     if (!req.user || !req.user.role)
-      return res.status(403).json({ message: "Không xác định được quyền người dùng" });
+      return res.status(403).json({ message: "User role not found" });
 
-    const allowed = allowedRoles.includes(req.user.role);
+    const role = req.user.role.toLowerCase();
+    const allowed = allowedRoles.includes(role);
+
     if (!allowed)
-      return res.status(403).json({ message: "Bạn không có quyền thực hiện thao tác này" });
+      return res.status(403).json({ message: "You are not authorized to perform this action" });
 
     next();
   };

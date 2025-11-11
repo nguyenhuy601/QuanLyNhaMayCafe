@@ -52,11 +52,22 @@ app.use("/report", (req, res) => {
 });
 
 app.use("/orders", (req, res) => {
+  req.url = `/orders${req.url}`;
   proxy.web(req, res, { target: SALES_SERVICE_URL });
 });
 
 app.use("/warehouse", (req, res) => {
   proxy.web(req, res, { target: WAREHOUSE_SERVICE_URL });
+});
+
+app.use("/customers", (req, res) => {
+  req.url = `/customers${req.url}`;
+  proxy.web(req, res, { target: SALES_SERVICE_URL });
+});
+
+app.use("/products", (req, res) => {
+  req.url = `/products${req.url}`;
+  proxy.web(req, res, { target: SALES_SERVICE_URL });
 });
 
 const PORT = process.env.PORT;

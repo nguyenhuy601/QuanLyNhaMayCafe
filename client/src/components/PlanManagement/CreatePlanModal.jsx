@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { X, Calendar } from "lucide-react";
+import { X } from "lucide-react";
 
 const CreatePlanModal = ({ onClose, orders }) => {
   const [formData, setFormData] = useState({
     maDonHang: "",
     tenSanPham: "",
     soLuongNVL: "",
-    soLuongThanhPham: "",
-    ngayBatDau: "",
-    ngayKetThuc: "",
-    xuongSanXuat: "",
+    soLuongCanSanXuat: "",
+    ngayBatDauDuKien: "",
+    ngayKetThucDuKien: "",
+    xuongPhuTrach: "",
   });
 
+  // ✅ Khi chọn các đơn hàng — tự tính tổng số lượng & gán dữ liệu
   useEffect(() => {
     if (orders && orders.length > 0) {
       const firstOrder = orders[0];
@@ -19,7 +20,7 @@ const CreatePlanModal = ({ onClose, orders }) => {
         (sum, o) => sum + (o.chiTiet?.[0]?.soLuong || 0),
         0
       );
-      const totalNVL = Math.round(totalThanhPham * 1.1);
+      const totalNVL = Math.round(totalThanhPham * 1.1); // +10% nguyên vật liệu dự phòng
 
       setFormData({
         maDonHang:
@@ -28,21 +29,34 @@ const CreatePlanModal = ({ onClose, orders }) => {
             : orders.map((o) => o.maDH).join(", "),
         tenSanPham:
           orders.length === 1
-            ? firstOrder.chiTiet?.[0]?.sanPham?.tenSP || "Không có sản phẩm"
-            : `Nhiều đơn hàng (${orders.length})`,
-        soLuongThanhPham: totalThanhPham,
+            ? firstOrder.chiTiet?.[0]?.sanPham?.tenSP || "No product info"
+            : `Multiple orders (${orders.length})`,
         soLuongNVL: totalNVL,
-        ngayBatDau: "",
-        ngayKetThuc: "",
-        xuongSanXuat: "",
+        soLuongCanSanXuat: totalThanhPham,
+        ngayBatDauDuKien: "",
+        ngayKetThucDuKien: "",
+        xuongPhuTrach: "",
       });
     }
   }, [orders]);
 
+  // ✅ Khi submit → chỉ gửi những trường cần thiết cho backend
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("✅ Kế hoạch mới:", formData);
-    alert("Tạo kế hoạch thành công!");
+
+    const payload = {
+      maDH: formData.maDonHang,
+      sanPham: orders?.[0]?.chiTiet?.[0]?.sanPham?._id,
+      soLuongCanSanXuat: formData.soLuongCanSanXuat,
+      ngayBatDauDuKien: formData.ngayBatDauDuKien,
+      ngayKetThucDuKien: formData.ngayKetThucDuKien,
+      xuongPhuTrach: formData.xuongPhuTrach,
+      nguoiTao: "671f234ac24c8f3a0a1d4a7f", // ⚙️ tạm thời hardcode, sau sẽ lấy từ token user
+      ghiChu: "",
+    };
+
+    console.log("📦 Data gửi backend:", payload);
+    alert("✅ Tạo kế hoạch thành công!");
     onClose();
   };
 
@@ -62,16 +76,18 @@ const CreatePlanModal = ({ onClose, orders }) => {
         </h2>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Cột trái */}
+          {/* --- Cột trái: Chỉ đọc --- */}
           <div className="space-y-4">
             {[
               ["Mã đơn hàng", "maDonHang"],
               ["Tên sản phẩm", "tenSanPham"],
-              ["Số lượng NVL", "soLuongNVL"],
-              ["Số lượng thành phẩm", "soLuongThanhPham"],
+              ["Số lượng nguyên vật liệu (ước tính)", "soLuongNVL"],
+              ["Số lượng cần sản xuất", "soLuongCanSanXuat"],
             ].map(([label, key]) => (
               <div key={key}>
-                <label className="block text-white text-sm font-medium mb-2">{label}:</label>
+                <label className="block text-white text-sm font-medium mb-2">
+                  {label}:
+                </label>
                 <input
                   type="text"
                   value={formData[key]}
@@ -82,56 +98,66 @@ const CreatePlanModal = ({ onClose, orders }) => {
             ))}
           </div>
 
-          {/* Cột phải */}
+          {/* --- Cột phải: Nhập --- */}
           <div className="space-y-4">
             {/* Ngày bắt đầu */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">Ngày bắt đầu:</label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={formData.ngayBatDau}
-                  onChange={(e) => setFormData({ ...formData, ngayBatDau: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 rounded-lg bg-amber-600 text-white focus:ring-2 focus:ring-amber-400"
-                />
-                
-              </div>
+              <label className="block text-white text-sm font-medium mb-2">
+                Ngày bắt đầu dự kiến:
+              </label>
+              <input
+                type="date"
+                value={formData.ngayBatDauDuKien}
+                onChange={(e) =>
+                  setFormData({ ...formData, ngayBatDauDuKien: e.target.value })
+                }
+                required
+                className="w-full px-4 py-2 rounded-lg bg-amber-600 text-white focus:ring-2 focus:ring-amber-400"
+              />
             </div>
 
             {/* Ngày kết thúc */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">Ngày kết thúc:</label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={formData.ngayKetThuc}
-                  onChange={(e) => setFormData({ ...formData, ngayKetThuc: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 rounded-lg bg-amber-600 text-white focus:ring-2 focus:ring-amber-400"
-                />
-              </div>
+              <label className="block text-white text-sm font-medium mb-2">
+                Ngày kết thúc dự kiến:
+              </label>
+              <input
+                type="date"
+                value={formData.ngayKetThucDuKien}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    ngayKetThucDuKien: e.target.value,
+                  })
+                }
+                required
+                className="w-full px-4 py-2 rounded-lg bg-amber-600 text-white focus:ring-2 focus:ring-amber-400"
+              />
             </div>
 
             {/* Xưởng sản xuất */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">Xưởng sản xuất:</label>
+              <label className="block text-white text-sm font-medium mb-2">
+                Xưởng sản xuất phụ trách:
+              </label>
               <select
-                value={formData.xuongSanXuat}
-                onChange={(e) => setFormData({ ...formData, xuongSanXuat: e.target.value })}
+                value={formData.xuongPhuTrach}
+                onChange={(e) =>
+                  setFormData({ ...formData, xuongPhuTrach: e.target.value })
+                }
                 required
                 className="w-full px-4 py-2 rounded-lg bg-amber-600 text-white focus:ring-2 focus:ring-amber-400"
               >
                 <option value="">Chọn xưởng sản xuất...</option>
-                <option value="Xưởng arabica">Xưởng arabica</option>
-                <option value="Xưởng robusta">Xưởng robusta</option>
-                <option value="Xưởng chồn">Xưởng chồn</option>
-                <option value="Xưởng hòa tan">Xưởng hòa tan</option>
+                <option value="Factory Arabica">Factory Arabica</option>
+                <option value="Factory Robusta">Factory Robusta</option>
+                <option value="Factory Civet">Factory Civet</option>
+                <option value="Factory Instant">Factory Instant</option>
               </select>
             </div>
           </div>
 
-          {/* Hàng nút bấm (ngang, full width) */}
+          {/* --- Nút hành động --- */}
           <div className="col-span-1 md:col-span-2 flex gap-3 justify-center pt-4">
             <button
               type="button"

@@ -1,6 +1,5 @@
 const ProductionPlan = require("../models/ProductionPlan");
 const MaterialRequest = require("../models/MaterialRequest");
-const Product = require("../models/Product");
 const { publishEvent } = require("../utils/eventPublisher");
 
 /**
@@ -12,37 +11,69 @@ async function checkMaterialAvailability(order) {
 }
 
 /**
- * Tạo kế hoạch sản xuất sau khi đơn hàng được duyệt
+ * API: Tạo kế hoạch sản xuất (FE gọi trực tiếp)
  */
-exports.createProductionPlan = async (orderData) => {
+exports.createProductionPlan = async (req, res) => {
   try {
+    const orderData = req.body;
+
+    // 🔍 Kiểm tra dữ liệu đầu vào
+    if (
+      !orderData.maDH ||
+      !orderData.sanPham ||
+      !orderData.soLuongCanSanXuat ||
+      !orderData.ngayBatDauDuKien ||
+      !orderData.ngayKetThucDuKien ||
+      !orderData.xuongPhuTrach
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Thiếu thông tin cần thiết để tạo kế hoạch." });
+    }
+
     const materialsOk = await checkMaterialAvailability(orderData);
 
     if (!materialsOk) {
-      // Thiếu NVL → tạo phiếu yêu cầu bổ sung
+      // ❗Thiếu nguyên vật liệu → tạo phiếu yêu cầu bổ sung
       const request = await MaterialRequest.create({
         ngayYeuCau: new Date(),
-        noiDung: `Thiếu nguyên vật liệu cho đơn hàng ${orderData.maDH}`,
-        trangThai: "Chờ duyệt",
+        noiDung: `Missing materials for order ${orderData.maDH}`,
+        trangThai: "Pending",
         nguoiYeuCau: orderData.nguoiTao,
       });
+
       console.log("⚠️ Material Request created:", request._id);
-      return;
+      return res.status(200).json({
+        message: "Material not enough, material request created.",
+        materialRequestId: request._id,
+      });
     }
 
-    // Đủ NVL → tạo kế hoạch sản xuất
+    // ✅ Đủ NVL → tạo kế hoạch sản xuất
     const plan = await ProductionPlan.create({
-      donHang: orderData._id,
-      ngayLap: new Date(),
+      donHangLienQuan: [], // FE hiện chưa gửi danh sách order _id, để trống hoặc bổ sung sau
+      sanPham: orderData.sanPham,
+      soLuongCanSanXuat: orderData.soLuongCanSanXuat,
+      ngayBatDauDuKien: orderData.ngayBatDauDuKien,
+      ngayKetThucDuKien: orderData.ngayKetThucDuKien,
+      xuongPhuTrach: orderData.xuongPhuTrach,
       nguoiLap: orderData.nguoiTao,
+      ghiChu: orderData.ghiChu || "",
       trangThai: "Đang chờ phân xưởng tiếp nhận",
     });
-    console.log("🗂️ Production plan created:", plan._id);
 
-    // Gửi event sang factory-service
+    console.log("🗂️ Production plan created:", plan.maKeHoach);
+
+    // Phát sự kiện sang các service khác (nếu có)
     await publishEvent("PLAN_READY", plan);
+
+    res.status(201).json({
+      message: "Production plan created successfully.",
+      plan,
+    });
   } catch (err) {
-    console.error("❌ Lỗi tạo kế hoạch SX:", err.message);
+    console.error("❌ Error creating Production Plan:", err.message);
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -52,8 +83,9 @@ exports.createProductionPlan = async (orderData) => {
 exports.getPlans = async (req, res) => {
   try {
     const plans = await ProductionPlan.find()
-      .populate("donHang nguoiLap")
+      .populate("sanPham nguoiLap")
       .sort({ ngayLap: -1 });
+
     res.status(200).json(plans);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -4,12 +4,11 @@ const mongoose = require("mongoose");
  * Customer - Khách hàng
  */
 const CustomerSchema = new mongoose.Schema({
-  maKH: { type: String, required: true, unique: true },
   tenKH: { type: String, required: true },
-  sdt: String,
+  sdt: { type: String, required: true, unique: true }, // ⚡ nên đặt unique để tránh trùng số
   email: String,
   diaChi: String,
-  loaiKH: { type: String, enum: ["Cá nhân","Doanh nghiệp"], default: "Cá nhân" },
+  loaiKH: { type: String, enum: ["Cá nhân", "Doanh nghiệp"], default: "Cá nhân" },
   ghiChu: String
 }, { timestamps: true });
 

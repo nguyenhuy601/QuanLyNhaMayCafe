@@ -10,51 +10,18 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Hàm redirect theo role
+// Redirect by role
   const redirectByRole = (role) => {
     const roleMap = {
-      // Công nhân
-    worker: "/worker",
-    "công nhân": "/worker",
-
-    // Ban giám đốc
-    director: "/director",
-    "giám đốc": "/director",
-
-    // QC - Kiểm định
-    qc: "/qc",
-    "quality control": "/qc",
-    "kiểm định": "/qc",
-
-    // Quản lý kế hoạch
-    plan: "/plan",
-    "plan manager": "/plan",
-    "quản lý kế hoạch": "/plan",
-
-    // Bán hàng
-    orders: "/orders",
-    "sales manager": "/orders",
-    "bán hàng": "/orders",
-
-    // Xưởng trưởng
-    xuong: "/xuong",
-    "factory manager": "/xuong",
-    "xưởng trưởng": "/xuong",
-
-    // Tổ trưởng
-    totruong: "/to-truong",
-    "team leader": "/to-truong",
-    "tổ trưởng": "/to-truong",
-
-    // Quản lý kho nguyên vật liệu
-    khonvl: "/kho-nvl",
-    "warehouse manager materials": "/kho-nvl",
-    "quản lý kho nguyên vật liệu": "/kho-nvl",
-
-    // Quản lý kho thành phẩm
-    warehouseproduct: "/WarehouseProduct",
-    "warehouse manager finished": "/WarehouseProduct",
-    "quản lý kho thành phẩm": "/WarehouseProduct",
+      worker: "/worker",
+      director: "/director",
+      qc: "/qc",
+      plan: "/plan",
+      orders: "/orders",
+      xuong: "/xuong",
+      totruong: "/totruong",
+      khonvl: "/khonvl",
+      warehouseproduct: "/warehouseproduct",
     };
 
     const path = roleMap[role?.toLowerCase()] || "/login";

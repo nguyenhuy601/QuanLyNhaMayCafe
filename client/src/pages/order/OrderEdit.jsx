@@ -29,17 +29,25 @@ const OrderEdit = () => {
   };
 
   const handleSave = async () => {
-    if (window.confirm("Xác nhận lưu thay đổi đơn hàng này?")) {
-      try {
-        await updateOrder(id, order);
-        alert("Cập nhật đơn hàng thành công!");
-        navigate("/orders");
-      } catch (error) {
-        console.error("Lỗi cập nhật đơn hàng:", error);
-        alert("Không thể cập nhật đơn hàng!");
-      }
+  if (!window.confirm("Xác nhận lưu thay đổi đơn hàng này?")) return;
+
+  try {
+    setLoading(true);
+    const result = await updateOrder(id, order);
+
+    if (result?.success === false) {
+      throw new Error(result.message);
     }
-  };
+
+    alert("✅ Cập nhật đơn hàng thành công!");
+    navigate("/orders");
+  } catch (error) {
+    console.error("Lỗi cập nhật đơn hàng:", error);
+    alert("❌ Không thể cập nhật đơn hàng!");
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return (

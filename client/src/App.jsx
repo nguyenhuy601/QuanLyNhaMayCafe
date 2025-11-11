@@ -97,7 +97,7 @@ export default function App() {
             <Route index element={<OrderHome />} />
             <Route path="create" element={<CreateOrder />} />
             <Route path="list" element={<OrderList />} />
-            <Route path="edit/:id" element={<OrderEdit />} />
+            <Route path=":id" element={<OrderEdit />} />
           </Route>
         </Route>
 

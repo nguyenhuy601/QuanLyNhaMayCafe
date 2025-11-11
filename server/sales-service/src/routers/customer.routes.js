@@ -4,16 +4,19 @@ const customerController = require("../controllers/customer.controller");
 const { verifyToken } = require("../middlewares/auth.middleware");
 const { authorizeRoles } = require("../middlewares/role.middleware");
 
-// Lấy danh sách khách hàng
-router.get("/", verifyToken, customerController.getAllCustomers);
+// 🔍 Tìm khách hàng theo SĐT — không cần quyền đặc biệt
+router.get("/search/:phone", verifyToken, authorizeRoles(["admin", "orders", "sales"]), customerController.findCustomerByPhone);
 
-// Tạo khách hàng mới
-router.post("/createCus", verifyToken, authorizeRoles(["Admin", "Kinh doanh"]), customerController.createCustomer);
+// 🧾 Lấy toàn bộ khách hàng
+router.get("/", verifyToken, authorizeRoles(["admin", "orders", "sales"]), customerController.getAllCustomers);
 
-// Cập nhật khách hàng
-router.put("/updateCus/:id", verifyToken, authorizeRoles(["Admin", "Kinh doanh"]), customerController.updateCustomer);
+// ➕ Tạo khách hàng
+router.post("/", verifyToken, authorizeRoles(["orders", "sales"]), customerController.createCustomer);
 
-// Xóa khách hàng
-router.delete("/deleteCus/:id", verifyToken, authorizeRoles(["Admin"]), customerController.deleteCustomer);
+// ✏️ Cập nhật
+router.put("/update/:id", verifyToken, authorizeRoles(["orders"]), customerController.updateCustomer);
+
+// 🗑️ Xóa
+router.delete("/delete/:id", verifyToken, authorizeRoles(["orders"]), customerController.deleteCustomer);
 
 module.exports = router;
