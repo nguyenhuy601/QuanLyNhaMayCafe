@@ -4,13 +4,15 @@ export const fetchOrders = async () => {
   try {
     const token = localStorage.getItem('token');
     
-    // Nếu không có token, trả về mock data ngay
-    if (!token) {
-      console.log('⚠️ No token found, using mock data');
+    // If no token or no API_URL, use mock data
+    if (!token || !API_URL) {
+      console.log('⚠️ No token or API_URL found, using mock data');
       return getMockOrdersWithPending();
     }
 
+    console.log('📡 Fetching orders from:', `${API_URL}/orders`);
     const response = await fetch(`${API_URL}/orders`, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -18,7 +20,8 @@ export const fetchOrders = async () => {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch orders');
+      console.warn(`⚠️ API returned ${response.status}, using mock data`);
+      return getMockOrdersWithPending();
     }
 
     const data = await response.json();
@@ -45,11 +48,12 @@ const getMockOrdersWithPending = () => {
     khachHang: { tenKH: order.customerName },
     ngayDat: order.createdAt,
     ngayYeuCauGiao: order.deliveryDate,
-    trangThai: 'Dang cho duyet',
+    trangThai: 'Chờ duyệt',
     chiTiet: [
       { 
         sanPham: { 
-          tenSP: order.product || order.productName || 'Sản phẩm', 
+          tenSP: order.product || order.productName || 'Sản phẩm',
+          loai: order.loai || 'sanpham',
           donViTinh: 'Túi' 
         }, 
         soLuong: parseInt(order.quantity) || 0, 
@@ -60,7 +64,7 @@ const getMockOrdersWithPending = () => {
   }));
 
   // Merge và return
-  const allOrders = [...convertedPendingOrders, ...MOCK_ORDERS];
+  const allOrders = [...convertedPendingOrders];
   console.log('📊 Total orders (pending + mock):', allOrders.length);
   
   return allOrders;

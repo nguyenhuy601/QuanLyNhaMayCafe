@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Plus, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchOrders } from "../../services/orderService";
+import formatDateOnly from "../../utils/formatDate";
 
 const OrderList = () => {
   const navigate = useNavigate();
@@ -79,8 +80,8 @@ const OrderList = () => {
                   >
                     <td className="px-4 py-3 text-sm font-semibold">{order.maDH}</td>
                     <td className="px-4 py-3 text-sm">{order.khachHang?.tenKH}</td>
-                    <td className="px-4 py-3 text-sm">{order.ngayDat}</td>
-                    <td className="px-4 py-3 text-sm">{order.ngayYeuCauGiao}</td>
+                    <td className="px-4 py-3 text-sm">{formatDateOnly(order.ngayDat)}</td>
+                    <td className="px-4 py-3 text-sm">{formatDateOnly(order.ngayYeuCauGiao)}</td>
                     <td className="px-4 py-3 text-sm">{order.trangThai}</td>
                     <td className="px-4 py-3 text-sm">{(order.tongTien ?? 0).toLocaleString()}₫</td>
                     <td className="px-4 py-3 text-center space-x-2">

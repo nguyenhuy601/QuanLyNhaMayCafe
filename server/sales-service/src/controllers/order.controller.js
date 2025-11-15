@@ -107,7 +107,8 @@ exports.createOrder = async (req, res) => {
       ngayYeuCauGiao,
       diaChiGiao,
       ngayDat: new Date(),
-      trangThai: "Dang cho duyet",
+      // Don't force a specific string here — let the Order model default handle the initial status
+      // (models across services use different enums; using the model default prevents enum validation errors)
       nguoiTao: req.user?.id || null,
     });
 

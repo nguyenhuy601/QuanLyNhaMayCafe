@@ -1,5 +1,4 @@
 services:
-  # 🐇 RabbitMQ
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -9,13 +8,13 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin
+    mem_limit: 512m
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # 🍃 MongoDB
   mongodb:
     image: mongo:6
     container_name: mongodb
@@ -23,46 +22,36 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    mem_limit: 512m
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # 🌐 API Gateway
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
     volumes:
       - ./api-gateway:/app
-      - /app/node_modules
-    command: npx nodemon server.js
+    command: nodemon --legacy-watch server.js
+    mem_limit: 256m
     depends_on:
       rabbitmq:
         condition: service_healthy
     environment:
       PORT: 4000
       RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
-      ADMIN_SERVICE_URL: http://admin-service:3001
-      AUTH_SERVICE_URL: http://auth-service:3002
-      DIRECTOR_SERVICE_URL: http://director-service:3003
-      FACTORY_SERVICE_URL: http://factory-service:3004
-      PRODUCTION_PLAN_SERVICE_URL: http://production-plan-service:3005
-      QC_SERVICE_URL: http://qc-service:3006
-      REPORT_SERVICE_URL: http://report-service:3007
-      SALES_SERVICE_URL: http://sales-service:3008
-      WAREHOUSE_SERVICE_URL: http://warehouse-service:3009
     ports:
       - "4000:4000"
 
-  # 👑 Admin Service
   admin-service:
     build: ./server/admin-service
     container_name: admin-service
     volumes:
       - ./server/admin-service:/app
-      - /app/node_modules
-    command: npx nodemon server.js
+    command: nodemon --legacy-watch server.js
+    mem_limit: 256m
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -71,19 +60,16 @@ services:
     environment:
       PORT: 3001
       MONGO_URI: mongodb://mongodb:27017/adminDB
-      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
-      JWT_SECRET: your_secret_here
     ports:
       - "3001:3001"
 
-  # 🔐 Auth Service
   auth-service:
     build: ./server/auth-service
     container_name: auth-service
     volumes:
       - ./server/auth-service:/app
-      - /app/node_modules
-    command: npx nodemon server.js
+    command: nodemon --legacy-watch server.js
+    mem_limit: 256m
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -92,19 +78,16 @@ services:
     environment:
       PORT: 3002
       MONGO_URI: mongodb://mongodb:27017/authDB
-      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
-      JWT_SECRET: your_secret_here
     ports:
       - "3002:3002"
 
-  # 🧭 Director Service
   director-service:
     build: ./server/director-service
     container_name: director-service
     volumes:
       - ./server/director-service:/app
-      - /app/node_modules
-    command: npx nodemon server.js
+    command: nodemon --legacy-watch server.js
+    mem_limit: 256m
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -113,134 +96,84 @@ services:
     environment:
       PORT: 3003
       MONGO_URI: mongodb://mongodb:27017/directorDB
-      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
-      JWT_SECRET: your_secret_here
     ports:
       - "3003:3003"
 
-  # ⚙️ Factory Service
   factory-service:
     build: ./server/factory-service
     container_name: factory-service
     volumes:
       - ./server/factory-service:/app
-      - /app/node_modules
-    command: npx nodemon server.js
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
+    command: nodemon --legacy-watch server.js
+    mem_limit: 256m
     environment:
       PORT: 3004
       MONGO_URI: mongodb://mongodb:27017/factoryDB
-      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
-      JWT_SECRET: your_secret_here
     ports:
       - "3004:3004"
 
-  # 🏗️ Production Plan Service
   production-plan-service:
     build: ./server/production-plan-service
     container_name: production-plan-service
     volumes:
       - ./server/production-plan-service:/app
-      - /app/node_modules
-    command: npx nodemon server.js
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
+    command: nodemon --legacy-watch server.js
+    mem_limit: 256m
     environment:
       PORT: 3005
       MONGO_URI: mongodb://mongodb:27017/productionPlanDB
-      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
-      JWT_SECRET: your_secret_here
     ports:
       - "3005:3005"
 
-  # 🔍 QC Service
   qc-service:
     build: ./server/qc-service
     container_name: qc-service
     volumes:
       - ./server/qc-service:/app
-      - /app/node_modules
-    command: npx nodemon server.js
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
+    command: nodemon --legacy-watch server.js
+    mem_limit: 256m
     environment:
       PORT: 3006
       MONGO_URI: mongodb://mongodb:27017/qcDB
-      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
-      JWT_SECRET: your_secret_here
     ports:
       - "3006:3006"
 
-  # 📊 Report Service
   report-service:
     build: ./server/report-service
     container_name: report-service
     volumes:
       - ./server/report-service:/app
-      - /app/node_modules
-    command: npx nodemon server.js
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
+    command: nodemon --legacy-watch server.js
+    mem_limit: 256m
     environment:
       PORT: 3007
       MONGO_URI: mongodb://mongodb:27017/reportDB
-      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
-      JWT_SECRET: your_secret_here
     ports:
       - "3007:3007"
 
-  # 💰 Sales Service
   sales-service:
     build: ./server/sales-service
     container_name: sales-service
     volumes:
       - ./server/sales-service:/app
-      - /app/node_modules
-    command: npx nodemon server.js
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
+    command: nodemon --legacy-watch server.js
+    mem_limit: 256m
     environment:
       PORT: 3008
       MONGO_URI: mongodb://mongodb:27017/salesDB
-      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
-      JWT_SECRET: your_secret_here
     ports:
       - "3008:3008"
 
-  # 🏬 Warehouse Service
   warehouse-service:
     build: ./server/warehouse-service
     container_name: warehouse-service
     volumes:
       - ./server/warehouse-service:/app
-      - /app/node_modules
-    command: npx nodemon server.js
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
+    command: nodemon --legacy-watch server.js
+    mem_limit: 256m
     environment:
       PORT: 3009
       MONGO_URI: mongodb://mongodb:27017/warehouseDB
-      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
-      JWT_SECRET: your_secret_here
     ports:
       - "3009:3009"
 

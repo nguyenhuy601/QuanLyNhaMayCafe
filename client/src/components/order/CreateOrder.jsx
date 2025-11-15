@@ -24,13 +24,17 @@ const CreateOrder = () => {
 
   const [products, setProducts] = useState([]);
 
-  // 🧩 Load danh sách sản phẩm
+  // 🧩 Load danh sách sản phẩm (chỉ loại sản phẩm)
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const list = await getAllProducts();
-        if (mounted && Array.isArray(list)) setProducts(list);
+        if (mounted && Array.isArray(list)) {
+          // Filter để chỉ lấy sản phẩm (loai: "sanpham")
+          const sanPhams = list.filter(p => p.loai === "sanpham" || !p.loai);
+          setProducts(sanPhams);
+        }
       } catch (err) {
         console.error("Error loading products in CreateOrder:", err);
         if (mounted) setProducts([]);
@@ -173,7 +177,7 @@ const CreateOrder = () => {
         email: formData.email || undefined,
         diaChi: formData.address || undefined,
       },
-      ngayYeuCauGiao: new Date(formData.deliveryDate).toISOString(),
+      ngayYeuCauGiao: formData.deliveryDate, // chỉ giữ yyyy-mm-dd
       diaChiGiao: formData.address || undefined,
       chiTiet: [
         {

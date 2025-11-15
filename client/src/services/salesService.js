@@ -1,41 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Mock data khách hàng
-export const mockCustomers = [
-  {
-    id: 1,
-    name: 'Nguyễn Văn A',
-    phone: '0982738389',
-    email: 'NguyenVanA@gmail.com',
-    address: 'Lê Văn Sỹ, Quận 3'
-  },
-  {
-    id: 2,
-    name: 'Trần Thị B',
-    phone: '0901234567',
-    email: 'TranThiB@gmail.com',
-    address: 'Nguyễn Huệ, Quận 1'
-  },
-  {
-    id: 3,
-    name: 'Lê Văn C',
-    phone: '0912345678',
-    email: 'LeVanC@gmail.com',
-    address: 'Hai Bà Trưng, Quận 3'
-  }
-];
-
-// Mock data sản phẩm - Lấy từ API hoặc mock
-export const mockProducts = [
-  { id: 1, name: 'cafe rang xay arabica', price: 50000, unit: 'Túi' },
-  { id: 2, name: 'cafe hạt arabica', price: 60000, unit: 'Túi' },
-  { id: 3, name: 'cafe hạt robusta', price: 45000, unit: 'Túi' },
-  { id: 4, name: 'cafe phin giấy', price: 70000, unit: 'Túi' },
-  { id: 5, name: 'cafe espresso', price: 90000, unit: 'Túi' },
-  { id: 6, name: 'cafe chồn', price: 150000, unit: 'Túi' },
-  { id: 7, name: 'cafe hòa tan robusta', price: 45000, unit: 'Túi' }
-];
-
 // Lấy đơn hàng theo ID
 export const getOrderById = (id) => {
   const orders = JSON.parse(localStorage.getItem('salesOrders') || '[]');
@@ -71,9 +35,6 @@ export const searchCustomerByPhone = async (phone) => {
   } catch (err) {
     console.error("❌ Error fetching customer:", err);
   }
-
-  // fallback nếu chưa có BE
-  return mockCustomers.find(c => c.phone === phone) || null;
 };
 
 
@@ -92,15 +53,13 @@ export const getAllProducts = async () => {
           name: p.tenSP,
           price: p.donGia,
           unit: p.donViTinh,
+          loai: p.loai || "sanpham",
         }));
       }
     }
   } catch (err) {
     console.error("❌ Error fetching products from API:", err);
   }
-
-  // fallback nếu API lỗi
-  return mockProducts;
 };
 
 // Lấy sản phẩm theo ID
@@ -266,7 +225,7 @@ export const salesAPI = {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            trangThai: 'Dang cho duyet'
+            trangThai: 'Chờ duyệt'
           })
         });
 
@@ -283,7 +242,7 @@ export const salesAPI = {
       if (orderIndex !== -1) {
         const completedOrder = {
           ...orders[orderIndex],
-          status: 'Dang cho duyet',
+          status: 'Chờ duyệt',
           submittedAt: new Date().toISOString()
         };
         pendingOrders.push(completedOrder);

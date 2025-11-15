@@ -1,9 +1,11 @@
 const Product = require("../models/Product");
 
-/** 🟢 Lấy tất cả sản phẩm */
+/** 🟢 Lấy tất cả sản phẩm (có thể filter theo loại) */
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find();
+    const { loai } = req.query;
+    const query = loai ? { loai: loai.toLowerCase() } : {};
+    const products = await Product.find(query);
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: "Lỗi khi lấy danh sách sản phẩm", error: err.message });
@@ -25,7 +27,11 @@ exports.getProductById = async (req, res) => {
 /** 🟢 Tạo sản phẩm mới */
 exports.createProduct = async (req, res) => {
   try {
-    const newProduct = new Product(req.body);
+    const productData = {
+      ...req.body,
+      loai: req.body.loai || "sanpham"
+    };
+    const newProduct = new Product(productData);
     await newProduct.save();
     res.status(201).json(newProduct);
   } catch (err) {

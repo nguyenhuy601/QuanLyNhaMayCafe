@@ -113,28 +113,13 @@ const OrderEdit = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700">Trạng thái</label>
-          <select
-            name="trangThai"
-            value={order.trangThai || ""}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded-lg p-2 mt-1 focus:ring-amber-500 focus:border-amber-500"
-          >
-            <option value="Chờ duyệt">Chờ duyệt</option>
-            <option value="Đang xử lý">Đang xử lý</option>
-            <option value="Đã giao">Đã giao</option>
-            <option value="Hoàn tất">Hoàn tất</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700">Tổng tiền (₫)</label>
+          <label className="block text-sm font-semibold text-gray-700 ">Tổng tiền (₫)</label>
           <input
             type="number"
             name="tongTien"
             value={order.tongTien || 0}
             onChange={handleChange}
-            className="w-full border border-gray-300 rounded-lg p-2 mt-1 focus:ring-amber-500 focus:border-amber-500"
+            className="w-full border border-gray-300 rounded-lg p-2 mt-1 focus:ring-amber-500 focus:border-amber-500" disabled
           />
         </div>
       </div>

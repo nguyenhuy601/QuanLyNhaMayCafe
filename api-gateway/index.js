@@ -3,12 +3,44 @@ const httpProxy = require("http-proxy");
 require("dotenv").config();
 
 const app = express();
-const proxy = httpProxy.createProxyServer({});
+const proxy = httpProxy.createProxyServer({
+  // Give more time for services to respond
+  timeout: 30000,
+  proxyTimeout: 30000,
+});
 
-// Middleware xác thực cơ bản
+// Enable CORS headers manually (without cors package)
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", FRONTEND_URL);
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Handle proxy errors gracefully
+proxy.on("error", (err, req, res) => {
+  console.error("❌ Proxy error:", err.message);
+  res.status(503).json({
+    error: "Service unavailable",
+    message: err.message,
+  });
+});
+
+proxy.on("proxyRes", (proxyRes, req, res) => {
+  // Ensure CORS headers are included in proxy response
+  proxyRes.headers["Access-Control-Allow-Origin"] = FRONTEND_URL;
+});
+
+// Basic auth middleware
 app.use(async (req, res, next) => {
   if (req.path.startsWith("/auth") || req.path.startsWith("/public")) return next();
-  // Có thể gọi sang auth-service để verify token
   next();
 });
 
@@ -39,7 +71,7 @@ app.use("/factory", (req, res) => {
   proxy.web(req, res, { target: FACTORY_SERVICE_URL });
 });
 
-app.use("/production", (req, res) => {
+app.use("/plan", (req, res) => {
   proxy.web(req, res, { target: PRODUCTION_PLAN_SERVICE_URL });
 });
 

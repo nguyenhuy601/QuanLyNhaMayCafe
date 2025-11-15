@@ -6,23 +6,38 @@ const mongoose = require("mongoose");
 const ProductionPlanSchema = new mongoose.Schema(
   {
     maKeHoach: { type: String, unique: true },
-    donHangLienQuan: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
-    sanPham: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+    donHangLienQuan: [
+      {
+        orderId: { type: String, required: true },   // ID từ service Sales
+        maDonHang: String,                           // cache mã đơn hàng
+        tenKhachHang: String,                        // cache
+        tongTien: Number                             // cache
+      }
+    ],
+    sanPham: {
+      productId: { type: String, required: true }, // ID của product bên Sales
+      tenSanPham: String, // (optional) lưu cache tên để hiển thị nhanh
+      maSP: String,       // (optional) lưu mã sản phẩm nếu cần
+      loai: { type: String, enum: ["sanpham", "nguyenvatlieu"], default: "sanpham" }, // Loại sản phẩm
+    },
     soLuongCanSanXuat: Number,
     ngayBatDauDuKien: Date,
     ngayKetThucDuKien: Date,
     xuongPhuTrach: String,
-    nguoiLap: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+    nguoiLap: { type: String }, // Store user ID as string instead of ref
     ngayLap: { type: Date, default: Date.now },
     trangThai: {
       type: String,
-      enum: ["Chua duyet", "Da duyet", "Dang thuc hien", "Hoan thanh"],
-      default: "Chua duyet",
+      enum: ["Chưa duyệt", "Đã duyệt", "Đang thực hiện", "Hoàn thành"],
+      default: "Chưa duyệt",
     },
     nvlCanThiet: [
       {
-        nvl: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+        productId: { type: String },
+        tenNVL: String,
+        maSP: String,
         soLuong: Number,
+        loai: { type: String, enum: ["sanpham", "nguyenvatlieu"], default: "nguyenvatlieu" },
       },
     ],
     ghiChu: String,

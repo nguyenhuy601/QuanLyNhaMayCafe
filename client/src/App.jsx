@@ -27,6 +27,13 @@ import CreateOrder from"./components/order/CreateOrder.jsx";
 import OrderList from"./components/order/OrderList.jsx";
 import OrderEdit from "./pages/order/OrderEdit.jsx";
 
+// --- Xuongtruong
+import LayoutXuongTruong from "./layouts/XuongTruong.jsx";
+import TrangChu from "./pages/XuongTruong/Dashboard.jsx";
+import PhanCong from "./pages/XuongTruong/PhanCong.jsx";
+import ThongKe from "./pages/XuongTruong/ThongKe.jsx";
+import XemKeHoach from "./pages/XuongTruong/XemKeHoach.jsx";
+
 //Quan ly kho thanh pham
 import NhapKhoThanhPham from "./pages/QuanLyKhoThanhPham/NhapKhoThanhPham.jsx";
 
@@ -120,6 +127,21 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Protected Routes - Xuong Truong */}
+        <Route
+          path="/factory"
+          element={
+            <ProtectedRoute allowedRoles={["factory"]}>
+              <LayoutXuongTruong />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<TrangChu />} />
+          <Route path="phan-cong" element={<PhanCong />} />
+          <Route path="thong-ke" element={<ThongKe />} />
+          <Route path="xem-ke-hoach" element={<XemKeHoach />} />
+        </Route>
 
         {/* Default redirect to login */}
         <Route path="/" element={<Navigate to="/login" replace />} />

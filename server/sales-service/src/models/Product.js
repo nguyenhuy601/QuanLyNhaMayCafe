@@ -10,6 +10,12 @@ const ProductSchema = new mongoose.Schema({
   moTa: String,
   donViTinh: String,
   donGia: Number,
+  loai: {
+    type: String,
+    enum: ["sanpham", "nguyenvatlieu"],
+    default: "sanpham",
+    description: "Loại: sanpham (sản phẩm) hoặc nguyenvatlieu (nguyên vật liệu)"
+  },
   trangThai: { type: String, enum: ["Active", "Inactive"], default: "Active" }
 }, { timestamps: true });
 

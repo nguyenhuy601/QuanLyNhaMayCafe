@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { createProductionPlan } from "../../services/planService";
 
 const CreatePlanModal = ({ onClose, orders }) => {
   const [formData, setFormData] = useState({
@@ -12,7 +13,7 @@ const CreatePlanModal = ({ onClose, orders }) => {
     xuongPhuTrach: "",
   });
 
-  // ✅ Khi chọn các đơn hàng — tự tính tổng số lượng & gán dữ liệu
+  // ✅ Tự động tính số lượng khi nhận danh sách đơn hàng
   useEffect(() => {
     if (orders && orders.length > 0) {
       const firstOrder = orders[0];
@@ -20,7 +21,7 @@ const CreatePlanModal = ({ onClose, orders }) => {
         (sum, o) => sum + (o.chiTiet?.[0]?.soLuong || 0),
         0
       );
-      const totalNVL = Math.round(totalThanhPham * 1.1); // +10% nguyên vật liệu dự phòng
+      const totalNVL = Math.round(totalThanhPham * 1.1);
 
       setFormData({
         maDonHang:
@@ -40,30 +41,44 @@ const CreatePlanModal = ({ onClose, orders }) => {
     }
   }, [orders]);
 
-  // ✅ Khi submit → chỉ gửi những trường cần thiết cho backend
-  const handleSubmit = (e) => {
+  // ✅ Gửi dữ liệu sang backend
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.ngayBatDauDuKien || !formData.ngayKetThucDuKien || !formData.xuongPhuTrach) {
+      alert("⚠️ Vui lòng nhập đầy đủ thông tin kế hoạch!");
+      return;
+    }
 
     const payload = {
       maDH: formData.maDonHang,
-      sanPham: orders?.[0]?.chiTiet?.[0]?.sanPham?._id,
-      soLuongCanSanXuat: formData.soLuongCanSanXuat,
-      ngayBatDauDuKien: formData.ngayBatDauDuKien,
-      ngayKetThucDuKien: formData.ngayKetThucDuKien,
+      sanPham: orders?.[0]?.chiTiet?.[0]?.sanPham?._id || null,
+      soLuongCanSanXuat: Number(formData.soLuongCanSanXuat),
+      ngayBatDauDuKien: new Date(formData.ngayBatDauDuKien).toISOString(),
+      ngayKetThucDuKien: new Date(formData.ngayKetThucDuKien).toISOString(),
       xuongPhuTrach: formData.xuongPhuTrach,
-      nguoiTao: "671f234ac24c8f3a0a1d4a7f", // ⚙️ tạm thời hardcode, sau sẽ lấy từ token user
+      nguoiTao: "671f234ac24c8f3a0a1d4a7f",
       ghiChu: "",
     };
 
-    console.log("📦 Data gửi backend:", payload);
-    alert("✅ Tạo kế hoạch thành công!");
-    onClose();
+    console.log("📦 Dữ liệu gửi backend:", payload);
+
+    const result = await createProductionPlan(payload);
+
+    if (result?.success) {
+      alert("✅ Tạo kế hoạch sản xuất thành công!");
+      onClose();
+    } else {
+      const msg = result?.message || "Không thể tạo kế hoạch sản xuất.";
+      alert("❌ Lỗi khi tạo kế hoạch: " + msg);
+      console.error("Create plan failed:", result);
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
       <div className="bg-gradient-to-br from-amber-700 to-amber-800 rounded-2xl p-8 w-full max-w-4xl relative shadow-2xl">
-        {/* ❌ Nút đóng */}
+        {/* Nút đóng */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-white hover:text-gray-200 transition"
@@ -100,7 +115,6 @@ const CreatePlanModal = ({ onClose, orders }) => {
 
           {/* --- Cột phải: Nhập --- */}
           <div className="space-y-4">
-            {/* Ngày bắt đầu */}
             <div>
               <label className="block text-white text-sm font-medium mb-2">
                 Ngày bắt đầu dự kiến:
@@ -116,7 +130,6 @@ const CreatePlanModal = ({ onClose, orders }) => {
               />
             </div>
 
-            {/* Ngày kết thúc */}
             <div>
               <label className="block text-white text-sm font-medium mb-2">
                 Ngày kết thúc dự kiến:
@@ -125,17 +138,13 @@ const CreatePlanModal = ({ onClose, orders }) => {
                 type="date"
                 value={formData.ngayKetThucDuKien}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    ngayKetThucDuKien: e.target.value,
-                  })
+                  setFormData({ ...formData, ngayKetThucDuKien: e.target.value })
                 }
                 required
                 className="w-full px-4 py-2 rounded-lg bg-amber-600 text-white focus:ring-2 focus:ring-amber-400"
               />
             </div>
 
-            {/* Xưởng sản xuất */}
             <div>
               <label className="block text-white text-sm font-medium mb-2">
                 Xưởng sản xuất phụ trách:
@@ -157,7 +166,6 @@ const CreatePlanModal = ({ onClose, orders }) => {
             </div>
           </div>
 
-          {/* --- Nút hành động --- */}
           <div className="col-span-1 md:col-span-2 flex gap-3 justify-center pt-4">
             <button
               type="button"

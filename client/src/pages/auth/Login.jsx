@@ -18,7 +18,7 @@ const Login = () => {
       qc: "/qc",
       plan: "/plan",
       orders: "/orders",
-      xuong: "/xuong",
+      factory: "/factory",
       totruong: "/totruong",
       khonvl: "/khonvl",
       warehouseproduct: "/warehouseproduct",
