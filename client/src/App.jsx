@@ -130,7 +130,7 @@ export default function App() {
 
         {/* Protected Routes - Xuong Truong */}
         <Route
-          path="/factory"
+          path="/factory/*"
           element={
             <ProtectedRoute allowedRoles={["factory"]}>
               <LayoutXuongTruong />

@@ -22,7 +22,7 @@ exports.register = async (req, res) => {
       "qc",
       "plan",
       "orders",
-      "xuong",
+      "factory",
       "totruong",
       "khonvl",
       "warehouseproduct",
