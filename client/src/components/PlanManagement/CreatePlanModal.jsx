@@ -43,37 +43,67 @@ const CreatePlanModal = ({ onClose, orders }) => {
 
   // ✅ Gửi dữ liệu sang backend
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!formData.ngayBatDauDuKien || !formData.ngayKetThucDuKien || !formData.xuongPhuTrach) {
-      alert("⚠️ Vui lòng nhập đầy đủ thông tin kế hoạch!");
-      return;
-    }
+  if (!formData.xuongPhuTrach) {
+    alert("⚠️ Vui lòng chọn xưởng sản xuất!");
+    return;
+  }
 
-    const payload = {
-      maDH: formData.maDonHang,
-      sanPham: orders?.[0]?.chiTiet?.[0]?.sanPham?._id || null,
-      soLuongCanSanXuat: Number(formData.soLuongCanSanXuat),
-      ngayBatDauDuKien: new Date(formData.ngayBatDauDuKien).toISOString(),
-      ngayKetThucDuKien: new Date(formData.ngayKetThucDuKien).toISOString(),
-      xuongPhuTrach: formData.xuongPhuTrach,
-      nguoiTao: "671f234ac24c8f3a0a1d4a7f",
-      ghiChu: "",
-    };
+  // 🔥 Lấy ID user từ token
+  const token = localStorage.getItem("token");
+  let currentUserId = null;
 
-    console.log("📦 Dữ liệu gửi backend:", payload);
+  try {
+    const decoded = JSON.parse(atob(token.split(".")[1])); // decode JWT
+    currentUserId = decoded.id || decoded.userId || decoded._id || null;
+  } catch (err) {
+    console.warn("Không decode được token:", err);
+  }
 
-    const result = await createProductionPlan(payload);
+  // 🔥 Tạo payload đúng chuẩn backend
+  const payload = {
+    maDH: formData.maDonHang,
 
-    if (result?.success) {
-      alert("✅ Tạo kế hoạch sản xuất thành công!");
-      onClose();
-    } else {
-      const msg = result?.message || "Không thể tạo kế hoạch sản xuất.";
-      alert("❌ Lỗi khi tạo kế hoạch: " + msg);
-      console.error("Create plan failed:", result);
-    }
+    sanPham: {
+      productId: orders?.[0]?.chiTiet?.[0]?.sanPham?._id || null,
+      tenSanPham: orders?.[0]?.chiTiet?.[0]?.sanPham?.tenSP || "",
+      maSP: orders?.[0]?.chiTiet?.[0]?.sanPham?.maSP || "",
+      loai: orders?.[0]?.chiTiet?.[0]?.sanPham?.loai || "sanpham",
+    },
+
+    donHangLienQuan: orders.map((o) => ({
+      orderId: o._id,
+      maDonHang: o.maDH,
+      tenKhachHang: o.khachHang?.tenKH || "",
+      tongTien: o.tongTien || 0,
+    })),
+
+    soLuongCanSanXuat: Number(formData.soLuongCanSanXuat),
+
+    ngayBatDauDuKien: new Date(formData.ngayBatDauDuKien).toISOString(),
+    ngayKetThucDuKien: new Date(formData.ngayKetThucDuKien).toISOString(),
+
+    xuongPhuTrach: formData.xuongPhuTrach,
+
+    // 🔥 Người lập = tài khoản hiện tại
+    nguoiLap: currentUserId,
+
+    ghiChu: "",
   };
+
+  console.log("📦 Payload gửi backend:", payload);
+
+  const result = await createProductionPlan(payload);
+
+  if (result?.success) {
+    alert("✅ Tạo kế hoạch sản xuất thành công!");
+    onClose();
+  } else {
+    alert("❌ Lỗi tạo kế hoạch: " + (result?.message || ""));
+  }
+};
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">

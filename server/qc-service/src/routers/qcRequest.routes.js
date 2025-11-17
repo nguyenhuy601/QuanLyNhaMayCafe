@@ -1,10 +1,17 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/qcRequest.controller");
-const { verifyToken } = require("../middlewares/auth.middleware");
-const { authorizeRoles } = require("../middlewares/role.middleware");
+const qcRequestController = require("../controllers/qcRequest.controller");
 
-router.get("/", verifyToken, authorizeRoles(["QC", "Admin"]), controller.getAllRequests);
-router.put("/:id", verifyToken, authorizeRoles(["QC", "Admin"]), controller.updateRequestStatus);
+// POST /qc-request/  tạo
+router.post("/", qcRequestController.createTempRequest);
+
+// GET /qc-request/  lấy tất cả
+router.get("/", qcRequestController.getAllRequests);
+
+// GET /qc-request/:id  lấy 1
+router.get("/:id", qcRequestController.getRequestById);
+
+// PATCH /qc-request/:id  cập nhật trạng thái/ghi chú
+router.patch("/:id", qcRequestController.updateRequestStatus);
 
 module.exports = router;

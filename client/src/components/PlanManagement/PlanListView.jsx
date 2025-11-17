@@ -3,9 +3,9 @@ import {CheckSquare,Square,ChevronDown,Edit2,Trash2,Eye,Check} from "lucide-reac
 import { fetchProductionPlans, sendPlanToDirector } from "../../services/planService";
 import formatDateOnly from "../../utils/formatDate";
 
-const PlanListView = ({ onEdit, onDelete, onView }) => {
+const PlanListView = ({ plans: propPlans = [], loading: propLoading = false, onEdit, onDelete, onView }) => {
   const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(propLoading);
 
   const [selectedPlans, setSelectedPlans] = useState([]);
   const [sortType, setSortType] = useState("date");
@@ -13,7 +13,20 @@ const PlanListView = ({ onEdit, onDelete, onView }) => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [sendingIds, setSendingIds] = useState(new Set());
 
+  // If propPlans are provided (from parent component), use them directly
   useEffect(() => {
+    if (propPlans && Array.isArray(propPlans) && propPlans.length > 0) {
+      setPlans(propPlans);
+      setLoading(propLoading);
+    }
+  }, [propPlans, propLoading]);
+
+  // Only fetch if no props provided
+  useEffect(() => {
+    if (propPlans && Array.isArray(propPlans) && propPlans.length > 0) {
+      return;
+    }
+
     let mounted = true;
     (async () => {
       try {
@@ -238,12 +251,18 @@ const PlanListView = ({ onEdit, onDelete, onView }) => {
             </tr>
           </thead>
           <tbody>
-            {filteredPlans.map((plan) => (
+            {filteredPlans.map((plan, idx) => {
+              if (idx === 0) {
+                console.log("DEBUG plan[0]:", plan);
+                console.log("DEBUG plan.ngayBatDau:", plan.ngayBatDau);
+                console.log("DEBUG formatDate(plan.ngayBatDau):", formatDate(plan.ngayBatDau));
+              }
+              return (
               <tr
                 key={plan._id}
                 className="border-b border-gray-200 hover:bg-amber-50 transition"
               >
-                <td className="px-3 py-3 text-sm text-[#5A2E0E] font-semibold">{plan.maKeHoach}</td>
+                <td className="px-3 py-3 text-sm text-[#5A2E0E] font-semibold">{plan.maDonHang || plan.maKeHoach}</td>
                 <td className="px-3 py-3 text-sm">{plan.tenSanPham}</td>
                 <td className="px-3 py-3 text-sm">{plan.soLuongNVL}</td>
                 <td className="px-3 py-3 text-sm">{formatDate(plan.ngayBatDau)}</td>
@@ -273,7 +292,8 @@ const PlanListView = ({ onEdit, onDelete, onView }) => {
                   </button>
                 </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>

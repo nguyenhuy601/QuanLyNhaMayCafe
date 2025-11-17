@@ -75,7 +75,11 @@ app.use("/plan", (req, res) => {
   proxy.web(req, res, { target: PRODUCTION_PLAN_SERVICE_URL });
 });
 
-app.use("/qc", (req, res) => {
+app.use("/qc-request", (req, res) => {
+  proxy.web(req, res, { target: QC_SERVICE_URL });
+});
+
+app.use("/qc-result", (req, res) => {
   proxy.web(req, res, { target: QC_SERVICE_URL });
 });
 

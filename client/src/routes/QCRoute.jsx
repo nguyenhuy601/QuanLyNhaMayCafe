@@ -1,15 +1,20 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import QCLayOut from "../layouts/QCLayout";
+import { Routes, Route } from "react-router-dom";
+import QCLayout from "../layouts/QCLayout";
 import KiemDinhList from "../pages/kiemDinh/KiemDinhList";
 import KiemDinhDetail from "../pages/kiemDinh/KiemDinhDetail";
+import KiemDinhProcessed from "../pages/kiemDinh/KiemDinhProcessed";
 
 const QCRoute = () => {
   return (
     <Routes>
-      <Route element={<QCLayOut />}>
-        {/* Route mặc định khi vào /qc */}
-        <Route index element={<Navigate to="kiem-dinh" replace />} />  
-        <Route path="kiem-dinh" element={<KiemDinhList />} />
+      <Route element={<QCLayout />}>
+        {/* Danh sách yêu cầu chưa kiểm định */}
+        <Route path="danh-sach" element={<KiemDinhList />} />
+        
+        {/* Danh sách QC đã kiểm định (sửa/xóa) */}
+        <Route path="kiem-dinh" element={<KiemDinhProcessed />} />
+        
+        {/* Chi tiết kiểm định từng phiếu */}
         <Route path="kiem-dinh/:id" element={<KiemDinhDetail />} />
       </Route>
     </Routes>

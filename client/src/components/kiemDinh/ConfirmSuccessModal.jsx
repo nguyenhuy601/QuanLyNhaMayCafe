@@ -1,8 +1,8 @@
 import { CheckCircle2 } from "lucide-react";
 
-const ConfirmSuccessModal = ({ onClose }) => {
+const ConfirmSuccessModal = ({ onClose, xuong }) => {
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 border-4 border-red-500">
       {/* Hộp modal */}
       <div className="bg-[#fffdfb] p-8 rounded-xl shadow-xl border border-[#e5d2b2] w-[420px] text-center relative animate-fadeIn">
         
@@ -24,8 +24,7 @@ const ConfirmSuccessModal = ({ onClose }) => {
           Kiểm định thành công!
         </h3>
         <p className="text-[#3e2a15] mb-6">
-          Dữ liệu của <span className="font-semibold text-[#8b4513]">Xưởng Chế biến - C1</span>  
-          {" "}đã được cập nhật.
+          Dữ liệu của <span className="font-semibold text-[#8b4513]">{xuong}</span> đã được cập nhật.
         </p>
 
         {/* Nút xác nhận */}
@@ -39,5 +38,4 @@ const ConfirmSuccessModal = ({ onClose }) => {
     </div>
   );
 };
-
 export default ConfirmSuccessModal;

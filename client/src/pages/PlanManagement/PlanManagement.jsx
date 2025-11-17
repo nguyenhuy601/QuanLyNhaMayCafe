@@ -102,25 +102,12 @@ const PlanManagement = () => {
 
           {/* Hiển thị PlanListView cho menu 'list' */}
           {activeMenu === 'list' && (
-          <PlanListView
-            plans={orders.map((o) => ({
-              _id: o._id,
-              maKH: `KH-${o._id.slice(-4)}`,
-              maDonHang: o.maDH,
-              tenSanPham: o.chiTiet?.[0]?.sanPham?.tenSP || "Không có sản phẩm",
-              soLuongNVL: Math.round((o.chiTiet?.[0]?.soLuong || 0) * 1.1),
-              soLuongThanhPham: o.chiTiet?.[0]?.soLuong || 0,
-              xuongSanXuat: "Chưa phân công",
-              ngayBatDau: "",
-              ngayKetThuc: "",
-              trangThai: o.trangThai || "Chưa duyệt",
-            }))}
-            loading={loading}
-            onView={(plan) => console.log('View:', plan)}
-            onEdit={(plan) => console.log('Edit:', plan)}
-            onDelete={(id) => console.log('Delete:', id)}
-          />
-        )}
+            <PlanListView
+              onView={(plan) => console.log('View:', plan)}
+              onEdit={(plan) => console.log('Edit:', plan)}
+              onDelete={(id) => console.log('Delete:', id)}
+            />
+          )}
 
         </div>
       </div>

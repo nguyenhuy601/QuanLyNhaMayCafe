@@ -2,17 +2,17 @@
 export function formatDateOnly(value) {
   if (!value) return "";
 
-  // If it's already a Date, use it. Otherwise try to parse.
   let d;
   if (value instanceof Date) {
     d = value;
   } else if (typeof value === "string") {
-    // If it's an ISO string with time, take the date part first (safe)
-    // e.g. "2025-08-12T07:34:56.000Z" -> "2025-08-12"
-    const dateOnly = value.split("T")[0];
-    d = new Date(dateOnly);
+    // Extract date part from ISO string (e.g., "2025-11-15" from "2025-11-15T10:26:33.146Z")
+    const dateOnly = value.split("T")[0]; // "2025-11-15"
+    
+    // Parse as local date to avoid timezone issues
+    const [year, month, day] = dateOnly.split("-");
+    d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
   } else {
-    // Fallback: try constructing a Date
     d = new Date(value);
   }
 

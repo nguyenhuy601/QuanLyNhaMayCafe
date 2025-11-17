@@ -24,9 +24,9 @@ const PlanTable = ({ orders = [] }) => {
         const tenA = a.chiTiet?.[0]?.sanPham?.tenSP?.toLowerCase() || "";
         const tenB = b.chiTiet?.[0]?.sanPham?.tenSP?.toLowerCase() || "";
         if (tenA !== tenB) return tenA.localeCompare(tenB);
-        return parseDate(b.ngayBatDau) - parseDate(a.ngayBatDau);
+        return parseDate(b.ngayDat) - parseDate(a.ngayDat);
       }
-      return parseDate(b.ngayBatDau) - parseDate(a.ngayBatDau);
+      return parseDate(b.ngayDat) - parseDate(a.ngayDat);
     });
 
     return sorted;
@@ -122,8 +122,8 @@ const PlanTable = ({ orders = [] }) => {
                 <td className="px-3 py-3 text-sm font-medium">{order.maDH}</td>
                 <td className="px-3 py-3 text-sm">{order.chiTiet[0]?.sanPham?.tenSP}</td>
                 <td className="px-3 py-3 text-sm whitespace-nowrap">{order.chiTiet[0]?.soLuong}/Túi</td>
-                <td className="px-3 py-3 text-sm whitespace-nowrap">{formatDate(order.ngayBatDau)}</td>
-                <td className="px-3 py-3 text-sm whitespace-nowrap">{formatDate(order.ngayKetThuc)}</td>
+                <td className="px-3 py-3 text-sm whitespace-nowrap">{formatDate(order.ngayDat)}</td>
+                <td className="px-3 py-3 text-sm whitespace-nowrap">{formatDate(order.ngayYeuCauGiao)}</td>
                 <td className="px-3 py-3 text-sm text-red-500 font-medium">Đã duyệt</td>
                 <td className="px-3 py-3 text-center">
                   <button
