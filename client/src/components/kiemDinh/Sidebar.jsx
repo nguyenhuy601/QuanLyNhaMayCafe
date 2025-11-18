@@ -46,20 +46,6 @@ const Sidebar = ({ activeMenu, setActiveMenu }) => {
       {/* Menu */}
       <div className="flex-1 overflow-y-auto">
         <nav className="p-2">
-          {/* Trang chủ */}
-          <button
-            onClick={() => {
-              setActiveMenu("home");
-              navigate("/qc/dashboard");
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mb-1 ${
-              activeMenu === "home" ? "bg-amber-600" : "hover:bg-amber-700"
-            }`}
-          >
-            <Home size={18} />
-            <span>Trang chủ</span>
-          </button>
-
           {/* Kiểm định thành phẩm */}
           <button
             onClick={() => {

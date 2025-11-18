@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ChevronLeft, X, Check } from "lucide-react";
-import { searchCustomerByPhone, getAllProducts, getOrderById } from "../../services/salesService";
+import { searchCustomerByPhone, getFinishedProducts, getOrderById } from "../../services/salesService";
 import { useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 
 const CreateOrder = () => {
@@ -25,18 +25,14 @@ const CreateOrder = () => {
   const [products, setProducts] = useState([]);
 
   // 🧩 Load danh sách sản phẩm (chỉ loại sản phẩm)
-  useEffect(() => {
+   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const list = await getAllProducts();
-        if (mounted && Array.isArray(list)) {
-          // Filter để chỉ lấy sản phẩm (loai: "sanpham")
-          const sanPhams = list.filter(p => p.loai === "sanpham" || !p.loai);
-          setProducts(sanPhams);
-        }
+        const list = await getFinishedProducts();
+        if (mounted && Array.isArray(list)) setProducts(list);
       } catch (err) {
-        console.error("Error loading products in CreateOrder:", err);
+        console.error("❌ Error loading finished products:", err);
         if (mounted) setProducts([]);
       }
     })();

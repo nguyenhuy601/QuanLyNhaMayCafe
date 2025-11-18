@@ -39,26 +39,26 @@ export const searchCustomerByPhone = async (phone) => {
 
 
 // Lấy tất cả sản phẩm
-export const getAllProducts = async () => {
+export const getFinishedProducts = async () => {
   try {
-    if (API_URL) {
-      const response = await fetch(`${API_URL}/products`, {
-        headers: { "Content-Type": "application/json" },
-      });
+    const response = await fetch(`${API_URL}/products/finished`, {
+      headers: { "Content-Type": "application/json" },
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        return data.map((p) => ({
-          id: p._id,
-          name: p.tenSP,
-          price: p.donGia,
-          unit: p.donViTinh,
-          loai: p.loai || "sanpham",
-        }));
-      }
-    }
+    if (!response.ok) throw new Error("Failed to fetch finished products");
+
+    const data = await response.json();
+
+    return data.map((p) => ({
+      id: p._id,
+      name: p.tenSP,
+      price: p.donGia,
+      unit: p.donViTinh,
+      loai: p.loai,
+    }));
   } catch (err) {
-    console.error("❌ Error fetching products from API:", err);
+    console.error("❌ Error fetching finished products:", err);
+    return [];
   }
 };
 

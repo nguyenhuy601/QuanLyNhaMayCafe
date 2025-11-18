@@ -12,6 +12,25 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
+exports.getMaterials = async (req, res) => {
+  try {
+    const materials = await Product.find({ loai: "nguyenvatlieu" });
+    res.json(materials);
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi khi tải nguyên vật liệu." });
+  }
+};
+
+exports.getFinishedProducts = async (req, res) => {
+  try {
+    const products = await Product.find({ loai: "sanpham" });
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi khi tải thành phẩm." });
+  }
+};
+
+
 /** 🟢 Lấy 1 sản phẩm theo ID hoặc mã sản phẩm */
 exports.getProductById = async (req, res) => {
   try {

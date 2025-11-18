@@ -1,5 +1,5 @@
 // Utility to format a date string or Date into a date-only string (dd/mm/yyyy)
-export function formatDateOnly(value) {
+export function formatDate(value) {
   if (!value) return "";
 
   let d;
@@ -25,4 +25,4 @@ export function formatDateOnly(value) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-export default formatDateOnly;
+export default formatDate;

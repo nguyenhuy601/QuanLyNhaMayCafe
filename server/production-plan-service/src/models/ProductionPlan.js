@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const Counter = require("./Counter");
 /**
  * ProductionPlan - Production Planning Document
  */
@@ -21,6 +21,7 @@ const ProductionPlanSchema = new mongoose.Schema(
       loai: { type: String, enum: ["sanpham", "nguyenvatlieu"], default: "sanpham" }, // Loại sản phẩm
     },
     soLuongCanSanXuat: Number,
+    soLuongNVLUocTinh: Number,
     ngayBatDauDuKien: Date,
     ngayKetThucDuKien: Date,
     xuongPhuTrach: String,
@@ -45,30 +46,24 @@ const ProductionPlanSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/**
- * Auto-generate maKeHoach before save
- * Format: KH-YYYYMMDD-XXX
- */
 ProductionPlanSchema.pre("save", async function (next) {
-  if (!this.maKeHoach) {
-    const today = new Date();
-    const dateCode = today
-      .toISOString()
-      .split("T")[0]
-      .replace(/-/g, ""); // YYYYMMDD
+  if (this.maKeHoach) return next();
 
-    const count = await mongoose.model("ProductionPlan").countDocuments({
-      createdAt: {
-        $gte: new Date(today.setHours(0, 0, 0, 0)),
-        $lt: new Date(today.setHours(23, 59, 59, 999)),
-      },
-    });
+  const now = new Date();
+  const dateCode = now.toISOString().split("T")[0].replace(/-/g, "");
 
-    const seq = (count + 1).toString().padStart(3, "0");
-    this.maKeHoach = `KH-${dateCode}-${seq}`;
-  }
+  // Atomic update: tăng seq theo ngày
+  const counter = await Counter.findOneAndUpdate(
+    { date: dateCode },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  const seq = counter.seq.toString().padStart(3, "0");
+  this.maKeHoach = `KH-${dateCode}-${seq}`;
 
   next();
 });
+
 
 module.exports = mongoose.model("ProductionPlan", ProductionPlanSchema);

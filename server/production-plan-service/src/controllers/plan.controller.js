@@ -17,57 +17,58 @@ exports.createProductionPlan = async (req, res) => {
   try {
     const orderData = req.body;
 
-    // 🔍 Kiểm tra dữ liệu đầu vào
+    // Lấy mã đơn hàng từ donHangLienQuan
+    const firstOrder = orderData.donHangLienQuan?.[0];
+    const maDH = firstOrder?.maDonHang;
+
+    // Kiểm tra đầu vào đúng theo payload mới
     if (
-      !orderData.maDH ||
+      !maDH ||
       !orderData.sanPham ||
       !orderData.soLuongCanSanXuat ||
       !orderData.ngayBatDauDuKien ||
       !orderData.ngayKetThucDuKien ||
       !orderData.xuongPhuTrach
     ) {
-      return res
-        .status(400)
-        .json({ message: "Thiếu thông tin cần thiết để tạo kế hoạch." });
+      return res.status(400).json({
+        message: "Thiếu thông tin cần thiết để tạo kế hoạch.",
+      });
     }
 
+    // Kiểm tra tồn kho NVL (giả lập)
     const materialsOk = await checkMaterialAvailability(orderData);
 
-    // ❌ Nếu thiếu NVL → tạo phiếu yêu cầu bổ sung
+    // Nếu thiếu NVL → tạo phiếu yêu cầu bổ sung
     if (!materialsOk) {
-      // Create MaterialRequest instance and save so pre-save hooks (maPhieu) run reliably
       const request = new MaterialRequest({
         ngayYeuCau: new Date(),
-        noiDung: `Thiếu nguyên vật liệu cho đơn hàng ${orderData.maDH}`,
-        // Use enum value matching schema
+        noiDung: `Thiếu nguyên vật liệu cho đơn hàng ${maDH}`,
         trangThai: "Cho phe duyet",
-        nguoiTao: orderData.nguoiTao,
+        nguoiTao: orderData.nguoiLap, 
       });
 
       await request.save();
 
-      console.log("⚠️ Material Request created:", request._id);
       return res.status(200).json({
         message: "Thiếu nguyên vật liệu, đã tạo phiếu yêu cầu.",
         materialRequestId: request._id,
       });
     }
 
-    // ✅ Đủ NVL → tạo kế hoạch sản xuất
-    // Create production plan, let model default for trangThai
+    // Đủ NVL → tạo kế hoạch sản xuất
     const plan = await ProductionPlan.create({
       donHangLienQuan: orderData.donHangLienQuan || [],
       sanPham: orderData.sanPham,
       soLuongCanSanXuat: orderData.soLuongCanSanXuat,
+      soLuongNVLUocTinh: orderData.soLuongNVLUocTinh,
       ngayBatDauDuKien: orderData.ngayBatDauDuKien,
       ngayKetThucDuKien: orderData.ngayKetThucDuKien,
       xuongPhuTrach: orderData.xuongPhuTrach,
-      nguoiLap: orderData.nguoiTao,
+      nguoiLap: orderData.nguoiLap, 
+      nvlCanThiet: orderData.nvlCanThiet || [],
       ghiChu: orderData.ghiChu || "",
-      // do not set trangThai here; use model default (e.g., "Chua duyet")
     });
 
-    console.log("🗂️ Production plan created:", plan.maKeHoach);
     await publishEvent("PLAN_READY", plan);
 
     res.status(201).json({
@@ -79,6 +80,7 @@ exports.createProductionPlan = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 /**
  * 📋 READ - Lấy danh sách tất cả kế hoạch sản xuất

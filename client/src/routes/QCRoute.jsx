@@ -8,6 +8,7 @@ const QCRoute = () => {
   return (
     <Routes>
       <Route element={<QCLayout />}>
+        <Route index element={<KiemDinhList />} />
         {/* Danh sách yêu cầu chưa kiểm định */}
         <Route path="danh-sach" element={<KiemDinhList />} />
         

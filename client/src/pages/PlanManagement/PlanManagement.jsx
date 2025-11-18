@@ -4,17 +4,33 @@ import Header from '../../components/PlanManagement/Header';
 import PlanTable from '../../components/PlanManagement/PlanTable';
 import PlanListView from '../../components/PlanManagement/PlanListView';
 import { fetchOrders, approveOrders } from '../../services/orderService';
+import { fetchProductionPlans } from "../../services/planService";
 
 const PlanManagement = () => {
   const [activeMenu, setActiveMenu] = useState('production');
   const [activeFilter, setActiveFilter] = useState('all');
   const [orders, setOrders] = useState([]);
+  const [planList, setPlanList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrders, setSelectedOrders] = useState([]);
 
   useEffect(() => {
     loadOrders();
   }, []);
+
+  useEffect(() => {
+  loadPlans();
+}, []);
+
+const loadPlans = async () => {
+  try {
+    const data = await fetchProductionPlans();
+    setPlanList(data);
+  } catch (err) {
+    console.error("Lỗi tải kế hoạch:", err);
+  }
+};
+
 
   const loadOrders = async () => {
     try {
@@ -68,7 +84,7 @@ const PlanManagement = () => {
         activeMenu={activeMenu} 
         setActiveMenu={setActiveMenu}
         orderCount={orders.length}
-        approvedCount={orders.filter(o => o.trangThai === 'Da duyet').length}
+        approvedCount={planList.length}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
