@@ -1,47 +1,47 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // --- Login
-import Login from "./pages/auth/Login.jsx";
+import Login from "./features/auth/pages/Login.jsx";
 
 // --- Plan Management (Quản lý kế hoạch)
-import PlanManagement from "./pages/PlanManagement/PlanManagement.jsx";
+import PlanManagement from "./features/plan/pages/PlanManagement.jsx";
 
 // --- Worker (Công nhân)
-import CongNhanLayout from "./layouts/CongNhan.jsx";
-import WorkerHome from "./pages/worker/Home.jsx";
-import WorkerShifts from "./pages/worker/Shifts.jsx";
-import WorkerSalary from "./pages/worker/Salary.jsx";
+import CongNhanLayout from "./features/worker/layouts/CongNhan.jsx";
+import WorkerHome from "./features/worker/pages/Home.jsx";
+import WorkerShifts from "./features/worker/pages/Shifts.jsx";
+import WorkerSalary from "./features/worker/pages/Salary.jsx";
 
 // --- Director (Ban giám đốc)
-import BanGiamDocLayout from "./layouts/BanGiamDocLayout.jsx";
-import DirectorHome from "./pages/director/Home.jsx";
-import ApprovePlan from "./pages/director/ApprovePlan.jsx";
-import ApproveOrders from "./pages/director/ApproveOrders.jsx";
-import Reports from "./pages/director/Reports.jsx";
+import BanGiamDocLayout from "./features/director/layouts/BanGiamDocLayout.jsx";
+import DirectorHome from "./features/director/pages/Home.jsx";
+import ApprovePlan from "./features/director/pages/ApprovePlan.jsx";
+import ApproveOrders from "./features/director/pages/ApproveOrders.jsx";
+import Reports from "./features/director/pages/Reports.jsx";
 
 // --- Order (Nhân viên bán hàng)
-import OrderLayout from "./layouts/OrderLayout.jsx";
-import Order from "./pages/order/Order.jsx";
-import OrderHome from"./components/order/OrderHome.jsx";
-import CreateOrder from"./components/order/CreateOrder.jsx";
-import OrderList from"./components/order/OrderList.jsx";
-import OrderEdit from "./pages/order/OrderEdit.jsx";
+import OrderLayout from "./features/order/layouts/OrderLayout.jsx";
+import Order from "./features/order/pages/Order.jsx";
+import OrderHome from "./features/order/components/OrderHome.jsx";
+import CreateOrder from "./features/order/components/CreateOrder.jsx";
+import OrderList from "./features/order/components/OrderList.jsx";
+import OrderEdit from "./features/order/components/OrderEdit.jsx";
 
 // --- Xuongtruong
-import LayoutXuongTruong from "./layouts/XuongTruong.jsx";
-import TrangChu from "./pages/XuongTruong/Dashboard.jsx";
-import PhanCong from "./pages/XuongTruong/PhanCong.jsx";
-import ThongKe from "./pages/XuongTruong/ThongKe.jsx";
-import XemKeHoach from "./pages/XuongTruong/XemKeHoach.jsx";
+import LayoutXuongTruong from "./features/factory/layouts/XuongTruong.jsx";
+import TrangChu from "./features/factory/pages/Dashboard.jsx";
+import PhanCong from "./features/factory/pages/PhanCong.jsx";
+import ThongKe from "./features/factory/pages/ThongKe.jsx";
+import XemKeHoach from "./features/factory/pages/XemKeHoach.jsx";
 
 //Quan ly kho thanh pham
-import NhapKhoThanhPham from "./pages/QuanLyKhoThanhPham/NhapKhoThanhPham.jsx";
+import NhapKhoThanhPham from "./features/warehouseProduct/pages/NhapKhoThanhPham.jsx";
 
 // --- QC routes
-import QCRoute from "./routes/QCRoute";
+import QCRoute from "./features/qc/routes/QCRoute.jsx";
 
 // --- Protected Route Component
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import ProtectedRoute from "./shared/components/ProtectedRoute.jsx";
 
 export default function App() {
   return (
