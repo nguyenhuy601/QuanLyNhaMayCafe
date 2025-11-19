@@ -3,6 +3,18 @@ const bcrypt = require("bcrypt");
 const Account = require("../models/Account");
 
 const JWT_SECRET = process.env.JWT_SECRET || "secret_key";
+const VALID_ROLES = [
+  "admin",
+  "worker",
+  "director",
+  "qc",
+  "plan",
+  "orders",
+  "factory",
+  "totruong",
+  "khonvl",
+  "warehouseproduct",
+];
 
 /** Register a new account */
 exports.register = async (req, res) => {
@@ -16,18 +28,11 @@ exports.register = async (req, res) => {
     }
 
     // Validate role (default = worker)
-    const validRoles = [
-      "worker",
-      "director",
-      "qc",
-      "plan",
-      "orders",
-      "factory",
-      "totruong",
-      "khonvl",
-      "warehouseproduct",
-    ];
-    const finalRole = validRoles.includes(role) ? role : "worker";
+    const requestedRole = role || "worker";
+    if (!VALID_ROLES.includes(requestedRole)) {
+      return res.status(400).json({ message: "Role không phù hợp" });
+    }
+    const finalRole = requestedRole;
 
     // Hash password
     const hashed = await bcrypt.hash(password, 10);
@@ -68,6 +73,10 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, account.password);
     if (!isMatch)
       return res.status(400).json({ message: "Invalid password" });
+
+    if (!VALID_ROLES.includes(account.role)) {
+      return res.status(403).json({ message: "Role không phù hợp" });
+    }
 
     const token = jwt.sign(
       { id: account._id, role: account.role },

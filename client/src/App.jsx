@@ -43,6 +43,19 @@ import QCRoute from "./features/qc/routes/QCRoute.jsx";
 // --- Protected Route Component
 import ProtectedRoute from "./shared/components/ProtectedRoute.jsx";
 
+// --- Admin feature
+import AdminLayout from "./features/admin/layouts/AdminLayout.jsx";
+import Admin from "./features/admin/pages/Admin.jsx";
+import AdminOverview from "./features/admin/components/AdminOverview.jsx";
+import UserList from "./features/admin/components/UserList.jsx";
+import UserForm from "./features/admin/components/UserForm.jsx";
+import RoleList from "./features/admin/components/RoleList.jsx";
+import RoleForm from "./features/admin/components/RoleForm.jsx";
+import DepartmentList from "./features/admin/components/DepartmentList.jsx";
+import DepartmentForm from "./features/admin/components/DepartmentForm.jsx";
+import PositionList from "./features/admin/components/PositionList.jsx";
+import PositionForm from "./features/admin/components/PositionForm.jsx";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -117,6 +130,32 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Protected Routes - Admin */}
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route element={<Admin />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="users" element={<UserList />} />
+            <Route path="users/create" element={<UserForm />} />
+            <Route path="users/:id" element={<UserForm />} />
+            <Route path="roles" element={<RoleList />} />
+            <Route path="roles/create" element={<RoleForm />} />
+            <Route path="roles/:id" element={<RoleForm />} />
+            <Route path="departments" element={<DepartmentList />} />
+            <Route path="departments/create" element={<DepartmentForm />} />
+            <Route path="departments/:id" element={<DepartmentForm />} />
+            <Route path="positions" element={<PositionList />} />
+            <Route path="positions/create" element={<PositionForm />} />
+            <Route path="positions/:id" element={<PositionForm />} />
+          </Route>
+        </Route>
 
         {/* Protected Routes - WareHouse */}
         <Route

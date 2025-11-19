@@ -55,7 +55,6 @@ const SALES_SERVICE_URL = process.env.SALES_SERVICE_URL;
 const WAREHOUSE_SERVICE_URL = process.env.WAREHOUSE_SERVICE_URL;
 
 app.use("/admin", (req, res) => {
-  req.url = `/admin${req.url}`;
   proxy.web(req, res, { target: ADMIN_SERVICE_URL });
 });
 

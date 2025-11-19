@@ -5,13 +5,19 @@ require("dotenv").config();
 require('./src/config/connectdb');
 
 const app = express();
-const routes = require("./src/routers/user.routes");
+const userRoutes = require("./src/routers/user.routes");
+const roleRoutes = require("./src/routers/role.routes");
+const departmentRoutes = require("./src/routers/department.routes");
+const positionRoutes = require("./src/routers/position.routes");
 
 app.use(cors());
 app.use(express.json());
 
-// Gắn route chính
-app.use("/", routes);
+// Routes
+app.use("/users", userRoutes);
+app.use("/roles", roleRoutes);
+app.use("/departments", departmentRoutes);
+app.use("/positions", positionRoutes);
 
 // Cổng mặc định
 const PORT = process.env.PORT;

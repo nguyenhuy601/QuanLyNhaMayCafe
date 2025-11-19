@@ -13,6 +13,7 @@ const Login = () => {
 // Redirect by role
   const redirectByRole = (role) => {
     const roleMap = {
+      admin: "/admin",
       worker: "/worker",
       director: "/director",
       qc: "/qc",
