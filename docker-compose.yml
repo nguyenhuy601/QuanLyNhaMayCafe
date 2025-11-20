@@ -34,7 +34,7 @@ services:
     container_name: api-gateway
     volumes:
       - ./api-gateway:/app
-    command: nodemon --legacy-watch server.js
+    command: ["nodemon", "--legacy-watch", "index.js"]
     mem_limit: 256m
     depends_on:
       rabbitmq:
@@ -50,7 +50,7 @@ services:
     container_name: admin-service
     volumes:
       - ./server/admin-service:/app
-    command: nodemon --legacy-watch server.js
+    command: ["nodemon", "--legacy-watch", "index.js"]
     mem_limit: 256m
     depends_on:
       rabbitmq:
@@ -68,7 +68,7 @@ services:
     container_name: auth-service
     volumes:
       - ./server/auth-service:/app
-    command: nodemon --legacy-watch server.js
+    command: ["nodemon", "--legacy-watch", "index.js"]
     mem_limit: 256m
     depends_on:
       rabbitmq:
@@ -86,16 +86,17 @@ services:
     container_name: director-service
     volumes:
       - ./server/director-service:/app
-    command: nodemon --legacy-watch server.js
+    command: ["nodemon", "--legacy-watch", "index.js"]
     mem_limit: 256m
     depends_on:
       rabbitmq:
         condition: service_healthy
-      mongodb:
-        condition: service_healthy
     environment:
       PORT: 3003
-      MONGO_URI: mongodb://mongodb:27017/directorDB
+      RABBITMQ_URI: amqp://admin:admin@rabbitmq:5672
+      GATEWAY_URL: http://api-gateway:4000
+      DIRECTOR_EXCHANGE: director_events
+      HTTP_CLIENT_TIMEOUT: 10000
     ports:
       - "3003:3003"
 
@@ -104,7 +105,7 @@ services:
     container_name: factory-service
     volumes:
       - ./server/factory-service:/app
-    command: nodemon --legacy-watch server.js
+    command: ["nodemon", "--legacy-watch", "index.js"]
     mem_limit: 256m
     environment:
       PORT: 3004
@@ -117,7 +118,7 @@ services:
     container_name: production-plan-service
     volumes:
       - ./server/production-plan-service:/app
-    command: nodemon --legacy-watch server.js
+    command: ["nodemon", "--legacy-watch", "index.js"]
     mem_limit: 256m
     environment:
       PORT: 3005
@@ -130,7 +131,7 @@ services:
     container_name: qc-service
     volumes:
       - ./server/qc-service:/app
-    command: nodemon --legacy-watch server.js
+    command: ["nodemon", "--legacy-watch", "index.js"]
     mem_limit: 256m
     environment:
       PORT: 3006
@@ -143,7 +144,7 @@ services:
     container_name: report-service
     volumes:
       - ./server/report-service:/app
-    command: nodemon --legacy-watch server.js
+    command: ["nodemon", "--legacy-watch", "index.js"]
     mem_limit: 256m
     environment:
       PORT: 3007
@@ -156,7 +157,7 @@ services:
     container_name: sales-service
     volumes:
       - ./server/sales-service:/app
-    command: nodemon --legacy-watch server.js
+    command: ["nodemon", "--legacy-watch", "index.js"]
     mem_limit: 256m
     environment:
       PORT: 3008
@@ -169,7 +170,7 @@ services:
     container_name: warehouse-service
     volumes:
       - ./server/warehouse-service:/app
-    command: nodemon --legacy-watch server.js
+    command: ["nodemon", "--legacy-watch", "index.js"]
     mem_limit: 256m
     environment:
       PORT: 3009

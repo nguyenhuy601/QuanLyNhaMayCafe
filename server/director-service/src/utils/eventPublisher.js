@@ -1,11 +1,17 @@
 const amqp = require("amqplib");
 
-/** Gửi event sang production-plan-service */
+const DIRECTOR_EXCHANGE = process.env.DIRECTOR_EXCHANGE || "director_events";
+const RABBIT_URI = process.env.RABBITMQ_URI || "amqp://localhost";
+
 exports.publishEvent = async (event, payload) => {
-  const connection = await amqp.connect("amqp://localhost");
-  const channel = await connection.createChannel();
-  await channel.assertExchange("director_events", "fanout", { durable: false });
-  channel.publish("director_events", "", Buffer.from(JSON.stringify({ event, payload })));
-  await channel.close();
-  await connection.close();
+  try {
+    const connection = await amqp.connect(RABBIT_URI);
+    const channel = await connection.createChannel();
+    await channel.assertExchange(DIRECTOR_EXCHANGE, "fanout", { durable: false });
+    channel.publish(DIRECTOR_EXCHANGE, "", Buffer.from(JSON.stringify({ event, payload })));
+    await channel.close();
+    await connection.close();
+  } catch (error) {
+    console.error(`❌ Không thể publish event ${event}:`, error.message);
+  }
 };
