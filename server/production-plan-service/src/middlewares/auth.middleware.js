@@ -2,6 +2,12 @@ const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET || "secret_key";
 
+// Log JWT_SECRET info (first 4 chars only for security) - chỉ log 1 lần
+if (!process.env.JWT_SECRET_LOGGED) {
+  console.log(`🔑 [production-plan-service] JWT_SECRET configured: ${JWT_SECRET.substring(0, 4)}... (length: ${JWT_SECRET.length})`);
+  process.env.JWT_SECRET_LOGGED = "true";
+}
+
 /**
  * Middleware to verify JWT token
  */

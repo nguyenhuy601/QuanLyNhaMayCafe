@@ -25,3 +25,14 @@ exports.updateOrder = async (req, orderId, payload) => {
   }
 };
 
+exports.getPendingOrders = async (req) => {
+  try {
+    const { data } = await httpClient.get("/orders/pending", {
+      headers: forwardHeaders(req),
+    });
+    return data;
+  } catch (error) {
+    throw buildHttpError(error, "Không thể lấy danh sách đơn hàng chờ duyệt");
+  }
+};
+

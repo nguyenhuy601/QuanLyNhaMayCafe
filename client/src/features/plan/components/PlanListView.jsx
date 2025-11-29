@@ -52,12 +52,55 @@ const PlanListView = ({
               }
             }
 
-            let soLuongNVL = plan.soLuongNVLUocTinh || 0;
+            // Hiển thị số lượng NVL thực tế nếu có, nếu không thì dùng ước tính
+            let soLuongNVL = plan.soLuongNVLThucTe || plan.soLuongNVLUocTinh || 0;
+            
+            // Tính toán lại từ nvlCanThiet nếu các field riêng lẻ không có
+            let soLuongNVLTho = plan.soLuongNVLTho;
+            let soLuongBaoBi = plan.soLuongBaoBi;
+            let soLuongTemNhan = plan.soLuongTemNhan;
+            
+            // Nếu các giá trị này không có hoặc bằng 0, thử tính từ nvlCanThiet
+            if ((soLuongNVLTho === null || soLuongNVLTho === undefined || soLuongNVLTho === 0) &&
+                (soLuongBaoBi === null || soLuongBaoBi === undefined || soLuongBaoBi === 0) &&
+                (soLuongTemNhan === null || soLuongTemNhan === undefined || soLuongTemNhan === 0)) {
+              if (plan.nvlCanThiet && Array.isArray(plan.nvlCanThiet) && plan.nvlCanThiet.length > 0) {
+                // Tính lại từ nvlCanThiet dựa trên tên NVL
+                plan.nvlCanThiet.forEach(nvl => {
+                  const tenNVL = (nvl.tenNVL || "").toLowerCase();
+                  const maSP = (nvl.maSP || "").toLowerCase();
+                  const soLuong = nvl.soLuong || 0;
+                  
+                  // Kiểm tra xem là bao bì, tem nhãn hay NVL thô
+                  if (tenNVL.includes("túi") || tenNVL.includes("hộp") || tenNVL.includes("bao bì") || 
+                      maSP.includes("bag") || maSP.includes("box") || maSP.includes("sachet")) {
+                    soLuongBaoBi += soLuong;
+                  } else if (tenNVL.includes("tem") || tenNVL.includes("nhãn") || maSP.includes("label")) {
+                    soLuongTemNhan += soLuong;
+                  } else {
+                    // Mặc định là NVL thô (hạt cà phê)
+                    soLuongNVLTho += soLuong;
+                  }
+                });
+              }
+            }
+            
+            // Đảm bảo các giá trị không phải null/undefined
+            soLuongNVLTho = soLuongNVLTho ?? 0;
+            soLuongBaoBi = soLuongBaoBi ?? 0;
+            soLuongTemNhan = soLuongTemNhan ?? 0;
+            
             return {
               _id: plan._id || `temp-${i}`,
               maKeHoach: plan.maKeHoach || `KH${i + 1}`,
               tenSanPham,
               soLuongNVL,
+              soLuongNVLThucTe: plan.soLuongNVLThucTe,
+              soLuongNVLUocTinh: plan.soLuongNVLUocTinh,
+              soLuongNVLTho: soLuongNVLTho ?? 0, // NVL thô (kg)
+              soLuongBaoBi: soLuongBaoBi ?? 0, // Bao bì (túi)
+              soLuongTemNhan: soLuongTemNhan ?? 0, // Tem nhãn
+              donVi: plan.donVi,
               ngayBatDau: plan.ngayBatDauDuKien || null,
               ngayKetThuc: plan.ngayKetThucDuKien || null,
               trangThai: plan.trangThai || "Chưa có",
@@ -233,7 +276,9 @@ const PlanListView = ({
             <tr className="bg-[#8B4513] text-white text-xs sm:text-sm uppercase">
               <th className="px-3 py-3 text-left">Mã kế hoạch</th>
               <th className="px-3 py-3 text-left">Tên sản phẩm</th>
-              <th className="px-3 py-3 text-left">Số lượng NVL</th>
+              <th className="px-3 py-3 text-left">NVL thô (kg)</th>
+              <th className="px-3 py-3 text-left">Bao bì (túi)</th>
+              <th className="px-3 py-3 text-left">Tem nhãn</th>
               <th className="px-3 py-3 text-left">Ngày bắt đầu</th>
               <th className="px-3 py-3 text-left">Ngày kết thúc</th>
               <th className="px-3 py-3 text-left">Trạng thái</th>
@@ -253,7 +298,17 @@ const PlanListView = ({
 
                 <td className="px-3 py-3 text-sm">{plan.tenSanPham}</td>
 
-                <td className="px-3 py-3 text-sm">{plan.soLuongNVL}</td>
+                <td className="px-3 py-3 text-sm">
+                  {plan.soLuongNVLTho || 0} kg
+                </td>
+
+                <td className="px-3 py-3 text-sm">
+                  {plan.soLuongBaoBi || 0} túi
+                </td>
+
+                <td className="px-3 py-3 text-sm">
+                  {plan.soLuongTemNhan || 0}
+                </td>
 
                 <td className="px-3 py-3 text-sm">
                   {formatDate(plan.ngayBatDau) || "Chưa có"}

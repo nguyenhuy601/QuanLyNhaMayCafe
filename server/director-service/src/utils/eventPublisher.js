@@ -1,7 +1,7 @@
 const amqp = require("amqplib");
 
 const DIRECTOR_EXCHANGE = process.env.DIRECTOR_EXCHANGE || "director_events";
-const RABBIT_URI = process.env.RABBITMQ_URI || "amqp://localhost";
+const RABBIT_URI = process.env.RABBITMQ_URI || process.env.RABBITMQ_URL || "amqp://rabbitmq:5672";
 
 exports.publishEvent = async (event, payload) => {
   try {

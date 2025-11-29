@@ -5,80 +5,31 @@ export default function Header() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   return (
-    <header
-      style={{
-        background: "linear-gradient(to right, #92400e, #78350f)", // từ amber-700 sang amber-800
-        height: "60px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 20px",
-        color: "white",
-        boxSizing: "border-box",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-      }}
-    >
-      {/* Ô tìm kiếm */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          backgroundColor: "#b45309", // amber-700
-          borderRadius: "8px",
-          padding: "6px 12px",
-          width: "300px",
-          flexShrink: 0,
-        }}
-      >
-        <Search size={16} style={{ color: "white" }} />
+    <header className="bg-gradient-to-r from-amber-700 to-amber-800 text-white px-6 py-4 flex items-center justify-between shadow-lg">
+      <div className="flex items-center gap-3 bg-amber-600/60 px-4 py-2 rounded-xl w-full max-w-md">
+        <Search size={18} className="text-white" />
         <input
           type="text"
           placeholder="Tìm kiếm..."
-          style={{
-            background: "transparent",
-            border: "none",
-            outline: "none",
-            color: "white",
-            paddingLeft: "10px",
-            width: "100%",
-            fontSize: "14px",
-          }}
+          className="bg-transparent outline-none text-sm w-full placeholder:text-amber-100/70"
         />
       </div>
 
-      {/* Icon + User Info */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "16px",
-          flexShrink: 0,
-        }}
-      >
-        <Bell size={20} style={{ cursor: "pointer", color: "white" }} />
-        <Settings size={20} style={{ cursor: "pointer", color: "white" }} />
+      <div className="flex items-center gap-4">
+        <button className="p-2 rounded-lg hover:bg-amber-600/60 transition-colors">
+          <Bell size={20} />
+        </button>
+        <button className="p-2 rounded-lg hover:bg-amber-600/60 transition-colors">
+          <Settings size={20} />
+        </button>
 
-        {/* Thông tin người dùng */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            backgroundColor: "#b45309", // amber-700
-            borderRadius: "12px",
-            padding: "6px 12px",
-            minWidth: "150px",
-            justifyContent: "flex-start",
-            color: "white",
-          }}
-        >
-          <User size={20} />
-          <div style={{ marginLeft: "8px", lineHeight: "1.2" }}>
-            <p style={{ fontWeight: "bold", fontSize: "14px", margin: 0 }}>
-              {user.hoTen || "Your Name"}
-            </p>
-            <p style={{ fontSize: "12px", opacity: 0.9, margin: 0 }}>
-              Xưởng trưởng
-            </p>
+        <div className="flex items-center gap-3 pl-4 border-l border-amber-600">
+          <div className="w-11 h-11 bg-amber-500 rounded-full flex items-center justify-center">
+            <User size={22} />
+          </div>
+          <div className="leading-tight">
+            <p className="font-semibold">{user.hoTen || "Your Name"}</p>
+            <p className="text-xs text-amber-200">Xưởng trưởng</p>
           </div>
         </div>
       </div>

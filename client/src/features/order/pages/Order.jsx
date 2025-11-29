@@ -28,11 +28,19 @@ const Order = () => {
   // 🟢 Tạo đơn hàng
   const handleCreateOrder = async (orderData) => {
     try {
-      await salesAPI.createOrder(orderData);
+      const result = await salesAPI.createOrder(orderData);
+      // Nếu result là null, có nghĩa là đã redirect về login (401 handled)
+      if (result === null) {
+        return false;
+      }
       await loadOrders();
       navigate("/orders/list"); // ✅ Chuyển về danh sách sau khi tạo
       return true;
     } catch (error) {
+      // Nếu error đã được xử lý (401), không log lại
+      if (error.isHandled || error.message === "Token đã hết hạn") {
+        return false;
+      }
       console.error("Error creating order:", error);
       return false;
     }

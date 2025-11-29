@@ -3,6 +3,11 @@ const bcrypt = require("bcrypt");
 const Account = require("../models/Account");
 
 const JWT_SECRET = process.env.JWT_SECRET || "secret_key";
+// Log JWT_SECRET info (first 4 chars only for security)
+if (!process.env.JWT_SECRET_LOGGED) {
+  console.log(`🔑 [auth-service] JWT_SECRET configured: ${JWT_SECRET.substring(0, 4)}... (length: ${JWT_SECRET.length})`);
+  process.env.JWT_SECRET_LOGGED = "true";
+}
 const VALID_ROLES = [
   "admin",
   "worker",

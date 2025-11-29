@@ -1,3 +1,25 @@
+// Helper function để lấy token (dùng ở mọi nơi)
+export const getToken = () => {
+  return sessionStorage.getItem("token") || localStorage.getItem("token") || window.userToken || null;
+};
+
+// Helper function để xử lý lỗi 401 (token expired)
+export const handle401Error = (errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.") => {
+  // Clear tất cả auth data
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("role");
+  window.userToken = null;
+  window.userRole = null;
+  
+  // Hiển thị thông báo
+  alert(errorMessage);
+  
+  // Redirect về login
+  window.location.href = "/login";
+};
+
 export const authUtils = {
   // Lưu token và role
   saveAuth: (token, role) => {
@@ -5,9 +27,9 @@ export const authUtils = {
     localStorage.setItem("role", role);
   },
 
-  // Lấy token
+  // Lấy token (từ sessionStorage hoặc localStorage)
   getToken: () => {
-    return localStorage.getItem("token");
+    return getToken();
   },
 
   // Lấy role
@@ -34,6 +56,8 @@ export const authUtils = {
   logout: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("role");
     window.userToken = null;
     window.userRole = null;
   },

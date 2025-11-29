@@ -21,7 +21,12 @@ const ProductionPlanSchema = new mongoose.Schema(
       loai: { type: String, enum: ["sanpham", "nguyenvatlieu"], default: "sanpham" }, // Loại sản phẩm
     },
     soLuongCanSanXuat: Number,
-    soLuongNVLUocTinh: Number,
+    donVi: { type: String, enum: ["kg", "túi", null], default: null }, // Đơn vị sản phẩm
+    soLuongNVLUocTinh: Number, // Số lượng NVL ước tính (hiển thị)
+    soLuongNVLThucTe: Number, // Số lượng NVL thực tế đã tính (từ nvlCanThiet)
+    soLuongNVLTho: Number, // Số lượng NVL thô (hạt cà phê) - tính bằng kg
+    soLuongBaoBi: Number, // Số lượng bao bì - túi
+    soLuongTemNhan: Number, // Số lượng tem nhãn
     ngayBatDauDuKien: Date,
     ngayKetThucDuKien: Date,
     xuongPhuTrach: String,
@@ -29,8 +34,8 @@ const ProductionPlanSchema = new mongoose.Schema(
     ngayLap: { type: Date, default: Date.now },
     trangThai: {
       type: String,
-      enum: ["Chưa duyệt", "Đã duyệt", "Đang thực hiện", "Hoàn thành"],
-      default: "Chưa duyệt",
+      enum: ["Chờ duyệt", "Đã duyệt", "Đang thực hiện", "Hoàn thành", "Từ chối"],
+      default: "Chờ duyệt",
     },
     nvlCanThiet: [
       {

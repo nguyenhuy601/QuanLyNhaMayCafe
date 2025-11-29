@@ -6,7 +6,7 @@ import DirectorTopbar from "../components/Topbar.jsx";
 export default function BanGiamDocLayout() {
   return (
     <div className="grid [grid-template-columns:260px_1fr] h-screen bg-neutral-900 text-white">
-      <aside className="bg-[#6d3a14] p-4">
+      <aside className="">
         <DirectorSidebar />
       </aside>
       <main className="flex flex-col bg-white">

@@ -34,6 +34,15 @@ import PhanCong from "./features/factory/pages/PhanCong.jsx";
 import ThongKe from "./features/factory/pages/ThongKe.jsx";
 import XemKeHoach from "./features/factory/pages/XemKeHoach.jsx";
 
+
+// --- To truong (Tổ trưởng)
+import ToTruongLayout from "./features/teamleader/layouts/ToTruongLayout.jsx";
+import ToTruongDashboard from "./features/teamleader/pages/Dashboard.jsx";
+import ToTruongAttendance from "./features/teamleader/pages/Attendance.jsx";
+import ToTruongShiftAssignment from "./features/teamleader/pages/ShiftAssignment.jsx";
+import ToTruongTeams from "./features/teamleader/pages/Teams.jsx";
+import FactoryTeams from "./features/factory/pages/Teams.jsx";
+
 //Quan ly kho thanh pham
 import NhapKhoThanhPham from "./features/warehouseProduct/pages/NhapKhoThanhPham.jsx";
 
@@ -180,6 +189,22 @@ export default function App() {
           <Route path="phan-cong" element={<PhanCong />} />
           <Route path="thong-ke" element={<ThongKe />} />
           <Route path="xem-ke-hoach" element={<XemKeHoach />} />
+          <Route path="thong-tin-to" element={<FactoryTeams />} />
+        </Route>
+
+        {/* Protected Routes - Tổ trưởng */}
+        <Route
+          path="/totruong"
+          element={
+            <ProtectedRoute allowedRoles={["totruong"]}>
+              <ToTruongLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<ToTruongDashboard />} />
+          <Route path="cham-cong" element={<ToTruongAttendance />} />
+          <Route path="phan-cong-ca" element={<ToTruongShiftAssignment />} />
+          <Route path="to-nhom" element={<ToTruongTeams />} />
         </Route>
 
         {/* Default redirect to login */}

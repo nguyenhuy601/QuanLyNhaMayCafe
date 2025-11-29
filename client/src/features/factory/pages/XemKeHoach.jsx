@@ -1,188 +1,52 @@
 import React, { useState, useEffect } from "react";
 import { CalendarDays, Search, ClipboardList, Info } from "lucide-react";
+import { fetchPlans, fetchPlanById } from "../../../services/factoryService";
 
 export default function XemKeHoach() {
   const [filter, setFilter] = useState({ tuNgay: "", denNgay: "", maKeHoach: "" });
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // CSS nội tuyến - tự động chèn vào head (dễ quản lý 1 file)
   useEffect(() => {
-    const style = document.createElement("style");
-    style.innerHTML = `
-      .xk-wrapper {
-        padding: 24px;
-        background-color: #fff9f3;
-        min-height: 100vh;
-        font-family: "Segoe UI", sans-serif;
-        color: #4a2c0a;
-      }
-
-      .xk-title {
-        font-size: 22px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 20px;
-        color: #5c2e00;
-      }
-
-      .xk-filter {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        background: #ffffff;
-        border: 1px solid #f3d7a7;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      }
-
-      .filter-input, .filter-date {
-        display: flex;
-        align-items: center;
-        border: 1px solid #f0d199;
-        border-radius: 8px;
-        padding: 6px 10px;
-        background-color: #fff;
-      }
-
-      .filter-input input, .filter-date input {
-        border: none;
-        outline: none;
-        font-size: 14px;
-        background: transparent;
-        color: #4a2c0a;
-      }
-
-      .filter-input .icon, .filter-date .icon {
-        margin-right: 6px;
-        color: #b87e3c;
-      }
-
-      .xk-table table {
-        width: 100%;
-        border-collapse: collapse;
-        background: #fff;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      }
-
-      .xk-table th {
-        background: #f6d58f;
-        color: #4a2c0a;
-        padding: 12px;
-        text-align: left;
-        font-weight: 600;
-        font-size: 14px;
-      }
-
-      .xk-table td {
-        padding: 10px 12px;
-        border-top: 1px solid #f3e1b6;
-        font-size: 14px;
-      }
-
-      .xk-table tr:hover {
-        background-color: #fff3dd;
-      }
-
-      .xk-table button {
-        background: #e0a647;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-size: 13px;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-
-      .xk-table button:hover {
-        background: #c98c33;
-      }
-
-      /* Modal chi tiết kế hoạch */
-      .xk-modal {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 99;
-      }
-
-      .modal-content {
-        background: #fff;
-        border-radius: 12px;
-        padding: 24px;
-        width: 460px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-      }
-
-      .modal-content h2 {
-        font-size: 18px;
-        color: #5c2e00;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-bottom: 12px;
-      }
-
-      .modal-content p {
-        margin: 6px 0;
-        font-size: 14px;
-      }
-
-      .modal-actions {
-        text-align: right;
-        margin-top: 14px;
-      }
-
-      .modal-actions button {
-        background: #b9761b;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 14px;
-        cursor: pointer;
-      }
-
-      .modal-actions button:hover {
-        background: #945a14;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
+    loadPlans();
   }, []);
 
-  const danhSachKeHoach = [
-    {
-      maKeHoach: "KH001",
-      sanPham: "Cà phê hạt Arabica 500g",
-      maLo: "LO001",
-      ngayBatDau: "2025-10-20",
-      ngayKetThuc: "2025-10-28",
-      toSanXuat: "Tổ 1",
-      soLuong: 500,
-      trangThai: "Hoàn thành",
-    },
-    {
-      maKeHoach: "KH002",
-      sanPham: "Cà phê hòa tan 3in1",
-      maLo: "LO002",
-      ngayBatDau: "2025-10-25",
-      ngayKetThuc: "2025-11-05",
-      toSanXuat: "Tổ 2",
-      soLuong: 400,
-      trangThai: "Đang sản xuất",
-    },
-  ];
+  const loadPlans = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchPlans();
+      setPlans(data);
+    } catch (error) {
+      console.error("Lỗi tải kế hoạch:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredData = danhSachKeHoach.filter((item) => {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "Chưa có";
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      return date.toLocaleDateString("vi-VN");
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const normalizePlan = (plan) => ({
+    _id: plan._id,
+    maKeHoach: plan.maKeHoach || plan._id,
+    sanPham: plan.sanPham?.tenSanPham || plan.sanPham?.productId || "Sản phẩm",
+    ngayBatDau: plan.ngayBatDauDuKien || plan.ngayBatDau,
+    ngayKetThuc: plan.ngayKetThucDuKien || plan.ngayKetThuc,
+    toSanXuat: plan.xuongPhuTrach || "Chưa xác định",
+    soLuong: plan.soLuongCanSanXuat || 0,
+    trangThai: plan.trangThai || "Chờ duyệt",
+  });
+
+  const filteredData = plans.map(normalizePlan).filter((item) => {
     const tu = filter.tuNgay ? new Date(filter.tuNgay) : null;
     const den = filter.denNgay ? new Date(filter.denNgay) : null;
     const ngayBD = new Date(item.ngayBatDau);
@@ -191,89 +55,147 @@ export default function XemKeHoach() {
     return matchDate && matchMa;
   });
 
-  return (
-    <div className="xk-wrapper">
-      <h1 className="xk-title">
-        <ClipboardList size={24} />
-        Xem kế hoạch sản xuất
-      </h1>
+  const filterControl =
+    "flex items-center gap-2 rounded-2xl border border-amber-200 px-4 py-2.5 bg-white text-sm text-amber-900 focus-within:ring-2 focus-within:ring-amber-500";
 
-      <div className="xk-filter">
-        <div className="filter-input">
-          <Search size={18} className="icon" />
-          <input
-            type="text"
-            placeholder="Nhập mã kế hoạch..."
-            value={filter.maKeHoach}
-            onChange={(e) => setFilter({ ...filter, maKeHoach: e.target.value })}
-          />
+  return (
+    <div className="space-y-6 text-amber-900">
+      <div className="flex items-center gap-3">
+        <div className="p-3 rounded-2xl bg-amber-100 text-amber-600">
+          <ClipboardList size={24} />
         </div>
-        <div className="filter-date">
-          <CalendarDays size={18} className="icon" />
-          <input
-            type="date"
-            value={filter.tuNgay}
-            onChange={(e) => setFilter({ ...filter, tuNgay: e.target.value })}
-          />
-        </div>
-        <div className="filter-date">
-          <CalendarDays size={18} className="icon" />
-          <input
-            type="date"
-            value={filter.denNgay}
-            onChange={(e) => setFilter({ ...filter, denNgay: e.target.value })}
-          />
+        <div>
+          <p className="text-sm uppercase tracking-[0.3em] text-amber-400">Planning</p>
+          <h1 className="text-3xl font-bold text-amber-900">Xem kế hoạch sản xuất</h1>
         </div>
       </div>
 
-      <div className="xk-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Mã kế hoạch</th>
-              <th>Mã lô</th>
-              <th>Sản phẩm</th>
-              <th>Tổ sản xuất</th>
-              <th>Ngày bắt đầu</th>
-              <th>Ngày kết thúc</th>
-              <th>Trạng thái</th>
-              <th>Chi tiết</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((row) => (
-              <tr key={row.maKeHoach}>
-                <td>{row.maKeHoach}</td>
-                <td>{row.maLo}</td>
-                <td>{row.sanPham}</td>
-                <td>{row.toSanXuat}</td>
-                <td>{row.ngayBatDau}</td>
-                <td>{row.ngayKetThuc}</td>
-                <td>{row.trangThai}</td>
-                <td>
-                  <button onClick={() => setSelectedPlan(row)}>Xem chi tiết</button>
-                </td>
+      <div className="bg-white border border-amber-100 rounded-3xl shadow p-6 space-y-4">
+        <div className="grid gap-4 md:grid-cols-3">
+          <label className={filterControl}>
+            <Search size={18} className="text-amber-500" />
+            <input
+              type="text"
+              placeholder="Nhập mã kế hoạch..."
+              value={filter.maKeHoach}
+              onChange={(e) => setFilter({ ...filter, maKeHoach: e.target.value })}
+              className="flex-1 border-none bg-transparent outline-none"
+            />
+          </label>
+          <label className={filterControl}>
+            <CalendarDays size={18} className="text-amber-500" />
+            <input
+              type="date"
+              value={filter.tuNgay}
+              onChange={(e) => setFilter({ ...filter, tuNgay: e.target.value })}
+              className="flex-1 border-none bg-transparent outline-none"
+            />
+          </label>
+          <label className={filterControl}>
+            <CalendarDays size={18} className="text-amber-500" />
+            <input
+              type="date"
+              value={filter.denNgay}
+              onChange={(e) => setFilter({ ...filter, denNgay: e.target.value })}
+              className="flex-1 border-none bg-transparent outline-none"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="bg-white border border-amber-100 rounded-3xl shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-amber-700 text-white">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold">Mã kế hoạch</th>
+                <th className="px-4 py-3 text-left font-semibold">Mã lô</th>
+                <th className="px-4 py-3 text-left font-semibold">Sản phẩm</th>
+                <th className="px-4 py-3 text-left font-semibold">Tổ sản xuất</th>
+                <th className="px-4 py-3 text-left font-semibold">Ngày bắt đầu</th>
+                <th className="px-4 py-3 text-left font-semibold">Ngày kết thúc</th>
+                <th className="px-4 py-3 text-left font-semibold">Trạng thái</th>
+                <th className="px-4 py-3 text-left font-semibold">Chi tiết</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-amber-50 bg-white">
+              {loading ? (
+                <tr>
+                  <td colSpan="8" className="px-4 py-8 text-center text-amber-600">
+                    Đang tải dữ liệu...
+                  </td>
+                </tr>
+              ) : filteredData.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="px-4 py-8 text-center text-amber-600">
+                    Chưa có kế hoạch sản xuất nào
+                  </td>
+                </tr>
+              ) : (
+                filteredData.map((row) => (
+                  <tr key={row._id || row.maKeHoach} className="hover:bg-amber-50/60">
+                    <td className="px-4 py-3 font-semibold">{row.maKeHoach}</td>
+                    <td className="px-4 py-3">{row._id?.slice(-6) || "N/A"}</td>
+                    <td className="px-4 py-3">{row.sanPham}</td>
+                    <td className="px-4 py-3">{row.toSanXuat}</td>
+                    <td className="px-4 py-3">{formatDate(row.ngayBatDau)}</td>
+                    <td className="px-4 py-3">{formatDate(row.ngayKetThuc)}</td>
+                    <td className="px-4 py-3">
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                        {row.trangThai}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={async () => {
+                          if (row._id) {
+                            const fullPlan = await fetchPlanById(row._id);
+                            setSelectedPlan(fullPlan ? normalizePlan(fullPlan) : row);
+                          } else {
+                            setSelectedPlan(row);
+                          }
+                        }}
+                        className="px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-semibold shadow hover:shadow-lg transition"
+                      >
+                        Xem chi tiết
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {selectedPlan && (
-        <div className="xk-modal">
-          <div className="modal-content">
-            <h2>
-              <Info size={20} /> Chi tiết kế hoạch
-            </h2>
-            <p><strong>Mã kế hoạch:</strong> {selectedPlan.maKeHoach}</p>
-            <p><strong>Mã lô hàng:</strong> {selectedPlan.maLo}</p>
-            <p><strong>Sản phẩm:</strong> {selectedPlan.sanPham}</p>
-            <p><strong>Tổ sản xuất:</strong> {selectedPlan.toSanXuat}</p>
-            <p><strong>Số lượng:</strong> {selectedPlan.soLuong}</p>
-            <p><strong>Thời gian:</strong> {selectedPlan.ngayBatDau} → {selectedPlan.ngayKetThuc}</p>
-            <p><strong>Trạng thái:</strong> {selectedPlan.trangThai}</p>
-            <div className="modal-actions">
-              <button onClick={() => setSelectedPlan(null)}>Đóng</button>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg space-y-4 border border-amber-100">
+            <div className="flex items-center gap-2 text-amber-800">
+              <Info size={22} />
+              <h2 className="text-xl font-bold">Chi tiết kế hoạch</h2>
+            </div>
+            <div className="space-y-2 text-sm text-amber-900">
+              <p><strong>Mã kế hoạch:</strong> {selectedPlan.maKeHoach || selectedPlan._id}</p>
+              <p><strong>Mã lô hàng:</strong> {selectedPlan._id?.slice(-6) || "N/A"}</p>
+              <p><strong>Sản phẩm:</strong> {selectedPlan.sanPham}</p>
+              <p><strong>Tổ sản xuất:</strong> {selectedPlan.toSanXuat}</p>
+              <p><strong>Số lượng cần sản xuất:</strong> {selectedPlan.soLuong?.toLocaleString("vi-VN") || 0}</p>
+              <p>
+                <strong>Ngày bắt đầu:</strong> {formatDate(selectedPlan.ngayBatDau)}
+              </p>
+              <p>
+                <strong>Ngày kết thúc:</strong> {formatDate(selectedPlan.ngayKetThuc)}
+              </p>
+              <p><strong>Trạng thái:</strong> {selectedPlan.trangThai}</p>
+            </div>
+            <div className="text-right">
+              <button
+                onClick={() => setSelectedPlan(null)}
+                className="px-5 py-2 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 text-white font-semibold shadow hover:shadow-lg transition"
+              >
+                Đóng
+              </button>
             </div>
           </div>
         </div>

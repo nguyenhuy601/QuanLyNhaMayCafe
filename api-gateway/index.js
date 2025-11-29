@@ -27,10 +27,16 @@ app.use((req, res, next) => {
 // Handle proxy errors gracefully
 proxy.on("error", (err, req, res) => {
   console.error("❌ Proxy error:", err.message);
-  res.status(503).json({
-    error: "Service unavailable",
-    message: err.message,
-  });
+  console.error("❌ Request URL:", req.url);
+  console.error("❌ Target service may be down or unreachable");
+  
+  if (!res.headersSent) {
+    res.status(503).json({
+      error: "Service unavailable",
+      message: err.message,
+      path: req.url,
+    });
+  }
 });
 
 proxy.on("proxyRes", (proxyRes, req, res) => {
@@ -63,6 +69,14 @@ app.use("/auth", (req, res) => {
 });
 
 app.use("/director", (req, res) => {
+  if (!DIRECTOR_SERVICE_URL) {
+    console.error("❌ DIRECTOR_SERVICE_URL is not defined");
+    return res.status(503).json({
+      error: "Service configuration error",
+      message: "Director service URL is not configured",
+    });
+  }
+  console.log(`📡 Proxying /director${req.url} to ${DIRECTOR_SERVICE_URL}`);
   proxy.web(req, res, { target: DIRECTOR_SERVICE_URL });
 });
 

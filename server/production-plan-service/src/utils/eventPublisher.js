@@ -6,7 +6,7 @@ const amqp = require("amqplib");
  * crashing the calling flow (plans can still be created offline).
  */
 exports.publishEvent = async (event, payload) => {
-  const RABBITMQ_URL = process.env.RABBITMQ_URL;
+  const RABBITMQ_URL = process.env.RABBITMQ_URL || process.env.RABBITMQ_URI;
 
   try {
     const connection = await amqp.connect(RABBITMQ_URL);

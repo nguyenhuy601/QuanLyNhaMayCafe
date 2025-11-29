@@ -1,11 +1,13 @@
 // src/services/planService.js
+import { getToken, handle401Error } from "../utils/auth";
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 /**
  * 🏗️ Helper: Cấu hình header mặc định
  */
 function getHeaders() {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -33,6 +35,13 @@ export const createProductionPlan = async (planData) => {
     }
 
     console.log(`📥 Response status: ${response.status}`, result);
+
+    // Xử lý lỗi 401 (token expired)
+    if (response.status === 401) {
+      console.error("❌ 401 Unauthorized when creating plan");
+      handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tạo kế hoạch.");
+      return { success: false, message: "Token đã hết hạn", isHandled: true };
+    }
 
     if (!response.ok) {
       const errorMsg = result?.message || result?.error || `Server error: ${response.status}`;
@@ -63,12 +72,32 @@ export const createProductionPlan = async (planData) => {
  */
 export const fetchProductionPlans = async () => {
   try {
+    const headers = getHeaders();
+    const token = getToken();
+    console.log('📡 Fetching plans from:', `${API_URL}/plan`);
+    console.log('🔑 Token present:', !!token, token ? `${token.substring(0, 20)}...` : 'none');
+    
     const response = await fetch(`${API_URL}/plan`, {
       method: "GET",
-      headers: getHeaders(),
+      headers: headers,
     });
 
+    // Xử lý lỗi 401 (token expired)
+    if (response.status === 401) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: "Token không hợp lệ hoặc đã hết hạn", error: "jwt expired" };
+      }
+      console.error(`❌ Plan API returned 401:`, errorData);
+      handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      return []; // Return empty array để không crash UI
+    }
+
     if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      console.error(`❌ Plan API returned ${response.status}:`, errorText);
       throw new Error("Không thể tải danh sách kế hoạch sản xuất.");
     }
 
@@ -92,6 +121,12 @@ export const fetchPlanById = async (id) => {
       headers: getHeaders(),
     });
 
+    // Xử lý lỗi 401 (token expired)
+    if (response.status === 401) {
+      handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      return null;
+    }
+
     if (!response.ok) throw new Error("Không thể lấy chi tiết kế hoạch.");
 
     const data = await response.json();
@@ -114,6 +149,12 @@ export const updateProductionPlan = async (id, updateData) => {
       headers: getHeaders(),
       body: JSON.stringify(updateData),
     });
+
+    // Xử lý lỗi 401 (token expired)
+    if (response.status === 401) {
+      handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      return { success: false, message: "Token đã hết hạn", isHandled: true };
+    }
 
     const result = await response.json();
 
@@ -139,6 +180,12 @@ export const deleteProductionPlan = async (id) => {
       method: "DELETE",
       headers: getHeaders(),
     });
+
+    // Xử lý lỗi 401 (token expired)
+    if (response.status === 401) {
+      handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      return { success: false, message: "Token đã hết hạn", isHandled: true };
+    }
 
     const result = await response.json();
 
@@ -169,6 +216,12 @@ export const sendPlanToDirector = async (id, planData) => {
         trangThai: "Đã duyệt",
       }),
     });
+
+    // Xử lý lỗi 401 (token expired)
+    if (response.status === 401) {
+      handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      return { success: false, message: "Token đã hết hạn", isHandled: true };
+    }
 
     const result = await response.json();
 

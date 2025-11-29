@@ -16,6 +16,7 @@ const CreateOrder = () => {
     product: "",
     deliveryDate: "",
     quantity: "",
+    donVi: "kg", // Đơn vị: "kg", "túi 500g", hoặc "túi 1kg"
     customerName: "",
     phone: "",
     address: "",
@@ -55,10 +56,48 @@ const CreateOrder = () => {
   // 🧩 Khi editingOrder thay đổi → load dữ liệu vào form
   useEffect(() => {
     if (editingOrder) {
+      // Extract donVi từ quantity nếu có (ví dụ: "10/túi" -> quantity: "10", donVi: "túi")
+      let quantity = editingOrder.quantity || "";
+      let donVi = "kg";
+      if (typeof quantity === "string") {
+        if (quantity.includes("/túi") || quantity.includes("/Túi")) {
+          quantity = quantity.replace("/túi", "").replace("/Túi", "").trim();
+          donVi = "túi";
+        } else if (quantity.includes("/kg") || quantity.includes("/Kg")) {
+          quantity = quantity.replace("/kg", "").replace("/Kg", "").trim();
+          donVi = "kg";
+        }
+      }
+      // Hoặc lấy từ chiTiet nếu có
+      if (editingOrder.chiTiet && editingOrder.chiTiet[0]?.donVi) {
+        donVi = editingOrder.chiTiet[0].donVi;
+      }
+      
+      // Lấy loaiTui từ chiTiet nếu có và ghép với donVi
+      const loaiTui = editingOrder.chiTiet?.[0]?.loaiTui || "";
+      let donViFull = donVi; // Giá trị đầy đủ cho select
+      
+      // Kiểm tra sản phẩm có phải là hòa tan không
+      const selectedProduct = products.find((p) => p.id === editingOrder.product);
+      const isHoaTan = selectedProduct?.name?.toLowerCase().includes("hòa tan") || 
+                       selectedProduct?.name?.toLowerCase().includes("instant");
+      
+      if (isHoaTan) {
+        // Sản phẩm hòa tan: luôn là "Hộp"
+        donViFull = "Hộp";
+      } else if (donVi === "túi" && loaiTui) {
+        if (loaiTui === "hop") {
+          donViFull = "Hộp";
+        } else {
+          donViFull = `túi ${loaiTui}`; // "túi 500g" hoặc "túi 1kg"
+        }
+      }
+      
       setFormData({
         product: editingOrder.product,
         deliveryDate: editingOrder.deliveryDate,
-        quantity: editingOrder.quantity.replace("/Túi", ""),
+        quantity: quantity,
+        donVi: donViFull, // Lưu giá trị đầy đủ
         customerName: editingOrder.customerName,
         phone: editingOrder.phone,
         address: editingOrder.address,
@@ -107,22 +146,38 @@ const CreateOrder = () => {
   };
 
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    
+    // Nếu đổi sản phẩm, reset đơn vị về giá trị mặc định
+    if (name === "product") {
+      const selectedProduct = products.find((p) => p.id === value);
+      const isHoaTan = selectedProduct?.name?.toLowerCase().includes("hòa tan") || 
+                       selectedProduct?.name?.toLowerCase().includes("instant");
+      
+      setFormData({
+        ...formData,
+        [name]: value,
+        donVi: isHoaTan ? "Hộp" : "kg", // Reset đơn vị theo loại sản phẩm
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
   };
 
   const handleCancel = () => {
-    setFormData({
-      product: "",
-      deliveryDate: "",
-      quantity: "",
-      customerName: "",
-      phone: "",
-      address: "",
-      email: "",
-    });
+      setFormData({
+        product: "",
+        deliveryDate: "",
+        quantity: "",
+        donVi: "kg",
+        customerName: "",
+        phone: "",
+        address: "",
+        email: "",
+      });
     setSearchPhone("");
     setCustomerFound(null);
     setEditingOrder?.(null);
@@ -141,6 +196,8 @@ const CreateOrder = () => {
       return;
     }
 
+    // Validation đã được xử lý bởi select (required), không cần kiểm tra thêm
+
      // 🕒 Kiểm tra ngày giao hàng hợp lệ
   const today = new Date();
   const deliveryDate = new Date(formData.deliveryDate);
@@ -154,8 +211,6 @@ const CreateOrder = () => {
     return;
   }
 
-  setLoading(true);
-
     setLoading(true);
     const selectedProduct = products.find((p) => p.id === formData.product) || {};
 
@@ -163,6 +218,32 @@ const CreateOrder = () => {
       setLoading(false);
       alert("Sản phẩm chưa được tải hoặc không hợp lệ.");
       return;
+    }
+
+    // Kiểm tra sản phẩm có phải là hòa tan không
+    const isHoaTan = selectedProduct.name?.toLowerCase().includes("hòa tan") || 
+                     selectedProduct.name?.toLowerCase().includes("instant");
+
+    // Parse đơn vị từ formData.donVi
+    let donVi = "kg";
+    let loaiTui = null;
+    
+    if (isHoaTan) {
+      // Sản phẩm hòa tan: "Hộp" → lưu là "túi" với loaiTui = "hop"
+      donVi = "túi";
+      loaiTui = "hop"; // Đánh dấu đặc biệt cho hộp
+    } else {
+      // Sản phẩm khác: "kg", "túi 500g", hoặc "túi 1kg"
+      if (formData.donVi === "túi 500g") {
+        donVi = "túi";
+        loaiTui = "500g";
+      } else if (formData.donVi === "túi 1kg") {
+        donVi = "túi";
+        loaiTui = "1kg";
+      } else {
+        donVi = formData.donVi || "kg";
+        loaiTui = null;
+      }
     }
 
     // Format dữ liệu gửi backend
@@ -179,6 +260,8 @@ const CreateOrder = () => {
         {
           sanPham: selectedProduct.id,
           soLuong: parseInt(formData.quantity, 10),
+          donVi: donVi,
+          loaiTui: loaiTui, // Lưu loại túi nếu có
           donGia: selectedProduct.price || 0,
           thanhTien:
             parseInt(formData.quantity, 10) * (selectedProduct.price || 0),
@@ -187,6 +270,7 @@ const CreateOrder = () => {
       tongTien:
         parseInt(formData.quantity, 10) * (selectedProduct.price || 0),
       ghiChu: "",
+      trangThai: "Chờ duyệt",
     };
 
     try {
@@ -201,8 +285,16 @@ const CreateOrder = () => {
       }
 
       if (success) handleCancel();
-      else alert("Có lỗi xảy ra!");
+      else if (success !== null) {
+        // Chỉ hiển thị alert nếu không phải là trường hợp đã redirect (401)
+        alert("Có lỗi xảy ra!");
+      }
     } catch (error) {
+      // Nếu error đã được xử lý (401), không hiển thị alert thêm
+      if (error.isHandled || error.message === "Token đã hết hạn") {
+        // Đã redirect về login, không cần làm gì thêm
+        return;
+      }
       console.error("Error creating order:", error);
       alert("Có lỗi xảy ra: " + error.message);
     } finally {
@@ -303,20 +395,54 @@ const CreateOrder = () => {
           />
         </div>
 
-        {/* Số lượng */}
-        <div>
-          <label className="block text-sm font-semibold mb-2">
-            Số lượng sản phẩm: <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="number"
-            name="quantity"
-            value={formData.quantity}
-            onChange={handleInputChange}
-            placeholder="Số lượng"
-            min="1"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-          />
+        {/* Số lượng và Đơn vị */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Số lượng: <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              name="quantity"
+              value={formData.quantity}
+              onChange={handleInputChange}
+              placeholder="Số lượng"
+              min="1"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Đơn vị: <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="donVi"
+              value={formData.donVi}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+            >
+              {(() => {
+                // Kiểm tra sản phẩm đã chọn có phải là hòa tan không
+                const selectedProduct = products.find((p) => p.id === formData.product);
+                const isHoaTan = selectedProduct?.name?.toLowerCase().includes("hòa tan") || 
+                                 selectedProduct?.name?.toLowerCase().includes("instant");
+                
+                if (isHoaTan) {
+                  // Sản phẩm hòa tan: chỉ hiển thị "Hộp"
+                  return <option value="Hộp">Hộp</option>;
+                } else {
+                  // Sản phẩm khác: hiển thị kg, Túi 500g, Túi 1kg
+                  return (
+                    <>
+                      <option value="kg">kg</option>
+                      <option value="túi 500g">Túi 500g</option>
+                      <option value="túi 1kg">Túi 1kg</option>
+                    </>
+                  );
+                }
+              })()}
+            </select>
+          </div>
         </div>
 
         {/* Thông tin khách hàng */}

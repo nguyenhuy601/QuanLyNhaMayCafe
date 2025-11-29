@@ -5,7 +5,8 @@ const amqp = require("amqplib");
 
 /** Gửi event sang RabbitMQ */
 async function publishEvent(event, payload) {
-  const connection = await amqp.connect(process.env.RABBITMQ_URI);
+  const uri = process.env.RABBITMQ_URI || process.env.RABBITMQ_URL || "amqp://rabbitmq:5672";
+  const connection = await amqp.connect(uri);
   const channel = await connection.createChannel();
   await channel.assertExchange("order_events", "fanout", { durable: false });
   channel.publish(
@@ -17,6 +18,42 @@ async function publishEvent(event, payload) {
   await connection.close();
 }
 
+const normalizeStatus = (value = "") =>
+  value
+    .toString()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+const STATUS_DICTIONARY = {
+  "cho duyet": "Chờ duyệt",
+  "chua duyet": "Chờ duyệt",
+  "dang cho duyet": "Chờ duyệt",
+  pending: "Chờ duyệt",
+
+  "da duyet": "Đã duyệt",
+  approved: "Đã duyệt",
+  "hoan thanh": "Đã duyệt",
+  complete: "Đã duyệt",
+  completed: "Đã duyệt",
+
+  "dang giao": "Đang giao",
+  delivering: "Đang giao",
+
+  "da huy": "Đã hủy",
+  cancelled: "Đã hủy",
+  cancel: "Đã hủy",
+
+  "tu choi": "Từ chối",
+  rejected: "Từ chối",
+};
+
+const normalizeToVietnameseStatus = (value = "") =>
+  STATUS_DICTIONARY[normalizeStatus(value)] || value || "";
+
+const PENDING_KEYS = new Set(["cho duyet"]);
+
 /** 🧾 Lấy tất cả đơn hàng */
 exports.getAllOrders = async (req, res) => {
   try {
@@ -24,7 +61,12 @@ exports.getAllOrders = async (req, res) => {
       .populate("khachHang nguoiTao chiTiet.sanPham")
       .sort({ ngayDat: -1 });
 
-    res.status(200).json(orders);
+    res.status(200).json(
+      orders.map((order) => ({
+        ...order.toObject(),
+        trangThai: normalizeToVietnameseStatus(order.trangThai),
+      }))
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -39,10 +81,35 @@ exports.getOrderById = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
 
-    res.status(200).json(order);
+    res.status(200).json({
+      ...order.toObject(),
+      trangThai: normalizeToVietnameseStatus(order.trangThai),
+    });
   } catch (err) {
     console.error("❌ Error fetching order by ID:", err);
     res.status(500).json({ message: "Lỗi khi lấy đơn hàng", error: err.message });
+  }
+};
+
+/** 🕒 Lấy đơn hàng đang chờ duyệt */
+exports.getPendingOrders = async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate("khachHang nguoiTao chiTiet.sanPham")
+      .sort({ ngayDat: -1 });
+
+    const result = orders
+      .filter((order) => PENDING_KEYS.has(normalizeStatus(order.trangThai)))
+      .map((order) => ({
+        ...order.toObject(),
+        trangThai: "Chờ duyệt",
+      }));
+
+    res.status(200).json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Không thể lấy đơn hàng chờ duyệt", error: err.message });
   }
 };
 
@@ -78,6 +145,8 @@ exports.createOrder = async (req, res) => {
       }
 
       const soLuong = parseInt(item.soLuong, 10);
+      const donVi = item.donVi || null; // Giữ null nếu không có để tương thích với dữ liệu cũ
+      const loaiTui = (donVi === "túi" && item.loaiTui) ? item.loaiTui : null; // Lưu loại túi: "500g", "1kg", hoặc "hop" (hộp) nếu đơn vị là túi
       const donGia = product.donGia;
       const thanhTien = soLuong * donGia;
       tongTien += thanhTien;
@@ -85,6 +154,8 @@ exports.createOrder = async (req, res) => {
       chiTietDonHang.push({
         sanPham: product._id,
         soLuong,
+        donVi: donVi, // Lưu đơn vị (có thể null)
+        loaiTui: loaiTui, // Lưu loại túi: "500g", "1kg" (túi bạc), hoặc "hop" (hộp - sản phẩm hòa tan)
         donGia,
         thanhTien,
       });
@@ -113,7 +184,13 @@ exports.createOrder = async (req, res) => {
     });
 
     console.log(`✅ Order ${maDH} created successfully`);
-    res.status(201).json({ message: "Tạo đơn hàng thành công", order });
+    res.status(201).json({
+      message: "Tạo đơn hàng thành công",
+      order: {
+        ...order.toObject(),
+        trangThai: normalizeToVietnameseStatus(order.trangThai),
+      },
+    });
 
     await publishEvent("ORDER_CREATED", order);
 
@@ -126,12 +203,24 @@ exports.createOrder = async (req, res) => {
 /** ✏️ Cập nhật đơn hàng */
 exports.updateOrder = async (req, res) => {
   try {
-    const updated = await Order.findByIdAndUpdate(req.params.id, req.body, {
+    const payload = {
+      ...req.body,
+      trangThai: req.body.trangThai
+        ? normalizeToVietnameseStatus(req.body.trangThai)
+        : undefined,
+    };
+    const updated = await Order.findByIdAndUpdate(req.params.id, payload, {
       new: true,
     });
     res
       .status(200)
-      .json({ message: "Cập nhật đơn hàng thành công", order: updated });
+      .json({
+        message: "Cập nhật đơn hàng thành công",
+        order: {
+          ...updated.toObject(),
+          trangThai: normalizeToVietnameseStatus(updated.trangThai),
+        },
+      });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

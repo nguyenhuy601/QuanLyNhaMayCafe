@@ -1,3 +1,5 @@
+import { getToken } from "../utils/auth";
+
 const ADMIN_BASE_URL =
   import.meta.env.VITE_ADMIN_SERVICE_URL ||
   (import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/admin` : "");
@@ -11,7 +13,7 @@ const getHeaders = () => {
   const headers = {
     "Content-Type": "application/json",
   };
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }

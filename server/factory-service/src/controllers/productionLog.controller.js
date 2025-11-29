@@ -3,9 +3,7 @@ const { publishEvent } = require("../utils/eventPublisher");
 
 exports.getLogs = async (req, res) => {
   try {
-    const logs = await ProductionLog.find()
-      .populate("phanCong")
-      .sort({ ngayGhiNhan: -1 });
+    const logs = await ProductionLog.find().populate("phanCong").sort({ createdAt: -1 });
     res.status(200).json(logs);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -18,7 +16,7 @@ exports.finishProduction = async (req, res) => {
     const log = await ProductionLog.findById(req.params.id);
     if (!log) return res.status(404).json({ message: "Không tìm thấy bản ghi" });
 
-    log.trangThai = "Chờ kiểm tra";
+    log.trangThai = "Cho kiem tra";
     await log.save();
 
     // Gửi event sang QC-Service

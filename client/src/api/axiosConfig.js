@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { handle401Error } from '../utils/auth';
 
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -11,7 +12,8 @@ const axiosInstance = axios.create({
 // Interceptor để tự động thêm token vào header
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    // Lấy token từ sessionStorage (do đã patch localStorage) hoặc localStorage
+    const token = sessionStorage.getItem('token') || localStorage.getItem('token') || window.userToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -25,9 +27,8 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token hết hạn, redirect về login
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Token hết hạn, xử lý và redirect về login
+      handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
     }
     return Promise.reject(error);
   }

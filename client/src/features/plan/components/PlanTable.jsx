@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { CheckSquare, Square, ChevronDown } from "lucide-react";
 import CreatePlanModal from "./CreatePlanModal";
 
@@ -9,11 +9,15 @@ const formatDate = (dateStr) => {
   return date.toLocaleDateString("vi-VN");
 };
 
-const PlanTable = ({ orders = [] }) => {
+const PlanTable = ({ orders = [], onModalStateChange }) => {
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [sortType, setSortType] = useState("date");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    onModalStateChange?.(showModal);
+  }, [showModal, onModalStateChange]);
 
   const sortedOrders = useMemo(() => {
     const parseDate = (dateStr) => new Date(dateStr).getTime() || 0;
@@ -101,8 +105,8 @@ const PlanTable = ({ orders = [] }) => {
               <th className="px-3 py-3 text-left">Mã đơn hàng</th>
               <th className="px-3 py-3 text-left">Tên sản phẩm</th>
               <th className="px-3 py-3 text-left">Số lượng SP</th>
-              <th className="px-3 py-3 text-left">Ngày bắt đầu</th>
-              <th className="px-3 py-3 text-left">Ngày kết thúc</th>
+              <th className="px-3 py-3 text-left">Ngày tạo đơn</th>
+              <th className="px-3 py-3 text-left">Ngày giao</th>
               <th className="px-3 py-3 text-left">Trạng thái</th>
               <th className="px-3 py-3 text-center">Lập kế hoạch</th>
             </tr>
@@ -123,7 +127,25 @@ const PlanTable = ({ orders = [] }) => {
                 </td>
 
                 <td className="px-3 py-3 text-sm">
-                  {order.chiTiet?.[0]?.soLuong}/Túi
+                  {(() => {
+                    const chiTiet = order.chiTiet?.[0];
+                    const soLuong = chiTiet?.soLuong || 0;
+                    const donVi = chiTiet?.donVi;
+                    const loaiTui = chiTiet?.loaiTui;
+                    
+                    // Nếu loaiTui = "hop" thì hiển thị "Hộp"
+                    if (loaiTui === "hop") {
+                      return `${soLuong} Hộp`;
+                    }
+                    
+                    // Nếu có donVi thì hiển thị donVi
+                    if (donVi !== null && donVi !== undefined) {
+                      return `${soLuong} ${donVi}`;
+                    }
+                    
+                    // Mặc định hiển thị "null"
+                    return `${soLuong} null`;
+                  })()}
                 </td>
 
                 <td className="px-3 py-3 text-sm">
@@ -134,8 +156,16 @@ const PlanTable = ({ orders = [] }) => {
                   {formatDate(order.ngayYeuCauGiao)}
                 </td>
 
-                <td className="px-3 py-3 text-sm text-blue-700 font-medium">
-                  Đã duyệt
+                <td
+                  className={`px-3 py-3 text-sm font-semibold ${
+                    order.trangThai === "Chờ duyệt"
+                      ? "text-amber-600"
+                      : order.trangThai === "Đã duyệt"
+                      ? "text-green-600"
+                      : "text-blue-700"
+                  }`}
+                >
+                  {order.trangThai || "Chờ duyệt"}
                 </td>
 
                 <td className="px-3 py-3 text-center">

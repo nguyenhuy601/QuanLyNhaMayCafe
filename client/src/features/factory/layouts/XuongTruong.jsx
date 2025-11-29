@@ -2,42 +2,17 @@ import React from "react";
 import SidebarXuongTruong from "../components/Sidebar.jsx";
 import Header from "../components/Header.jsx";
 import { Outlet } from "react-router-dom";
- // Nếu dùng React Router v6
 
 export default function LayoutXuongTruong() {
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        backgroundColor: "#f8f3ee",
-        overflow: "hidden",
-      }}
-    >
-      {/* Sidebar bên trái */}
+    <div className="min-h-screen bg-gray-100 flex">
       <SidebarXuongTruong />
-
-      {/* Khu vực nội dung */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          flex: 1,
-          overflow: "hidden",
-        }}
-      >
-        {/* Header nằm trên cùng */}
+      <div className="ml-64 flex-1 flex flex-col">
         <Header />
-
-        {/* Nội dung trang */}
-        <main
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "20px 30px",
-          }}
-        >
-          <Outlet /> {/* render các trang con */}
+        <main className="p-8 flex-1 overflow-y-auto bg-gray-50">
+          <div className="max-w-6xl mx-auto space-y-6">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

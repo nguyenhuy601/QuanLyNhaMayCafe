@@ -14,11 +14,14 @@ exports.authorizeRoles = (allowedRoles = []) => {
       return res.status(403).json({ message: "Không xác định được thông tin người dùng" });
     }
 
-    // Kiểm tra quyền trong cả role và mảng roles (nếu có)
-    const userRole = req.user.role;
-    const userRoles = req.user.roles || [];
+    const normalize = (value) =>
+      typeof value === "string" ? value.toLowerCase() : "";
+
+    const allowed = allowedRoles.map(normalize);
+    const userRole = normalize(req.user.role);
+    const userRoles = (req.user.roles || []).map(normalize);
     
-    const hasRole = allowedRoles.some(role => 
+    const hasRole = allowed.some(role => 
       role === userRole || userRoles.includes(role)
     );
 
@@ -27,8 +30,8 @@ exports.authorizeRoles = (allowedRoles = []) => {
       return res.status(403).json({ 
         message: "Bạn không có quyền thực hiện thao tác này",
         required: allowedRoles,
-        userRole: userRole,
-        userRoles: userRoles
+        userRole: req.user.role,
+        userRoles: req.user.roles
       });
     }
 

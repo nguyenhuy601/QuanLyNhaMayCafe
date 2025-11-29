@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Globe, Mail, Lock, AlertCircle } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { loginUser } from "../../../services/UserSlice";
 import authAPI from "../../../api/authAPI";
 
 const Login = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,11 +42,20 @@ const Login = () => {
       // Gọi API login từ authAPI.js
       const data = await authAPI.login(email, password);
 
-      // Lưu token và role
+      // Lưu token và role (sẽ được patch vào sessionStorage)
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
       window.userToken = data.token;
       window.userRole = data.role;
+
+      // Lưu vào Redux store
+      dispatch(loginUser({ 
+        user: { id: data.user?.id, email: data.user?.email, role: data.role },
+        token: data.token 
+      }));
+
+      console.log("✅ Login successful, token saved:", !!data.token);
+      console.log("🔑 Token stored in:", sessionStorage.getItem("token") ? "sessionStorage" : "localStorage");
 
       // Redirect theo role
       redirectByRole(data.role);

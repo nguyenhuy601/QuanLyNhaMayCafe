@@ -4,9 +4,7 @@ const ProductionLog = require("../models/ProductionLog");
 /** Lấy danh sách phân công */
 exports.getAssignments = async (req, res) => {
   try {
-    const list = await WorkAssignment.find()
-      .populate("keHoach toSanXuat caLam nguoiTao")
-      .sort({ ngayPhanCong: -1 });
+    const list = await WorkAssignment.find().sort({ createdAt: -1 });
     res.status(200).json(list);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -16,11 +14,19 @@ exports.getAssignments = async (req, res) => {
 /** Xưởng trưởng tạo phân công cho tổ */
 exports.createAssignment = async (req, res) => {
   try {
-    const assignment = await WorkAssignment.create({
-      ...req.body,
-      trangThai: "Đang thực hiện",
-      ngayPhanCong: new Date(),
-    });
+    const payload = { ...req.body };
+    payload.ngay = req.body.ngay || req.body.ngayPhanCong || new Date();
+    payload.trangThai = req.body.trangThai || "Dang thuc hien";
+
+    if (!payload.nguoiLap && req.user) {
+      payload.nguoiLap = {
+        id: req.user.id || req.user._id,
+        hoTen: req.user.employee?.hoTen || req.user.hoTen || req.user.username,
+        position: req.user.role || req.user.position,
+      };
+    }
+
+    const assignment = await WorkAssignment.create(payload);
     res.status(201).json({ message: "Phân công thành công", assignment });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -40,17 +46,35 @@ exports.updateAssignment = async (req, res) => {
 /** Ghi nhận kết quả sản xuất cho một phân công */
 exports.submitProductionLog = async (req, res) => {
   try {
-    const { assignmentId, soLuongHoanThanh, soLuongLoi, ghiChu } = req.body;
-    const log = await ProductionLog.create({
-      phanCong: assignmentId,
-      soLuongHoanThanh,
-      soLuongLoi,
-      ghiChu,
-      ngayGhiNhan: new Date(),
-    });
+    const { assignmentId, soLuongHoanThanh, soLuongLoi, ghiChu, chiTietLoi } = req.body;
 
-    // Nếu hoàn thành → cập nhật trạng thái
-    await WorkAssignment.findByIdAndUpdate(assignmentId, { trangThai: "Hoàn thành" });
+    const assignment = await WorkAssignment.findById(assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: "Không tìm thấy phân công" });
+    }
+
+    const logPayload = {
+      phanCong: assignment._id,
+      keHoach: assignment.keHoach,
+      xuong: assignment.xuong,
+      to: req.body.to || assignment.congViec?.[0]?.to,
+      ca: assignment.caLam,
+      ngay: req.body.ngay || assignment.ngay || new Date(),
+      sanPham: assignment.keHoach?.sanPham,
+      soLuongThucTe: soLuongHoanThanh,
+      soLuongLoi: soLuongLoi || 0,
+      soLuongDat: req.body.soLuongDat || assignment.keHoach?.soLuongCanSanXuat || 0,
+      ghiChu,
+      chiTietLoi: chiTietLoi || [],
+      nguoiGhi: req.body.nguoiGhi || {
+        id: req.user?.id || req.user?._id,
+        hoTen: req.user?.employee?.hoTen || req.user?.hoTen || req.user?.username,
+      },
+    };
+
+    const log = await ProductionLog.create(logPayload);
+
+    await WorkAssignment.findByIdAndUpdate(assignmentId, { trangThai: "Hoan thanh" });
 
     res.status(201).json({ message: "Đã ghi nhận kết quả sản xuất", log });
   } catch (err) {

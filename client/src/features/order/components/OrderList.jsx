@@ -1,29 +1,49 @@
-import React, { useEffect, useState } from "react";
-import { Plus, Edit } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchOrders } from "../../../services/orderService";
 import formatDate from "../../../utils/formatDate";
+import useAutoRefresh from "../../../hooks/useAutoRefresh";
+import { normalizeStatusKey } from "../../../utils/statusMapper";
 
 const OrderList = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
 
-  useEffect(() => {
-    const loadOrders = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchOrders();
-        setOrders(data);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadOrders();
+  const loadOrders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchOrders();
+      setOrders(data);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  useAutoRefresh(loadOrders, { interval: 15000 });
+
+  const filteredOrders = useMemo(() => {
+    const allowed = new Set([
+      "cho duyet",
+      "chua duyet",
+      "dang cho duyet",
+      "pending",
+      "tu choi",
+      "da tu choi",
+      "reject",
+    ]);
+
+    return orders.filter((order) =>
+      allowed.has(normalizeStatusKey(order.trangThai))
+    );
+  }, [orders]);
 
   const handleComplete = async (orderId) => {
     if (window.confirm("Xác nhận hoàn thành đơn hàng này? Đơn hàng sẽ được chuyển cho Ban giám đốc.")) {
@@ -45,8 +65,14 @@ const OrderList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <h2 className="text-2xl font-bold text-gray-800">Danh sách đơn hàng</h2>
+        <button
+          onClick={loadOrders}
+          className="px-4 py-2 text-sm font-semibold text-amber-700 border border-amber-700 rounded hover:bg-amber-50"
+        >
+          Làm mới
+        </button>
       </div>
 
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -56,6 +82,8 @@ const OrderList = () => {
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Mã đơn hàng</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Khách hàng</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Sản phẩm</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Số lượng</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Ngày đặt</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Ngày giao</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Trạng thái</th>
@@ -64,14 +92,14 @@ const OrderList = () => {
               </tr>
             </thead>
             <tbody>
-              {orders.length === 0 ? (
+              {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                    Chưa có đơn hàng nào
+                  <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
+                    Chưa có đơn hàng chờ duyệt / bị từ chối nào
                   </td>
                 </tr>
               ) : (
-                orders.map((order, index) => (
+                filteredOrders.map((order, index) => (
                   <tr
                     key={order._id}
                     className={`border-b hover:bg-amber-50 transition ${
@@ -80,6 +108,30 @@ const OrderList = () => {
                   >
                     <td className="px-4 py-3 text-sm font-semibold">{order.maDH}</td>
                     <td className="px-4 py-3 text-sm">{order.khachHang?.tenKH}</td>
+                    <td className="px-4 py-3 text-sm">
+                      {order.chiTiet?.[0]?.sanPham?.tenSP || "N/A"}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {(() => {
+                        const chiTiet = order.chiTiet?.[0];
+                        const soLuong = chiTiet?.soLuong || 0;
+                        const donVi = chiTiet?.donVi;
+                        const loaiTui = chiTiet?.loaiTui;
+                        
+                        // Nếu loaiTui = "hop" thì hiển thị "Hộp"
+                        if (loaiTui === "hop") {
+                          return `${soLuong} Hộp`;
+                        }
+                        
+                        // Nếu có donVi thì hiển thị donVi
+                        if (donVi !== null && donVi !== undefined) {
+                          return `${soLuong} ${donVi}`;
+                        }
+                        
+                        // Mặc định hiển thị "null"
+                        return `${soLuong} null`;
+                      })()}
+                    </td>
                     <td className="px-4 py-3 text-sm">{formatDate(order.ngayDat)}</td>
                     <td className="px-4 py-3 text-sm">{formatDate(order.ngayYeuCauGiao)}</td>
                     <td className="px-4 py-3 text-sm">{order.trangThai}</td>

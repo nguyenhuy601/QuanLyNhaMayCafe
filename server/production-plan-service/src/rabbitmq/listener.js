@@ -1,8 +1,8 @@
 const amqp = require("amqplib");
-const { createProductionPlan } = require("../controllers/plan.controller");
+const { createPlanFromEvent } = require("../controllers/plan.controller");
 
 exports.listenDirectorEvents = async () => {
-  const connection = await amqp.connect(process.env.RABBITMQ_URI);
+  const connection = await amqp.connect(process.env.RABBITMQ_URI || process.env.RABBITMQ_URL);
   const channel = await connection.createChannel();
   await channel.assertExchange("director_events", "fanout", { durable: false });
 
@@ -15,7 +15,7 @@ exports.listenDirectorEvents = async () => {
     console.log("📩 [production-plan-service] Received:", event);
 
     if (event === "ORDER_APPROVED") {
-      await createProductionPlan(payload); // Gọi controller để tạo kế hoạch
+      await createPlanFromEvent(payload);
     }
   });
 };

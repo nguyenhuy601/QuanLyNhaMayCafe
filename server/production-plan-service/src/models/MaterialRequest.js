@@ -16,8 +16,8 @@ const MaterialRequestSchema = new mongoose.Schema(
     ],
     trangThai: {
       type: String,
-      enum: ["Cho phe duyet", "Da duyet", "Da dat hang", "Hoan thanh", "Tu choi"],
-      default: "Cho phe duyet",
+      enum: ["Chờ phê duyệt", "Đã duyệt", "Đã đặt hàng", "Hoàn thành", "Từ chối"],
+      default: "Chờ phê duyệt",
     },
     ngayYeuCau: { type: Date, default: Date.now },
     nguoiTao: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
