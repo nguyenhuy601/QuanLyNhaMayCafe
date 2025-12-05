@@ -15,7 +15,7 @@ const DepartmentList = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[#5a2e0f]">Phòng ban</h2>
-          <p className="text-gray-600">Tổ chức các bộ phận trong nhà máy</p>
+          <p className="text-gray-600">Quản lý các phòng ban: Xưởng, Phòng kế hoạch, Phòng sales, ...</p>
         </div>
         <button
           onClick={() => navigate("/admin/departments/create")}

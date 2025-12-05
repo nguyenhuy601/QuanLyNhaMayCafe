@@ -1,0 +1,43 @@
+[
+  {
+    "maCa": "CA-SANG",
+    "tenCa": "Ca sáng",
+    "gioBatDau": "08:00",
+    "gioKetThuc": "12:00",
+    "moTa": "Ca làm việc buổi sáng từ 8h đến 12h",
+    "trangThai": "Active"
+  },
+  {
+    "maCa": "CA-CHIEU",
+    "tenCa": "Ca chiều",
+    "gioBatDau": "13:00",
+    "gioKetThuc": "17:00",
+    "moTa": "Ca làm việc buổi chiều từ 13h đến 17h",
+    "trangThai": "Active"
+  },
+  {
+    "maCa": "CA-TOI",
+    "tenCa": "Ca tối",
+    "gioBatDau": "18:00",
+    "gioKetThuc": "22:00",
+    "moTa": "Ca làm việc buổi tối từ 18h đến 22h",
+    "trangThai": "Active"
+  },
+  {
+    "maCa": "CA-DEM",
+    "tenCa": "Ca đêm",
+    "gioBatDau": "22:00",
+    "gioKetThuc": "06:00",
+    "moTa": "Ca làm việc đêm từ 22h đến 6h sáng hôm sau",
+    "trangThai": "Active"
+  },
+  {
+    "maCa": "CA-FULL",
+    "tenCa": "Ca full ngày",
+    "gioBatDau": "08:00",
+    "gioKetThuc": "17:00",
+    "moTa": "Ca làm việc full ngày từ 8h đến 17h (nghỉ trưa 12h-13h)",
+    "trangThai": "Active"
+  }
+]
+

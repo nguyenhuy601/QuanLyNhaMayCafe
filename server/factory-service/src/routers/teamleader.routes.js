@@ -5,7 +5,7 @@ const controller = require("../controllers/teamleader.controller");
 const { verifyToken } = require("../middlewares/auth.middleware");
 const { authorizeRoles } = require("../middlewares/role.middleware");
 
-const TEAMLEADER_ROLES = ["factory", "totruong"];
+const TEAMLEADER_ROLES = ["xuongtruong", "totruong"];
 
 // Attendance routes
 router.get( "/attendance", verifyToken, authorizeRoles(TEAMLEADER_ROLES), controller.listAttendanceSheets);

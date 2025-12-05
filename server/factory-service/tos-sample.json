@@ -1,0 +1,277 @@
+[
+  {
+    "tenTo": "Tổ Sàng lọc & Phân loại - Arabica",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuyên sàng lọc, loại bỏ tạp chất và phân loại kích thước hạt cà phê Arabica trước khi rang",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Arabica"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Rang - Arabica",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuyên rang cà phê Arabica theo các profile khác nhau (hạt, rang xay)",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Arabica"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Ủ nghỉ - Arabica",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ quản lý quá trình ủ, nghỉ hạt Arabica sau rang để ổn định hương vị",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Arabica"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Xay - Arabica",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuyên xay cà phê Arabica rang xay theo độ mịn tiêu chuẩn",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Arabica"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Đóng gói - Arabica",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ đóng gói cà phê Arabica vào túi/bao, hút khí, hàn miệng túi",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Arabica"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Dán nhãn - Arabica",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ dán tem nhãn, kiểm tra thông tin, in date cho sản phẩm Arabica trước khi nhập kho",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Arabica"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Chuẩn bị & Phối trộn - Arabica",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuẩn bị và phối trộn nguyên liệu Arabica theo công thức cho sản phẩm rang xay",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Arabica"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Sàng lọc & Phân loại - Robusta",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuyên sàng lọc, loại bỏ tạp chất và phân loại kích thước hạt cà phê Robusta trước khi rang",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Robusta"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Rang - Robusta",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuyên rang cà phê Robusta theo các profile khác nhau (hạt, rang xay)",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Robusta"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Ủ nghỉ - Robusta",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ quản lý quá trình ủ, nghỉ hạt Robusta sau rang để ổn định hương vị",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Robusta"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Xay - Robusta",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuyên xay cà phê Robusta rang xay theo độ mịn tiêu chuẩn",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Robusta"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Đóng gói - Robusta",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ đóng gói cà phê Robusta vào túi/bao, hút khí, hàn miệng túi",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Robusta"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Dán nhãn - Robusta",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ dán tem nhãn, kiểm tra thông tin, in date cho sản phẩm Robusta trước khi nhập kho",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Robusta"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Chuẩn bị & Phối trộn - Robusta",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuẩn bị và phối trộn nguyên liệu Robusta theo công thức cho sản phẩm rang xay",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Robusta"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Sàng lọc & Phân loại - Civet",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuyên sàng lọc, loại bỏ tạp chất và phân loại kích thước hạt cà phê Civet trước khi rang",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Civet"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Rang - Civet",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuyên rang cà phê Civet theo các profile khác nhau (hạt, rang xay)",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Civet"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Ủ nghỉ - Civet",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ quản lý quá trình ủ, nghỉ hạt Civet sau rang để ổn định hương vị",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Civet"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Xay - Civet",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuyên xay cà phê Civet rang xay theo độ mịn tiêu chuẩn",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Civet"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Đóng gói - Civet",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ đóng gói cà phê Civet vào túi/bao, hút khí, hàn miệng túi",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Civet"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Dán nhãn - Civet",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ dán tem nhãn, kiểm tra thông tin, in date cho sản phẩm Civet trước khi nhập kho",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Civet"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Chuẩn bị & Phối trộn - Civet",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ chuẩn bị và phối trộn nguyên liệu Civet theo công thức cho sản phẩm rang xay",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Civet"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Chiết xuất & Cô đặc",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ nấu chiết cà phê, cô đặc dịch chiết để chuẩn bị sấy (cho sản phẩm hòa tan)",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Hòa tan"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Sấy",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ sấy phun hoặc sấy lạnh tạo bột cà phê hòa tan đạt độ ẩm chuẩn",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Hòa tan"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Đóng gói sachet",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ đóng gói bột hòa tan vào gói nhỏ (15g), hàn mép",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Hòa tan"
+    },
+    "trangThai": "Active"
+  },
+  {
+    "tenTo": "Tổ Đóng hộp",
+    "toTruong": [],
+    "thanhVien": [],
+    "moTa": "Tổ xếp các gói nhỏ vào hộp/túi lớn, seal, in date (cho sản phẩm hòa tan)",
+    "xuongInfo": {
+      "id": "",
+      "tenXuong": "Xưởng sản xuất Hòa tan"
+    },
+    "trangThai": "Active"
+  }
+]

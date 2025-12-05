@@ -14,6 +14,17 @@ exports.getPlans = async (req) => {
   }
 };
 
+exports.getPlanById = async (req, planId) => {
+  try {
+    const { data } = await httpClient.get(`/plan/${planId}`, {
+      headers: forwardHeaders(req),
+    });
+    return data;
+  } catch (error) {
+    throw buildHttpError(error, "Không thể lấy thông tin kế hoạch");
+  }
+};
+
 exports.updatePlan = async (req, planId, payload) => {
   try {
     const { data } = await httpClient.put(`/plan/${planId}`, payload, {

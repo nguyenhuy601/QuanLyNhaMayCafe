@@ -5,12 +5,12 @@ const mongoose = require("mongoose");
 const FinishedIssueSchema = new mongoose.Schema({
  maPhieuXuatTP: { type: String, required: true, unique: true, index: true },
  ngayXuat: { type: Date, default: Date.now },
- donHang: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
- nguoiLap: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+ donHang: { type: String }, // Lưu ID dạng string, không ref vì là service khác
+ nguoiLap: { type: String }, // Lưu ID dạng string, không ref vì là service khác
  nguoiNhan: String,
  loaiXuat: { type: String, enum: ["GiaoKhachHang","DieuChuyen","Khac"], default: "GiaoKhachHang" },
  chiTiet: [
-   { sanPham: { type: mongoose.Schema.Types.ObjectId, ref: "Product" }, soLuong: Number, donGia: Number, loXuat: String }
+   { sanPham: { type: String }, soLuong: Number, donGia: Number, loXuat: String } // Lưu ID dạng string, không ref vì là service khác
  ],
  tongTien: Number,
  ghiChu: String,

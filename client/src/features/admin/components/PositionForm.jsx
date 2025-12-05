@@ -94,49 +94,12 @@ const PositionForm = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-gray-600">Mã chức vụ *</label>
-            <input
-              name="maChucVu"
-              value={formData.maChucVu}
-              onChange={handleChange}
-              required
-              className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          <div>
             <label className="text-sm text-gray-600">Tên chức vụ *</label>
             <input
               name="tenChucVu"
               value={formData.tenChucVu}
               onChange={handleChange}
               required
-              className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-gray-600">Lương tối thiểu</label>
-            <input
-              type="number"
-              name="bacLuongToiThieu"
-              value={formData.bacLuongToiThieu}
-              onChange={handleChange}
-              min="0"
-              step="100000"
-              className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-gray-600">Lương tối đa</label>
-            <input
-              type="number"
-              name="bacLuongToiDa"
-              value={formData.bacLuongToiDa}
-              onChange={handleChange}
-              min="0"
-              step="100000"
               className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
             />
           </div>

@@ -1,17 +1,23 @@
-// client/src/layouts/CongNhan.jsx
 import { Outlet } from "react-router-dom";
-import SidebarNav from "../components/SidebarNav.jsx";
-import Topbar from "../components/Topbar.jsx";
+import SidebarNav from "../components/SidebarNav";
+import Topbar from "../components/Topbar";
 
 export default function CongNhanLayout() {
   return (
+    // Grid Layout chuẩn: Sidebar 260px - Content phần còn lại
     <div className="grid [grid-template-columns:260px_1fr] h-screen bg-neutral-900 text-white">
-      <aside className="bg-[#6d3a14] p-4">
+      
+      {/* Cột trái: Sidebar */}
+      <aside className="border-r border-amber-900">
         <SidebarNav />
       </aside>
-      <main className="flex flex-col bg-white">
+
+      {/* Cột phải: Topbar + Nội dung */}
+      <main className="flex flex-col bg-gray-50 text-neutral-900">
         <Topbar />
-        <section className="p-5 h-full overflow-auto text-neutral-900">
+        
+        {/* Khu vực hiển thị nội dung các trang con (Home, Salary...) */}
+        <section className="p-6 h-full overflow-auto">
           <Outlet />
         </section>
       </main>

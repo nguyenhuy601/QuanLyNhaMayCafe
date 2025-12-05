@@ -2,7 +2,8 @@ const Role = require("../models/Role");
 
 exports.getAll = async (req, res) => {
   try {
-    const roles = await Role.find().sort({ createdAt: -1 }).lean();
+    // Sắp xếp theo tên vai trò (bảng chữ cái)
+    const roles = await Role.find().sort({ tenRole: 1 }).lean();
     res.status(200).json(roles);
   } catch (error) {
     res.status(500).json({ error: error.message });

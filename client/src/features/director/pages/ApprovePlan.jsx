@@ -121,7 +121,7 @@ export default function ApprovePlans() {
                     <td className="p-2 space-x-2">
                         {p.trangThai === 'Chờ duyệt' && (
                             <>
-                                <button onClick={() => handleApprove(p._id)} className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded border border-yellow-200 hover:bg-yellow-200">Duyệt</button>
+                                <button onClick={() => handleApprove(p._id)} className="bg-green-100 text-green-800 px-3 py-1 rounded border border-green-200 hover:bg-green-200">Duyệt</button>
                                 <button onClick={() => handleRejectClick(p)} className="bg-red-100 text-red-800 px-3 py-1 rounded border border-red-200 hover:bg-red-200">Từ chối</button>
                             </>
                         )}

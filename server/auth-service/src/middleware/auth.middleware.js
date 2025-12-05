@@ -17,15 +17,15 @@ exports.verifyToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    const account = await Account.findById(decoded.id).populate("role employee");
+    const account = await Account.findById(decoded.id);
     if (!account) return res.status(404).json({ message: "Không tìm thấy tài khoản" });
 
     // Gắn user vào request để controller có thể dùng
     req.user = {
       id: account._id,
-      username: account.username,
-      role: account.role?.tenQuyen,
-      employee: account.employee?.hoTen,
+      email: account.email,
+      role: account.role,
+      sanPhamPhuTrach: account.sanPhamPhuTrach || [], // Danh sách sản phẩm phụ trách (cho xưởng trưởng)
     };
 
     next();

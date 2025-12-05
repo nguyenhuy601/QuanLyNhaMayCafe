@@ -12,6 +12,11 @@ const STATUS_DICTIONARY = {
   "dang cho duyet": "Chờ duyệt",
   pending: "Chờ duyệt",
   "cho phe duyet": "Chờ duyệt",
+  "cho xuong truong duyet": "Chờ xưởng trưởng duyệt",
+  "cho xuongtruong duyet": "Chờ xưởng trưởng duyệt",
+
+  "da xuong truong duyet": "Đã xưởng trưởng duyệt",
+  "da xuongtruong duyet": "Đã xưởng trưởng duyệt",
 
   "da duyet": "Đã duyệt",
   approved: "Đã duyệt",

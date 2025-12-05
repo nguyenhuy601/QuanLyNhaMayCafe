@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import authAPI from "../../../api/authAPI";
 
 const defaultForm = {
-  maNV: "",
   hoTen: "",
   email: "",
   sdt: "",
@@ -38,6 +38,8 @@ const UserForm = () => {
   const [formData, setFormData] = useState(defaultForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [createAccount, setCreateAccount] = useState(true); // Checkbox tạo tài khoản
+  const [accountPassword, setAccountPassword] = useState(""); // Mật khẩu cho tài khoản
 
   const currentUser = useMemo(() => users.find((user) => user._id === id), [users, id]);
 
@@ -45,7 +47,6 @@ const UserForm = () => {
     if (isEdit) {
       if (currentUser) {
         setFormData({
-          maNV: currentUser.maNV || "",
           hoTen: currentUser.hoTen || "",
           email: currentUser.email || "",
           sdt: currentUser.sdt || currentUser.soDienThoai || "",
@@ -104,10 +105,37 @@ const UserForm = () => {
         ...formData,
         luongCoBan: formData.luongCoBan ? Number(formData.luongCoBan) : undefined,
       };
+      
       if (isEdit) {
         await handleUpdateUser(id, payload);
       } else {
+        // Tạo user
         await handleCreateUser(payload);
+        
+        // Tự động tạo tài khoản nếu checkbox được chọn
+        if (createAccount && formData.email && formData.role && formData.role.length > 0) {
+          try {
+            // Lấy role đầu tiên từ danh sách roles của user
+            const userRoleIds = Array.isArray(formData.role) ? formData.role : [formData.role];
+            const firstRoleId = userRoleIds[0];
+            const selectedRole = roles.find((r) => r._id === firstRoleId);
+            const roleName = selectedRole?.tenRole || selectedRole?.maRole || "worker";
+            
+            // Tạo mật khẩu mặc định nếu không nhập
+            const password = accountPassword || "123456"; // Mật khẩu mặc định
+            
+            await authAPI.createAccount({
+              email: formData.email,
+              password: password,
+              role: roleName,
+              isActive: true,
+            });
+          } catch (accountErr) {
+            // Nếu tạo account lỗi (ví dụ email đã tồn tại), chỉ cảnh báo, không block việc tạo user
+            console.warn("Không thể tạo tài khoản:", accountErr.response?.data?.message || accountErr.message);
+            // Có thể hiển thị warning nhưng vẫn tiếp tục
+          }
+        }
       }
       navigate("/admin/users");
     } catch (err) {
@@ -141,17 +169,6 @@ const UserForm = () => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-gray-600">Mã nhân viên *</label>
-            <input
-              name="maNV"
-              value={formData.maNV}
-              onChange={handleChange}
-              required
-              className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
-              placeholder="VD: NV001"
-            />
-          </div>
           <div>
             <label className="text-sm text-gray-600">Họ tên *</label>
             <input
@@ -254,6 +271,42 @@ const UserForm = () => {
             </select>
           </div>
         </div>
+
+        {/* Phần tạo tài khoản - chỉ hiển thị khi tạo mới */}
+        {!isEdit && (
+          <div className="pt-4 border-t space-y-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="createAccount"
+                checked={createAccount}
+                onChange={(e) => setCreateAccount(e.target.checked)}
+                className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+              />
+              <label htmlFor="createAccount" className="text-sm font-medium text-gray-700">
+                Tự động tạo tài khoản đăng nhập
+              </label>
+            </div>
+            {createAccount && (
+              <div>
+                <label className="text-sm text-gray-600">
+                  Mật khẩu tài khoản {formData.role && formData.role.length > 0 ? "" : "(Chọn vai trò trước)"}
+                </label>
+                <input
+                  type="password"
+                  value={accountPassword}
+                  onChange={(e) => setAccountPassword(e.target.value)}
+                  placeholder={formData.role && formData.role.length > 0 ? "Để trống sẽ dùng mật khẩu mặc định: 123456" : "Chọn vai trò trước"}
+                  disabled={!formData.role || formData.role.length === 0}
+                  className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Nếu để trống, mật khẩu mặc định là: <strong>123456</strong>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
           <div>

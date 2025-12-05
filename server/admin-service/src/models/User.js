@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 
 const UserSchema = new Schema(
   {
-    maNV: { type: String, required: true, unique: true, trim: true },
+    maNV: { type: String, unique: true, trim: true, index: true },
     hoTen: { type: String, required: true, trim: true },
     gioiTinh: {
       type: String,
@@ -28,5 +28,24 @@ const UserSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Tự sinh mã nhân viên nếu chưa có
+UserSchema.pre("save", async function (next) {
+  if (!this.maNV) {
+    // Tạo slug từ họ tên
+    const slug = (this.hoTen || "NV")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "")
+      .toUpperCase()
+      .substring(0, 6) || "NV";
+    
+    // Thêm random string để đảm bảo unique
+    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+    this.maNV = `NV_${slug}_${rand}`;
+  }
+  next();
+});
 
 module.exports = mongoose.model("User", UserSchema);

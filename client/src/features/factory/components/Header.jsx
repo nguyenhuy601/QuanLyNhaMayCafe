@@ -1,8 +1,60 @@
 import React from "react";
 import { Search, Bell, Settings, User } from "lucide-react";
 
+// Parse thông tin sản phẩm phụ trách từ tenSP / maSP
+const parseProductInfo = (nameRaw = "") => {
+  if (!nameRaw) return null;
+  const name = nameRaw
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  let nhom = "khac";
+  if (name.includes("hoa tan")) nhom = "hoatan";
+  else if (name.includes("rang xay")) nhom = "rangxay";
+
+  let nguyenLieu = "";
+  if (name.includes("robusta")) nguyenLieu = "Robusta";
+  else if (name.includes("arabica")) nguyenLieu = "Arabica";
+  else if (name.includes("chon")) nguyenLieu = "Chồn";
+
+  const nhomLabel =
+    nhom === "hoatan" ? "Hòa tan" : nhom === "rangxay" ? "Rang xay" : "";
+
+  return {
+    nhomSanPham: nhom,
+    nguyenLieu,
+    label:
+      nguyenLieu && nhomLabel ? `${nguyenLieu} · ${nhomLabel}` : nguyenLieu || nhomLabel,
+  };
+};
+
 export default function Header() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const role = (localStorage.getItem("role") || "").toLowerCase();
+
+  // Lấy sản phẩm phụ trách từ JWT (nếu có) và phân tích thông tin
+  let managedProductsLabel = "";
+  try {
+    const token = localStorage.getItem("token") || window.userToken;
+    if (token) {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const sanPhamPhuTrach = payload.sanPhamPhuTrach || [];
+      const first = sanPhamPhuTrach[0];
+      const name = first?.tenSP || first?.maSP || first?.productId;
+      const parsed = parseProductInfo(name);
+      managedProductsLabel = parsed?.label || "";
+    }
+  } catch (e) {
+    // ignore decode errors
+  }
+
+  const roleLabel =
+    role === "xuongtruong"
+      ? "Xưởng trưởng"
+      : role === "totruong"
+      ? "Tổ trưởng"
+      : role || "Vai trò";
 
   return (
     <header className="bg-gradient-to-r from-amber-700 to-amber-800 text-white px-6 py-4 flex items-center justify-between shadow-lg">
@@ -28,8 +80,13 @@ export default function Header() {
             <User size={22} />
           </div>
           <div className="leading-tight">
-            <p className="font-semibold">{user.hoTen || "Your Name"}</p>
-            <p className="text-xs text-amber-200">Xưởng trưởng</p>
+            <p className="font-semibold truncate max-w-[220px]">
+              {user.hoTen || user.email || "Your Name"}
+            </p>
+            <p className="text-xs text-amber-200 max-w-[260px] truncate" title={managedProductsLabel ? `${roleLabel} · Phụ trách: ${managedProductsLabel}` : roleLabel}>
+              {roleLabel}
+              {managedProductsLabel ? ` · Phụ trách: ${managedProductsLabel}` : ""}
+            </p>
           </div>
         </div>
       </div>

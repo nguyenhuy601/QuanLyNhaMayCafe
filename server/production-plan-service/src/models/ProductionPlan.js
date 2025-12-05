@@ -34,9 +34,17 @@ const ProductionPlanSchema = new mongoose.Schema(
     ngayLap: { type: Date, default: Date.now },
     trangThai: {
       type: String,
-      enum: ["Chờ duyệt", "Đã duyệt", "Đang thực hiện", "Hoàn thành", "Từ chối"],
+      enum: [
+        "Chờ duyệt",        // Mới tạo, chờ director duyệt
+        "Đã duyệt",          // Director đã duyệt, có thể bắt đầu sản xuất
+        "Đang thực hiện",    // Đang sản xuất
+        "Hoàn thành",        // Hoàn thành
+        "Từ chối"            // Bị từ chối bởi director
+      ],
       default: "Chờ duyệt",
     },
+    nguoiDuyet: { type: String }, // Người duyệt (Director)
+    ngayDuyet: { type: Date }, // Ngày duyệt
     nvlCanThiet: [
       {
         productId: { type: String },

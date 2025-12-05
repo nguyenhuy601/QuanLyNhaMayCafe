@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createFinishedReceipt } from '../../../services/warehouseService.js';
 
 // Định nghĩa các màu sắc chính dựa trên hình ảnh
 const primaryBg = '#8B4513'; 
@@ -7,16 +8,6 @@ const inputBg = '#B87333';
 const buttonBg = '#C67E3F'; 
 const buttonHover = '#A0522D'; 
 const successColor = '#4CAF50'; // Màu xanh lá cho thông báo thành công
-
-// Dữ liệu cố định (lấy từ Phiếu QC/Hệ thống)
-const qcData = {
-  maPhieuQC: 'QC001',
-  maSanPham: 'SP004',
-  tenSanPham: 'cafe rang xay arabica',
-  loSanXuat: 'Lo002',
-  ngayNhap: '19/10/2025',
-  tongTonKhoSauNhap: '25000', 
-};
 
 const khoLuuTruOptions = [
   { label: 'Chọn kho lưu trữ....', value: '' },
@@ -85,8 +76,6 @@ const SuccessModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleSave = () => {
-    // Thêm logic Lưu phiếu nhập tại đây (ví dụ: chuyển trang, in phiếu,...)
-    alert("Đã lưu và đóng phiếu nhập.");
     onClose();
   };
 
@@ -100,7 +89,7 @@ const SuccessModal = ({ isOpen, onClose }) => {
           ✓
         </div>
         <h3 className="text-xl font-bold mb-3 text-gray-800">Tạo phiếu nhập thành công!</h3>
-        <p className="text-gray-600 mb-6">Bạn có muốn lưu và đóng phiếu này không?</p>
+        <p className="text-gray-600 mb-6">Phiếu nhập thành phẩm đã được lưu vào hệ thống.</p>
         
         <button
           onClick={handleSave}
@@ -109,7 +98,7 @@ const SuccessModal = ({ isOpen, onClose }) => {
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#388E3C'} // Màu xanh đậm hơn
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = successColor}
         >
-          Lưu
+          Đóng
         </button>
       </div>
     </div>
@@ -119,37 +108,80 @@ const SuccessModal = ({ isOpen, onClose }) => {
 // =================================================================
 //                 MAIN COMPONENT
 // =================================================================
-const PhieuNhapThanhPham = () => {
+const PhieuNhapThanhPham = ({ selectedQC, onClose }) => {
   const [formData, setFormData] = useState({
     khoLuuTru: '',
     soLuongNhap: '',
+    ngaySanXuat: '',
+    hanSuDung: '',
     ghiChu: '',
   });
-  const [isModalOpen, setIsModalOpen] = useState(false); // State quản lý Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Lấy dữ liệu từ QC
+  const qcData = selectedQC ? {
+    _id: selectedQC._id || '',
+    maPhieuQC: selectedQC.qcRequest?.maPhieuQC || selectedQC.maPhieuQC || '',
+    maSanPham: selectedQC.qcRequest?.sanPham?.maSP || selectedQC.maSanPham || '',
+    tenSanPham: selectedQC.qcRequest?.sanPham?.tenSP || selectedQC.tenSanPham || '',
+    soLuongDat: selectedQC.soLuongDat || 0,
+    loSanXuat: selectedQC.loSanXuat || selectedQC.qcRequest?.loSanXuat || '',
+    ngayKiemTra: selectedQC.ngayKiemTra || '',
+  } : {};
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setError(null);
   };
 
-  const handleConfirm = () => {
-    // Kiểm tra tính hợp lệ đơn giản
-    if (!formData.khoLuuTru || !formData.soLuongNhap) {
-      alert("Vui lòng chọn Kho lưu trữ và nhập Số lượng nhập.");
-      return;
+  const handleConfirm = async () => {
+    try {
+      // Kiểm tra tính hợp lệ
+      if (!formData.khoLuuTru) {
+        setError("Vui lòng chọn Kho lưu trữ.");
+        return;
+      }
+      
+      if (!formData.soLuongNhap || parseInt(formData.soLuongNhap) <= 0) {
+        setError("Vui lòng nhập Số lượng nhập > 0.");
+        return;
+      }
+
+      if (parseInt(formData.soLuongNhap) > qcData.soLuongDat) {
+        setError("Số lượng nhập không được vượt quá số lượng đạt.");
+        return;
+      }
+
+      setLoading(true);
+
+      const payload = {
+        phieuQC: qcData._id,
+        sanPham: selectedQC.qcRequest?.sanPham?._id || selectedQC.sanPham?._id || '',
+        soLuong: parseInt(formData.soLuongNhap),
+        loSanXuat: formData.loSanXuat || qcData.loSanXuat,
+        ngaySanXuat: formData.ngaySanXuat || new Date().toISOString().split('T')[0],
+        hanSuDung: formData.hanSuDung,
+        khoLuuTru: formData.khoLuuTru,
+        ghiChu: formData.ghiChu,
+      };
+
+      await createFinishedReceipt(payload);
+      setIsModalOpen(true);
+    } catch (err) {
+      console.error("Lỗi tạo phiếu nhập:", err);
+      setError(err.response?.data?.error || err.response?.data?.message || "Lỗi tạo phiếu nhập thành phẩm");
+    } finally {
+      setLoading(false);
     }
-    
-    // Logic xử lý thành công (ví dụ: gọi API)
-    console.log("Dữ liệu gửi đi:", { ...qcData, ...formData });
-    
-    // Mở Modal thông báo thành công
-    setIsModalOpen(true);
   };
   
   const handleCancel = () => {
-    setFormData({ khoLuuTru: '', soLuongNhap: '', ghiChu: '' });
-    // Thêm logic chuyển hướng hoặc đóng form
-    alert("Phiếu nhập đã được hủy.");
+    setFormData({ khoLuuTru: '', soLuongNhap: '', ngaySanXuat: '', hanSuDung: '', ghiChu: '' });
+    setError(null);
+    onClose();
   };
 
   return (
@@ -162,13 +194,20 @@ const PhieuNhapThanhPham = () => {
           Phiếu nhập thành phẩm
         </h2>
 
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
         {/* Form Inputs */}
         <div className="space-y-4">
-          <InputField label="Mã phiếu QC" value={qcData.maPhieuQC} readOnly={true} name="maPhieuQC"/>
-          <InputField label="Mã sản phẩm" value={qcData.maSanPham} readOnly={true} name="maSanPham"/>
-          <InputField label="Tên sản phẩm" value={qcData.tenSanPham} readOnly={true} name="tenSanPham"/>
-          <InputField label="Lô sản xuất" value={qcData.loSanXuat} readOnly={true} name="loSanXuat"/>
-          <InputField label="Ngày nhập" value={qcData.ngayNhap} readOnly={true} name="ngayNhap"/>
+          <InputField label="Mã phiếu QC" value={qcData.maPhieuQC || ''} readOnly={true} name="maPhieuQC"/>
+          <InputField label="Mã sản phẩm" value={qcData.maSanPham || ''} readOnly={true} name="maSanPham"/>
+          <InputField label="Tên sản phẩm" value={qcData.tenSanPham || ''} readOnly={true} name="tenSanPham"/>
+          <InputField label="Lô sản xuất" value={formData.loSanXuat || qcData.loSanXuat || ''} onChange={handleChange} name="loSanXuat"/>
+          <InputField label="Ngày sản xuất" value={formData.ngaySanXuat} onChange={handleChange} type="date" name="ngaySanXuat"/>
+          <InputField label="Hạn sử dụng" value={formData.hanSuDung} onChange={handleChange} type="date" name="hanSuDung"/>
           
           <SelectField 
             label="Kho lưu trữ" 
@@ -185,10 +224,10 @@ const PhieuNhapThanhPham = () => {
             onChange={handleChange}
             type="number" 
             readOnly={false} 
-            placeholder="Nhập số lượng"
+            placeholder={`Tối đa: ${qcData.soLuongDat || 0}`}
           />
           
-          <InputField label="Tổng tồn kho sau nhập" value={qcData.tongTonKhoSauNhap} readOnly={true} name="tongTonKhoSauNhap"/>
+          <InputField label="Tổng số lượng đạt" value={qcData.soLuongDat || 0} readOnly={true} name="soLuongDat"/>
           
           <InputField 
             label="Ghi chú" 
@@ -205,22 +244,24 @@ const PhieuNhapThanhPham = () => {
           
           <button 
             onClick={handleCancel}
+            disabled={loading}
             className="py-2 px-6 rounded-lg font-bold text-white shadow-md transition-colors duration-200"
             style={{ backgroundColor: buttonBg }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = buttonHover}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = buttonBg}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = buttonHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = buttonBg)}
           >
             Hủy
           </button>
           
           <button 
             onClick={handleConfirm}
+            disabled={loading}
             className="py-2 px-6 rounded-lg font-bold text-white shadow-md transition-colors duration-200"
-            style={{ backgroundColor: buttonBg }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = buttonHover}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = buttonBg}
+            style={{ backgroundColor: buttonBg, opacity: loading ? 0.6 : 1 }}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = buttonHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = buttonBg)}
           >
-            Xác nhận
+            {loading ? 'Đang xử lý...' : 'Xác nhận'}
           </button>
         </div>
       </div>
@@ -228,7 +269,10 @@ const PhieuNhapThanhPham = () => {
       {/* MODAL HIỂN THỊ THÀNH CÔNG */}
       <SuccessModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        onClose={() => {
+          setIsModalOpen(false);
+          onClose();
+        }} 
       />
     </div>
   );

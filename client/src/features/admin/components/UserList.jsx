@@ -83,7 +83,6 @@ const UserList = () => {
           <table className="w-full">
             <thead className="bg-[#8b4513] text-white text-sm uppercase">
               <tr>
-                <th className="px-4 py-3 text-left">Mã NV</th>
                 <th className="px-4 py-3 text-left">Họ tên</th>
                 <th className="px-4 py-3 text-left">Email</th>
                 <th className="px-4 py-3 text-left">SĐT</th>
@@ -97,14 +96,13 @@ const UserList = () => {
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="py-8 text-center text-gray-500">
+                  <td colSpan="7" className="py-8 text-center text-gray-500">
                     Chưa có tài khoản nào
                   </td>
                 </tr>
               ) : (
                 users.map((user) => (
                   <tr key={user._id} className="border-b hover:bg-amber-50 transition">
-                    <td className="px-4 py-3 font-semibold">{user.maNV}</td>
                     <td className="px-4 py-3">{user.hoTen}</td>
                     <td className="px-4 py-3">{user.email}</td>
                     <td className="px-4 py-3">{user.sdt || user.soDienThoai || "-"}</td>

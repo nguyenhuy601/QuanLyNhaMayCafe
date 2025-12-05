@@ -58,8 +58,17 @@ const PlanManagement = () => {
   const ordersInterval = isSocketConnected ? 60000 : 15000; // 60s nếu có socket, 15s nếu không
   const plansInterval = isSocketConnected ? 60000 : 20000; // 60s nếu có socket, 20s nếu không
   
-  useAutoRefresh(loadOrders, { interval: ordersInterval, runOnFocus: !isPlanModalOpen });
-  useAutoRefresh(loadPlans, { interval: plansInterval, runOnFocus: !isPlanModalOpen });
+  // Tắt autoRefresh khi modal mở
+  useAutoRefresh(loadOrders, { 
+    interval: ordersInterval, 
+    runOnFocus: !isPlanModalOpen,
+    enabled: !isPlanModalOpen // Tắt hoàn toàn khi modal mở
+  });
+  useAutoRefresh(loadPlans, { 
+    interval: plansInterval, 
+    runOnFocus: !isPlanModalOpen,
+    enabled: !isPlanModalOpen // Tắt hoàn toàn khi modal mở
+  });
 
   useEffect(() => {
     // Lấy token bằng helper function (từ sessionStorage/localStorage/window)

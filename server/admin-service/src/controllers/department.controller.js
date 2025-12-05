@@ -2,7 +2,8 @@ const Department = require("../models/Department");
 
 exports.getAll = async (req, res) => {
   try {
-    const depts = await Department.find().sort({ createdAt: -1 }).lean();
+    // Sắp xếp theo tên phòng ban (bảng chữ cái)
+    const depts = await Department.find().sort({ tenPhong: 1 }).lean();
     res.status(200).json(depts);
   } catch (error) {
     res.status(500).json({ error: error.message });

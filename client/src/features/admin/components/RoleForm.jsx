@@ -5,7 +5,6 @@ const defaultForm = {
   maRole: "",
   tenRole: "",
   moTa: "",
-  quyen: "",
 };
 
 const RoleForm = () => {
@@ -25,7 +24,6 @@ const RoleForm = () => {
         maRole: currentRole.maRole || "",
         tenRole: currentRole.tenRole || "",
         moTa: currentRole.moTa || "",
-        quyen: (currentRole.quyen || []).join("\n"),
       });
     } else if (!isEdit) {
       setFormData(defaultForm);
@@ -42,13 +40,9 @@ const RoleForm = () => {
     setSubmitting(true);
     setError("");
     const payload = {
-      maRole: formData.maRole,
+      // maRole để backend tự sinh khi tạo mới, không gửi từ form
       tenRole: formData.tenRole,
       moTa: formData.moTa,
-      quyen: formData.quyen
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean),
     };
     try {
       if (isEdit) {
@@ -89,17 +83,6 @@ const RoleForm = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-gray-600">Mã vai trò *</label>
-            <input
-              name="maRole"
-              value={formData.maRole}
-              onChange={handleChange}
-              required
-              className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
-              placeholder="VD: ROLE_SALES"
-            />
-          </div>
-          <div>
             <label className="text-sm text-gray-600">Tên vai trò *</label>
             <input
               name="tenRole"
@@ -118,18 +101,6 @@ const RoleForm = () => {
             value={formData.moTa}
             onChange={handleChange}
             rows={3}
-            className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-600">Danh sách quyền</label>
-          <textarea
-            name="quyen"
-            value={formData.quyen}
-            onChange={handleChange}
-            rows={4}
-            placeholder="Mỗi dòng một quyền, ví dụ: user.read"
             className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
           />
         </div>

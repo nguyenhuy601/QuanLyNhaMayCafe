@@ -10,7 +10,12 @@ const normalizeStatus = (value = "") =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-const PENDING_STATUSES = ["cho duyet", "chua duyet", "dang cho duyet", "pending"];
+// Director duyệt những kế hoạch đang chờ duyệt
+const PENDING_STATUSES = [
+  "cho duyet",
+  "chờ duyệt",
+  "cho duyet"
+];
 
 const filterPendingPlans = (plans = []) => {
   const allowedStatuses = new Set(PENDING_STATUSES);
@@ -130,6 +135,12 @@ const rejectOrder = async (req) => {
 };
 
 const approvePlan = async (req) => {
+  // Kiểm tra kế hoạch đang chờ duyệt
+  const plan = await productionPlanClient.getPlanById(req, req.params.id);
+  if (plan.trangThai !== 'Chờ duyệt') {
+    throw new Error(`Không thể duyệt kế hoạch. Trạng thái hiện tại: ${plan.trangThai}`);
+  }
+
   const payload = {
     trangThai: "Đã duyệt",
     nguoiDuyet: req.user?.username || "director",

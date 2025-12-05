@@ -1,8 +1,7 @@
-export default function WorkerHome() {
+export default function DirectorHome() {
   return (
-    <div className="wk-hero">
-      <h1>Chào mừng đến với công nhân</h1>
-      <p>Vào “Xem ca làm” và “Kế hoạch sản xuất” để theo dõi công việc.</p>
+    <div className="grid place-items-center h-[70vh] text-center">
+      <h1 className="text-4xl drop-shadow">Chào mừng đến với trang Công nhânnhân</h1>
     </div>
   );
 }

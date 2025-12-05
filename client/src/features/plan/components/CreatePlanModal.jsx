@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { createProductionPlan } from "../../../services/planService";
 import { fetchMaterials } from "../../../services/productService";
+import { fetchXuongs } from "../../../services/factoryService";
 
 const CreatePlanModal = ({ onClose, orders }) => {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ const CreatePlanModal = ({ onClose, orders }) => {
   });
 
   const [materials, setMaterials] = useState([]);
+  const [xuongs, setXuongs] = useState([]);
 
   // RADIO STATE CHO 3 NHÓM
   const [selectedBean, setSelectedBean] = useState(null);
@@ -22,12 +24,44 @@ const CreatePlanModal = ({ onClose, orders }) => {
   const [selectedLabel, setSelectedLabel] = useState(null);
 
   // ----------------------------------------
-  // 1) Load NVL từ backend
+  // 1) Load NVL và Xưởng từ backend
   // ----------------------------------------
   useEffect(() => {
     async function load() {
-      const list = await fetchMaterials();
-      setMaterials(list || []);
+      try {
+        const [materialsList, xuongsList] = await Promise.all([
+          fetchMaterials(),
+          fetchXuongs()
+        ]);
+        setMaterials(materialsList || []);
+        
+        // Loại bỏ trùng lặp dựa trên _id hoặc tenXuong
+        const uniqueXuongs = [];
+        const seenIds = new Set();
+        const seenNames = new Set();
+        
+        (xuongsList || []).forEach((xuong) => {
+          const id = xuong._id;
+          const name = xuong.tenXuong || xuong.maXuong;
+          
+          // Chỉ thêm nếu chưa thấy _id hoặc tên
+          if (id && !seenIds.has(id) && !seenNames.has(name)) {
+            seenIds.add(id);
+            seenNames.add(name);
+            uniqueXuongs.push(xuong);
+          } else if (!id && name && !seenNames.has(name)) {
+            seenNames.add(name);
+            uniqueXuongs.push(xuong);
+          }
+        });
+        
+        setXuongs(uniqueXuongs);
+      } catch (error) {
+        console.error('Lỗi khi tải dữ liệu:', error);
+        // Vẫn load materials nếu xuongs lỗi
+        const materialsList = await fetchMaterials();
+        setMaterials(materialsList || []);
+      }
     }
     load();
   }, []);
@@ -501,10 +535,20 @@ const CreatePlanModal = ({ onClose, orders }) => {
               required
             >
               <option value="">-- Chọn xưởng --</option>
-              <option value="Factory Arabica">Factory Arabica</option>
-              <option value="Factory Robusta">Factory Robusta</option>
-              <option value="Factory Civet">Factory Civet</option>
-              <option value="Factory Instant">Factory Instant</option>
+              {xuongs.length > 0 ? (
+                xuongs.map((xuong) => (
+                  <option key={xuong._id} value={xuong.tenXuong || xuong.maXuong}>
+                    {xuong.tenXuong || xuong.maXuong}
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="Factory Arabica">Factory Arabica</option>
+                  <option value="Factory Robusta">Factory Robusta</option>
+                  <option value="Factory Civet">Factory Civet</option>
+                  <option value="Factory Instant">Factory Instant</option>
+                </>
+              )}
             </select>
           </div>
         </div>

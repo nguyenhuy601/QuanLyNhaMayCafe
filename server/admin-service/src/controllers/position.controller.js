@@ -2,7 +2,8 @@ const Position = require("../models/Position");
 
 exports.getAll = async (req, res) => {
   try {
-    const positions = await Position.find().sort({ createdAt: -1 }).lean();
+    // Sắp xếp theo tên chức vụ (bảng chữ cái)
+    const positions = await Position.find().sort({ tenChucVu: 1 }).lean();
     res.status(200).json(positions);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -10,6 +10,7 @@ const ProductSchema = new mongoose.Schema({
   moTa: String,
   donViTinh: String,
   donGia: Number,
+  soLuong: { type: Number, default: 0 }, // Số lượng tồn kho
   loai: {
     type: String,
     enum: ["sanpham", "nguyenvatlieu"],

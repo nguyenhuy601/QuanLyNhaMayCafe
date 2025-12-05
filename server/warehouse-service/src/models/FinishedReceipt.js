@@ -5,13 +5,13 @@ const mongoose = require("mongoose");
  */
 const FinishedReceiptSchema = new mongoose.Schema({
  maPhieuNhapTP: { type: String, required: true, unique: true, index: true },
- phieuQC: { type: mongoose.Schema.Types.ObjectId, ref: "QCRequest" },
- sanPham: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+ phieuQC: { type: String }, // Lưu ID dạng string, không ref vì có thể là service khác
+ sanPham: { type: String, required: true }, // Lưu ID dạng string, không ref vì là service khác
  soLuong: { type: Number, default: 0 },
  loSanXuat: String,
  ngaySanXuat: Date,
  hanSuDung: Date,
- nguoiLap: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+ nguoiLap: { type: String }, // Lưu ID dạng string, không ref vì là service khác
  ngayNhap: { type: Date, default: Date.now },
  ghiChu: String
 }, { timestamps: true });

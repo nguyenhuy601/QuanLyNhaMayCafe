@@ -5,20 +5,22 @@ const mongoose = require("mongoose");
  */
 const PurchaseReceiptSchema = new mongoose.Schema({
  maPhieu: { type: String, required: true, unique: true, index: true },
- nhaCungCap: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
- nguoiLap: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+ keHoach: { type: String }, // Lưu ID dạng string, không ref vì là service khác
+ nhaCungCap: { type: String }, // Lưu ID dạng string, không ref vì là service khác
+ nguoiLap: { type: String }, // Lưu ID dạng string, không ref vì là service khác
  ngayNhap: { type: Date, default: Date.now },
  tongTien: Number,
  chungTu: String,
+ ghiChu: String, // Thêm field ghiChu
  chiTiet: [
    {
-     sanPham: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+     sanPham: { type: String }, // Lưu ID dạng string, không ref vì là service khác
      soLuong: Number,
      loNhap: String,
      hanSuDung: Date
    }
  ],
- trangThai: { type: String, enum: ["Da nhap","Cho nhap"], default: "Da nhap" }
+ trangThai: { type: String, enum: ["Da nhap","Cho nhap"], default: "Cho nhap" }
 }, { timestamps: true });
 
 module.exports = mongoose.model("PurchaseReceipt", PurchaseReceiptSchema);

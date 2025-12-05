@@ -11,7 +11,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 
 export default function SidebarXuongTruong() {
   const navigate = useNavigate();
-  const basePath = "/factory";
+  const basePath = "/xuongtruong";
   const menu = [
     { path: basePath, label: "Trang chủ", icon: <Home size={18} /> },
     {

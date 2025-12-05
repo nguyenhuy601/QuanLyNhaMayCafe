@@ -1,5 +1,4 @@
 const ProductionPlan = require("../models/ProductionPlan");
-const MaterialRequest = require("../models/MaterialRequest");
 const { publishEvent } = require("../utils/eventPublisher");
 
 /**
@@ -121,22 +120,6 @@ const createPlanInternal = async (orderData) => {
     throw new Error("Thiếu thông tin cần thiết để tạo kế hoạch.");
   }
 
-  // Kiểm tra tồn kho NVL (giả lập)
-  const materialsOk = await checkMaterialAvailability(orderData);
-
-  // Nếu thiếu NVL → tạo phiếu yêu cầu bổ sung
-  if (!materialsOk) {
-    const request = new MaterialRequest({
-      ngayYeuCau: new Date(),
-      noiDung: `Thiếu nguyên vật liệu cho đơn hàng ${maDH}`,
-      trangThai: "Chờ phê duyệt",
-      nguoiTao: orderData.nguoiLap,
-    });
-
-    const savedRequest = await request.save();
-    return { materialRequestId: savedRequest._id };
-  }
-
   // Tính số lượng NVL thực tế từ nvlCanThiet
   const soLuongNVLThucTe = orderData.nvlCanThiet?.reduce((sum, nvl) => sum + (nvl.soLuong || 0), 0) || 0;
 
@@ -170,13 +153,6 @@ exports.createProductionPlan = async (req, res) => {
   try {
     const result = await createPlanInternal(buildOrderData(req));
 
-    if (result.materialRequestId) {
-      return res.status(200).json({
-        message: "Thiếu nguyên vật liệu, đã tạo phiếu yêu cầu.",
-        materialRequestId: result.materialRequestId,
-      });
-    }
-
     return res.status(201).json({
       message: "Tạo kế hoạch sản xuất thành công.",
       plan: result.plan,
@@ -201,10 +177,37 @@ exports.createPlanFromEvent = async (payload) => {
 
 /**
  * 📋 READ - Lấy danh sách tất cả kế hoạch sản xuất
+ * Xưởng trưởng chỉ thấy kế hoạch có sản phẩm trong danh sách phụ trách
  */
 exports.getPlans = async (req, res) => {
   try {
-    const plans = await ProductionPlan.find().sort({ createdAt: -1 });
+    let filter = {};
+    
+    // Nếu là xưởng trưởng, chỉ hiển thị kế hoạch có sản phẩm trong danh sách phụ trách HOẶC xưởng phụ trách khớp
+    if (req.user?.role === "xuongtruong") {
+      const productIds = req.user.sanPhamPhuTrach?.map(sp => sp.productId).filter(Boolean) || [];
+      const xuongPhuTrach = req.user.xuongPhuTrach || req.user.xuongInfo?.tenXuong;
+      
+      // Tạo filter phức hợp: sản phẩm phụ trách HOẶC xưởng phụ trách
+      const orConditions = [];
+      
+      if (productIds.length > 0) {
+        orConditions.push({ "sanPham.productId": { $in: productIds } });
+      }
+      
+      if (xuongPhuTrach) {
+        orConditions.push({ xuongPhuTrach: xuongPhuTrach });
+      }
+      
+      if (orConditions.length > 0) {
+        filter.$or = orConditions;
+      } else {
+        // Nếu không có điều kiện nào, trả về mảng rỗng
+        return res.status(200).json([]);
+      }
+    }
+    
+    const plans = await ProductionPlan.find(filter).sort({ createdAt: -1 });
 
     res.status(200).json(
       plans.map((plan) => ({

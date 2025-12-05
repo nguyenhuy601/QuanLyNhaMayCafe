@@ -1,10 +1,47 @@
 const WorkAssignment = require("../models/WorkAssignment");
 const ProductionLog = require("../models/ProductionLog");
 
-/** Lấy danh sách phân công */
+/** Lấy danh sách phân công - Xưởng trưởng chỉ xem kế hoạch có sản phẩm phụ trách */
 exports.getAssignments = async (req, res) => {
   try {
-    const list = await WorkAssignment.find().sort({ createdAt: -1 });
+    let filter = {};
+    
+    // Nếu là xưởng trưởng, chỉ hiển thị kế hoạch có sản phẩm trong danh sách phụ trách
+    if (req.user?.role === "xuongtruong" && req.user?.sanPhamPhuTrach?.length > 0) {
+      const productIds = req.user.sanPhamPhuTrach.map(sp => sp.productId).filter(Boolean);
+      
+      if (productIds.length > 0) {
+        filter["keHoach.sanPham.productId"] = { $in: productIds };
+      } else {
+        // Nếu không có productId nào hợp lệ, trả về mảng rỗng
+        return res.status(200).json([]);
+      }
+    }
+    
+    const list = await WorkAssignment.find(filter).sort({ createdAt: -1 });
+    res.status(200).json(list);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/** Tổ trưởng chỉ xem phân công của tổ mình */
+exports.getAssignmentsByTeam = async (req, res) => {
+  try {
+    // Lấy ID tổ từ user (giả sử req.user có thông tin tổ)
+    const teamId = req.user?.teamId || req.user?.to?.id;
+    
+    if (!teamId) {
+      return res.status(403).json({ 
+        message: "Không xác định được tổ của bạn. Vui lòng liên hệ quản trị viên." 
+      });
+    }
+
+    // Tìm các phân công có tổ này
+    const list = await WorkAssignment.find({
+      "congViec.to.id": teamId
+    }).sort({ createdAt: -1 });
+    
     res.status(200).json(list);
   } catch (err) {
     res.status(500).json({ error: err.message });

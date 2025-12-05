@@ -54,11 +54,11 @@ const ADMIN_SERVICE_URL = process.env.ADMIN_SERVICE_URL
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL;
 const DIRECTOR_SERVICE_URL = process.env.DIRECTOR_SERVICE_URL;
 const FACTORY_SERVICE_URL = process.env.FACTORY_SERVICE_URL;
-const PRODUCTION_PLAN_SERVICE_URL = process.env.PRODUCTION_PLAN_SERVICE_URL;
+const PRODUCTION_PLAN_SERVICE_URL = process.env.PRODUCTION_PLAN_SERVICE_URL || "http://localhost:3005";
 const QC_SERVICE_URL = process.env.QC_SERVICE_URL;
 const REPORT_SERVICE_URL = process.env.REPORT_SERVICE_URL;
 const SALES_SERVICE_URL = process.env.SALES_SERVICE_URL;
-const WAREHOUSE_SERVICE_URL = process.env.WAREHOUSE_SERVICE_URL;
+const WAREHOUSE_SERVICE_URL = process.env.WAREHOUSE_SERVICE_URL || "http://localhost:3009";
 
 app.use("/admin", (req, res) => {
   proxy.web(req, res, { target: ADMIN_SERVICE_URL });
@@ -80,11 +80,41 @@ app.use("/director", (req, res) => {
   proxy.web(req, res, { target: DIRECTOR_SERVICE_URL });
 });
 
+// Factory / Xưởng trưởng service
 app.use("/factory", (req, res) => {
   proxy.web(req, res, { target: FACTORY_SERVICE_URL });
 });
 
+// Alias mới cho Xưởng trưởng: /xuongtruong -> factory-service
+app.use("/xuongtruong", (req, res) => {
+  proxy.web(req, res, { target: FACTORY_SERVICE_URL });
+});
+
+// Material requests route - forward to warehouse-service (phải đặt TRƯỚC /plan để match trước)
+app.use("/plan/material-requests", (req, res) => {
+  if (!WAREHOUSE_SERVICE_URL) {
+    console.error("❌ WAREHOUSE_SERVICE_URL is not defined");
+    return res.status(503).json({
+      error: "Service configuration error",
+      message: "Warehouse service URL is not configured",
+    });
+  }
+  // Rewrite path từ /plan/material-requests -> /materials/requests
+  const originalUrl = req.url;
+  req.url = req.url.replace("/plan/material-requests", "/materials/requests");
+  console.log(`📡 Proxying /plan/material-requests${originalUrl} to ${WAREHOUSE_SERVICE_URL}${req.url}`);
+  proxy.web(req, res, { target: WAREHOUSE_SERVICE_URL });
+});
+
 app.use("/plan", (req, res) => {
+  if (!PRODUCTION_PLAN_SERVICE_URL) {
+    console.error("❌ PRODUCTION_PLAN_SERVICE_URL is not defined");
+    return res.status(503).json({
+      error: "Service configuration error",
+      message: "Production plan service URL is not configured",
+    });
+  }
+  console.log(`📡 Proxying /plan${req.url} to ${PRODUCTION_PLAN_SERVICE_URL}`);
   proxy.web(req, res, { target: PRODUCTION_PLAN_SERVICE_URL });
 });
 
@@ -106,6 +136,17 @@ app.use("/orders", (req, res) => {
 });
 
 app.use("/warehouse", (req, res) => {
+  if (!WAREHOUSE_SERVICE_URL) {
+    console.error("❌ WAREHOUSE_SERVICE_URL is not defined");
+    return res.status(503).json({
+      error: "Service configuration error",
+      message: "Warehouse service URL is not configured",
+    });
+  }
+  // Strip /warehouse prefix khi forward đến warehouse-service
+  const originalUrl = req.url;
+  req.url = req.url.replace(/^\/warehouse/, "");
+  console.log(`📡 Proxying /warehouse${originalUrl} to ${WAREHOUSE_SERVICE_URL}${req.url}`);
   proxy.web(req, res, { target: WAREHOUSE_SERVICE_URL });
 });
 

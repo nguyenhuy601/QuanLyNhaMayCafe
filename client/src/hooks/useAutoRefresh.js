@@ -3,10 +3,10 @@ import { useEffect, useRef } from "react";
 /**
  * Gọi lại callback định kỳ và khi user quay lại tab để tự refresh dữ liệu.
  * @param {Function} callback - hàm load dữ liệu
- * @param {{ interval?: number, runOnFocus?: boolean }} options
+ * @param {{ interval?: number, runOnFocus?: boolean, enabled?: boolean }} options
  */
 const useAutoRefresh = (callback, options = {}) => {
-  const { interval = 15000, runOnFocus = true } = options;
+  const { interval = 15000, runOnFocus = true, enabled = true } = options;
   const savedCallback = useRef(callback);
 
   // Luôn lưu callback mới nhất
@@ -16,17 +16,17 @@ const useAutoRefresh = (callback, options = {}) => {
 
   // Thiết lập interval
   useEffect(() => {
-    if (!interval) return undefined;
+    if (!interval || !enabled) return undefined;
     const id = setInterval(() => {
       savedCallback.current?.();
     }, interval);
 
     return () => clearInterval(id);
-  }, [interval]);
+  }, [interval, enabled]);
 
   // Tự refresh khi tab được focus lại
   useEffect(() => {
-    if (!runOnFocus) return undefined;
+    if (!runOnFocus || !enabled) return undefined;
 
     const handleFocus = () => savedCallback.current?.();
     window.addEventListener("focus", handleFocus);
@@ -36,7 +36,7 @@ const useAutoRefresh = (callback, options = {}) => {
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleFocus);
     };
-  }, [runOnFocus]);
+  }, [runOnFocus, enabled]);
 };
 
 export default useAutoRefresh;

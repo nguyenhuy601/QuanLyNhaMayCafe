@@ -6,7 +6,7 @@ require("./src/config/connectdb");
 
 const { listenDirectorEvents } = require("./src/rabbitmq/listener");
 const app = express();
-const routes = require("./src/routers/plan.routes");
+const planRoutes = require("./src/routers/plan.routes");
 
 app.use(cors({
   origin: "http://localhost:5173", // Địa chỉ frontend
@@ -19,8 +19,8 @@ app.use(cors({
 app.options("*", cors());
 app.use(express.json());
 
-// Gắn route chính
-app.use("/", routes);
+// Gắn routes
+app.use("/", planRoutes);
 listenDirectorEvents();
 
 // Cổng mặc định

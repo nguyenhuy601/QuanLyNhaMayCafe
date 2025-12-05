@@ -68,6 +68,24 @@ export const getPendingPlans = async () => {
   }
 };
 
+// Lấy danh sách phiếu yêu cầu NVL chờ duyệt
+export const getPendingMaterialRequests = async () => {
+  try {
+    // Encode URL để tránh lỗi với ký tự đặc biệt
+    const trangThai = encodeURIComponent("Chờ phê duyệt");
+    const response = await api.get(`/warehouse/materials/requests?trangThai=${trangThai}`);
+    console.log("📋 [directorAPI] Response from warehouse-service:", response.data);
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    if (error.response?.status === 401) {
+      return [];
+    }
+    console.error("❌ [directorAPI] Lỗi lấy phiếu yêu cầu NVL:", error);
+    console.error("❌ [directorAPI] Error details:", error.response?.data);
+    return [];
+  }
+};
+
 // --- PUT API (MỚI THÊM - QUAN TRỌNG) ---
 
 // 1. Duyệt Đơn Hàng
@@ -123,6 +141,34 @@ export const rejectPlanApi = async (id, reason) => {
     return response.data;
   } catch (error) {
     // Nếu đã xử lý 401, throw lại để component biết
+    if (error.response?.status === 401) {
+      throw error;
+    }
+    throw error;
+  }
+};
+
+// 5. Duyệt Phiếu Yêu Cầu NVL
+export const approveMaterialRequestApi = async (id) => {
+  try {
+    const response = await api.put(`/warehouse/materials/requests/${id}/approve`);
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      throw error;
+    }
+    throw error;
+  }
+};
+
+// 6. Từ Chối Phiếu Yêu Cầu NVL
+export const rejectMaterialRequestApi = async (id, reason) => {
+  try {
+    const response = await api.put(`/warehouse/materials/requests/${id}/reject`, {
+      reason: reason,
+    });
+    return response.data;
+  } catch (error) {
     if (error.response?.status === 401) {
       throw error;
     }

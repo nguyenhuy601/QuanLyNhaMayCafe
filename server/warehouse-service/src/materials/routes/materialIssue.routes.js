@@ -5,7 +5,7 @@ const issueCtrl = require("../controllers/materialIssue.controller");
 const { verifyToken } = require("../../middlewares/auth.middleware");
 const { authorizeRoles } = require("../../middlewares/role.middleware");
 
-router.get("/issues", verifyToken, authorizeRoles(["Warehouse", "Admin"]), issueCtrl.getAllIssues);
-router.post("/issues", verifyToken, authorizeRoles(["Warehouse", "Admin"]), issueCtrl.createIssue);
+router.get("/", verifyToken, authorizeRoles(["khonvl", "khotp", "admin"]), issueCtrl.getAllIssues);
+router.post("/", verifyToken, authorizeRoles(["khonvl", "khotp", "admin"]), issueCtrl.createIssue);
 
 module.exports = router;

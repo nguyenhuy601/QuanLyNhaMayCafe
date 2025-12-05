@@ -3,7 +3,7 @@ import { CalendarDays, Search, ClipboardList, Info } from "lucide-react";
 import { fetchPlans, fetchPlanById } from "../../../services/factoryService";
 
 export default function XemKeHoach() {
-  const [filter, setFilter] = useState({ tuNgay: "", denNgay: "", maKeHoach: "" });
+  const [filter, setFilter] = useState({ tuNgay: "", denNgay: "", maKeHoach: "", trangThai: "all" });
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +52,8 @@ export default function XemKeHoach() {
     const ngayBD = new Date(item.ngayBatDau);
     const matchDate = (!tu || ngayBD >= tu) && (!den || ngayBD <= den);
     const matchMa = !filter.maKeHoach || item.maKeHoach.includes(filter.maKeHoach);
-    return matchDate && matchMa;
+    const matchStatus = filter.trangThai === "all" || item.trangThai === filter.trangThai;
+    return matchDate && matchMa && matchStatus;
   });
 
   const filterControl =
@@ -71,7 +72,7 @@ export default function XemKeHoach() {
       </div>
 
       <div className="bg-white border border-amber-100 rounded-3xl shadow p-6 space-y-4">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <label className={filterControl}>
             <Search size={18} className="text-amber-500" />
             <input
@@ -100,6 +101,18 @@ export default function XemKeHoach() {
               className="flex-1 border-none bg-transparent outline-none"
             />
           </label>
+          <select
+            value={filter.trangThai}
+            onChange={(e) => setFilter({ ...filter, trangThai: e.target.value })}
+            className={filterControl}
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="Chờ duyệt">Chờ duyệt</option>
+            <option value="Đã duyệt">Đã duyệt</option>
+            <option value="Đang thực hiện">Đang thực hiện</option>
+            <option value="Hoàn thành">Hoàn thành</option>
+            <option value="Từ chối">Từ chối</option>
+          </select>
         </div>
       </div>
 
@@ -115,19 +128,20 @@ export default function XemKeHoach() {
                 <th className="px-4 py-3 text-left font-semibold">Ngày bắt đầu</th>
                 <th className="px-4 py-3 text-left font-semibold">Ngày kết thúc</th>
                 <th className="px-4 py-3 text-left font-semibold">Trạng thái</th>
+                <th className="px-4 py-3 text-left font-semibold">Hành động</th>
                 <th className="px-4 py-3 text-left font-semibold">Chi tiết</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-amber-50 bg-white">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-8 text-center text-amber-600">
+                  <td colSpan="9" className="px-4 py-8 text-center text-amber-600">
                     Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-8 text-center text-amber-600">
+                  <td colSpan="9" className="px-4 py-8 text-center text-amber-600">
                     Chưa có kế hoạch sản xuất nào
                   </td>
                 </tr>
@@ -141,9 +155,20 @@ export default function XemKeHoach() {
                     <td className="px-4 py-3">{formatDate(row.ngayBatDau)}</td>
                     <td className="px-4 py-3">{formatDate(row.ngayKetThuc)}</td>
                     <td className="px-4 py-3">
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        row.trangThai === "Chờ duyệt" 
+                          ? "bg-yellow-100 text-yellow-700"
+                          : row.trangThai === "Đã duyệt"
+                          ? "bg-green-100 text-green-700"
+                          : row.trangThai === "Từ chối"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}>
                         {row.trangThai}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-gray-400 text-xs">-</span>
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -200,6 +225,7 @@ export default function XemKeHoach() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

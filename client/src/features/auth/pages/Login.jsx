@@ -50,8 +50,8 @@ const Login = () => {
       ? "Phê duyệt đơn hàng & kế hoạch ngay trên trình duyệt"
       : "Approve orders and plans right in your browser",
     benefit3: isVi
-      ? "Phân quyền theo vai trò: Giám đốc, Kế hoạch, QC, Kho, Xưởng..."
-      : "Role-based access for Director, Planning, QC, Warehouse, Factory...",
+      ? "Phân quyền theo vai trò: Giám đốc, Kế hoạch, QC, Kho, Xưởng trưởng, Tổ trưởng..."
+      : "Role-based access for Director, Planning, QC, Warehouse, Factory Manager, Team Leader...",
     footerLeft: isVi
       ? `© ${new Date().getFullYear()} Coffee Factory MES`
       : `© ${new Date().getFullYear()} Coffee Factory MES`,
@@ -69,10 +69,11 @@ const Login = () => {
       qc: "/qc",
       plan: "/plan",
       orders: "/orders",
-      factory: "/factory",
+      xuongtruong: "/xuongtruong",
       totruong: "/totruong",
-      khonvl: "/khonvl",
-      warehouseproduct: "/warehouseproduct",
+      khonvl: "/warehouse-raw-material",
+      khotp: "/khotp",
+      warehouseproduct: "/khotp", // Redirect warehouseproduct to khotp
     };
 
     const path = roleMap[role?.toLowerCase()] || "/login";
@@ -253,12 +254,6 @@ const Login = () => {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-medium text-[#4B321C]">
                   <span>{text.passwordLabel}</span>
-                  <button
-                    type="button"
-                    className="text-[11px] font-medium text-amber-600 hover:text-amber-700"
-                  >
-                    {text.forgotPassword}
-                  </button>
                 </div>
                 <div className="flex items-center rounded-xl border border-amber-100 bg-[#FFF8F1] px-3 py-2.5 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-100 transition">
                   <Lock size={18} className="text-amber-500" />

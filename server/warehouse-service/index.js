@@ -15,7 +15,15 @@ app.use(express.json());
 app.use("/materials", materialRoutes);
 app.use("/products", productRoutes);
 
-listenEvents();
+// Khởi động RabbitMQ listener với error handling
+listenEvents().catch(err => {
+  console.error("❌ [warehouse-service] Failed to start RabbitMQ listener:", err.message);
+  console.error("❌ [warehouse-service] Stack:", err.stack);
+  // Không exit, service vẫn chạy được dù không có RabbitMQ
+});
 
 const PORT = process.env.PORT;
-app.listen(PORT, () => console.log(`🚀 Warehouse-Service running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Warehouse-Service running on port ${PORT}`);
+  console.log("📡 [warehouse-service] RabbitMQ listener starting...");
+});

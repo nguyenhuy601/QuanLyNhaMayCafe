@@ -81,16 +81,6 @@ const DepartmentForm = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-gray-600">Mã phòng ban *</label>
-            <input
-              name="maPhong"
-              value={formData.maPhong}
-              onChange={handleChange}
-              required
-              className="w-full mt-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          <div>
             <label className="text-sm text-gray-600">Tên phòng ban *</label>
             <input
               name="tenPhong"

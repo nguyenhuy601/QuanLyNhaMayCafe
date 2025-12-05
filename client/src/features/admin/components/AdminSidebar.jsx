@@ -8,6 +8,7 @@ import {
   Lock,
   Building2,
   BadgeDollarSign,
+  UserCog,
 } from "lucide-react";
 
 const AdminSidebar = () => {
@@ -68,6 +69,26 @@ const AdminSidebar = () => {
         >
           <UserPlus size={18} />
           <span>Thêm nhân sự</span>
+        </button>
+
+        <button
+          onClick={() => navigate("/admin/accounts")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${isActive(
+            "/admin/accounts"
+          )}`}
+        >
+          <Users size={18} />
+          <span>Quản lý Tài khoản</span>
+        </button>
+
+        <button
+          onClick={() => navigate("/admin/xuong-truong")}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${isActive(
+            "/admin/xuong-truong"
+          )}`}
+        >
+          <UserCog size={18} />
+          <span>Quản lý Xưởng trưởng</span>
         </button>
 
         <div className="pt-2">

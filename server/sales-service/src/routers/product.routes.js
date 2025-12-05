@@ -5,12 +5,12 @@ const { verifyToken } = require("../middlewares/auth.middleware");
 const { authorizeRoles } = require("../middlewares/role.middleware");
 
 // CRUD routes
-router.get("/", verifyToken, authorizeRoles(["orders","plan"]), productController.getAllProducts);
-router.get("/materials", verifyToken, authorizeRoles(["orders","plan"]), productController.getMaterials);
-router.get("/finished", verifyToken, authorizeRoles(["orders","plan"]), productController.getFinishedProducts);
-router.get("/:id", verifyToken, authorizeRoles(["orders","plan"]), productController.getProductById);
-router.post("/", verifyToken, authorizeRoles(["orders","plan"]), productController.createProduct);
-router.put("/:id", verifyToken, authorizeRoles(["orders","plan"]), productController.updateProduct);
-router.delete("/:id", verifyToken, authorizeRoles(["orders","plan"]), productController.deleteProduct);
+router.get("/", verifyToken, authorizeRoles(["orders","plan","admin","khonvl","khotp"]), productController.getAllProducts);
+router.get("/materials", verifyToken, authorizeRoles(["orders","plan","admin","khonvl","khotp"]), productController.getMaterials);
+router.get("/finished", verifyToken, authorizeRoles(["orders","plan","admin","khonvl","khotp"]), productController.getFinishedProducts);
+router.get("/:id", verifyToken, authorizeRoles(["orders","plan","admin","khonvl","khotp"]), productController.getProductById);
+router.post("/", verifyToken, authorizeRoles(["orders","plan","admin"]), productController.createProduct);
+router.put("/:id", verifyToken, authorizeRoles(["orders","plan","admin","khonvl","khotp"]), productController.updateProduct);
+router.delete("/:id", verifyToken, authorizeRoles(["orders","plan","admin"]), productController.deleteProduct);
 
 module.exports = router;

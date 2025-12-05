@@ -3,7 +3,7 @@ const { publishEvent } = require("../../utils/eventPublisher");
 
 exports.getAllFinishedIssues = async (req, res) => {
   try {
-    const list = await FinishedIssue.find().populate("nguoiLap khachHang donHang");
+    const list = await FinishedIssue.find();
     res.status(200).json(list);
   } catch (err) {
     res.status(500).json({ error: err.message });

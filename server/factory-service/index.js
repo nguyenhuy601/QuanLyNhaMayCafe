@@ -7,16 +7,50 @@ require("dotenv").config();
 const assignmentRoutes = require("./src/routers/assignment.routes");
 const logRoutes = require("./src/routers/productionLog.routes");
 const teamleaderRoutes = require("./src/routers/teamleader.routes");
+const jobRoutes = require("./src/routers/job.routes");
+const toRoutes = require("./src/routers/to.routes");
+const xuongRoutes = require("./src/routers/xuong.routes");
+const caRoutes = require("./src/routers/ca.routes");
+const planRoutes = require("./src/routers/plan.routes");
 const { listenPlanEvents } = require("./src/rabbitmq/listener");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/", assignmentRoutes);
-app.use("/", logRoutes);
+// ============================================
+// ROUTES CHO XƯỞNG TRƯỞNG (Manager) - Qua prefix /manager
+// ============================================
+// Gateway proxy /factory/manager/* vào đây, nên mount tại /manager
+app.use("/manager", jobRoutes);
+app.use("/manager", assignmentRoutes);
+app.use("/manager", logRoutes);
+// app.use("/manager", planRoutes); // Đã tắt - chỉ director mới duyệt kế hoạch
+
+// ============================================
+// ROUTES QUẢN LÝ TỔ SẢN XUẤT
+// ============================================
+// Mount tại cả /to và /factory/to để hỗ trợ cả trường hợp có/không có prefix
+app.use("/to", toRoutes);
+app.use("/factory/to", toRoutes);
+
+// ============================================
+// ROUTES QUẢN LÝ XƯỞNG SẢN XUẤT
+// ============================================
+// Mount tại cả /xuong và /factory/xuong để hỗ trợ cả trường hợp có/không có prefix
+app.use("/xuong", xuongRoutes);
+app.use("/factory/xuong", xuongRoutes);
+
+// ============================================
+// ROUTES QUẢN LÝ CA LÀM VIỆC
+// ============================================
+app.use("/ca", caRoutes);
+
+// ============================================
+// ROUTES CHO TỔ TRƯỞNG (Team Leader)
+// ============================================
+// Gateway đã strip prefix /factory rồi, nên mount tại /teamleader
 app.use("/teamleader", teamleaderRoutes);
-app.use("/factory/teamleader", teamleaderRoutes);
 
 // Nhận event từ kế hoạch sản xuất
 listenPlanEvents();
