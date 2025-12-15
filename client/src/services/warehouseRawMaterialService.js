@@ -35,6 +35,8 @@ export const getPlanById = async (planId) => {
  */
 export const createMaterialReceipt = async (receiptData) => {
   try {
+    console.log("🔵 [Frontend] Creating material receipt:", receiptData.maPhieu);
+    console.trace("🔵 [Frontend] Stack trace for createMaterialReceipt call:");
     const response = await axiosInstance.post('/warehouse/materials/receipts', receiptData);
     return response.data;
   } catch (error) {

@@ -9,24 +9,49 @@ const authHeaders = () => {
   return headers;
 };
 
-export const fetchMaterials = async () => {
-  const res = await fetch(`${API_URL}/products/materials`, {
-    headers: authHeaders(),
-  });
+const safeJson = async (res, fallback = []) => {
+  try {
+    return await res.json();
+  } catch {
+    return fallback;
+  }
+};
 
-  return await res.json();
+export const fetchMaterials = async () => {
+  try {
+    const res = await fetch(`${API_URL}/products/materials`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) return [];
+    return await safeJson(res, []);
+  } catch (err) {
+    console.error("❌ fetchMaterials error:", err.message);
+    return [];
+  }
 };
 
 export const fetchAllProducts = async () => {
-  const res = await fetch(`${API_URL}/products`, {
-    headers: authHeaders(),
-  });
-  return await res.json();
+  try {
+    const res = await fetch(`${API_URL}/products`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) return [];
+    return await safeJson(res, []);
+  } catch (err) {
+    console.error("❌ fetchAllProducts error:", err.message);
+    return [];
+  }
 };
 
 export const fetchFinishedProducts = async () => {
-  const res = await fetch(`${API_URL}/products/finished`, {
-    headers: authHeaders(),
-  });
-  return await res.json();
+  try {
+    const res = await fetch(`${API_URL}/products/finished`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) return [];
+    return await safeJson(res, []);
+  } catch (err) {
+    console.error("❌ fetchFinishedProducts error:", err.message);
+    return [];
+  }
 };

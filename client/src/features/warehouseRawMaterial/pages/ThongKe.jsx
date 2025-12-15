@@ -73,12 +73,13 @@ export default function ThongKe() {
             <>
               {activeTab === 'receipts' && (
                 <table className="w-full text-left border-collapse">
-                  <thead>
+              <thead>
                     <tr className="bg-[#8B4513] text-white text-sm">
                       <th className="py-3 px-4">Mã phiếu</th>
                       <th className="py-3 px-4">Ngày nhập</th>
                       <th className="py-3 px-4">Kế hoạch</th>
                       <th className="py-3 px-4">Số lượng NVL</th>
+                  <th className="py-3 px-4">Trạng thái</th>
                       <th className="py-3 px-4">Ghi chú</th>
                     </tr>
                   </thead>
@@ -93,11 +94,16 @@ export default function ThongKe() {
                               : 'N/A'}
                           </td>
                           <td className="py-2 px-4">
-                            {receipt.keHoach?.tenKeHoach || receipt.keHoach || 'N/A'}
+                        {receipt.keHoach?.maKeHoach || receipt.keHoach?.tenKeHoach || receipt.keHoach || 'N/A'}
                           </td>
                           <td className="py-2 px-4">
                             {receipt.chiTiet?.length || 0} loại
                           </td>
+                      <td className="py-2 px-4">
+                        <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                          {receipt.trangThai || '—'}
+                        </span>
+                      </td>
                           <td className="py-2 px-4">{receipt.ghiChu || '—'}</td>
                         </tr>
                       ))
@@ -114,12 +120,13 @@ export default function ThongKe() {
 
               {activeTab === 'issues' && (
                 <table className="w-full text-left border-collapse">
-                  <thead>
+              <thead>
                     <tr className="bg-[#8B4513] text-white text-sm">
                       <th className="py-3 px-4">Mã phiếu</th>
                       <th className="py-3 px-4">Ngày xuất</th>
                       <th className="py-3 px-4">Kế hoạch</th>
                       <th className="py-3 px-4">Số lượng NVL</th>
+                  <th className="py-3 px-4">Trạng thái</th>
                       <th className="py-3 px-4">Ghi chú</th>
                     </tr>
                   </thead>
@@ -134,11 +141,16 @@ export default function ThongKe() {
                               : 'N/A'}
                           </td>
                           <td className="py-2 px-4">
-                            {issue.keHoach?.tenKeHoach || issue.keHoach || 'N/A'}
+                        {issue.keHoach?.maKeHoach || issue.keHoach?.tenKeHoach || issue.keHoach || 'N/A'}
                           </td>
                           <td className="py-2 px-4">
                             {issue.chiTiet?.length || 0} loại
                           </td>
+                      <td className="py-2 px-4">
+                        <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                          {issue.trangThai || '—'}
+                        </span>
+                      </td>
                           <td className="py-2 px-4">{issue.ghiChu || '—'}</td>
                         </tr>
                       ))

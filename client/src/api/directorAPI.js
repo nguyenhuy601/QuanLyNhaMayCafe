@@ -176,6 +176,64 @@ export const rejectMaterialRequestApi = async (id, reason) => {
   }
 };
 
+// 7. Lấy danh sách phiếu nhập kho NVL chờ duyệt
+export const getPendingMaterialReceipts = async () => {
+  try {
+    const response = await api.get(`/warehouse/materials/receipts/pending`);
+    console.log("📋 [directorAPI] Response from warehouse-service (receipts):", response.data);
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    if (error.response?.status === 401) {
+      return [];
+    }
+    console.error("❌ [directorAPI] Lỗi lấy phiếu nhập kho NVL:", error);
+    console.error("❌ [directorAPI] Error details:", error.response?.data);
+    return [];
+  }
+};
+
+// 8. Duyệt Phiếu Nhập Kho NVL
+export const approveMaterialReceiptApi = async (id) => {
+  try {
+    const response = await api.put(`/warehouse/materials/receipts/${id}/approve`);
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      throw error;
+    }
+    throw error;
+  }
+};
+
+// 9. Lấy danh sách phiếu xuất kho NVL chờ duyệt
+export const getPendingMaterialIssues = async () => {
+  try {
+    const response = await api.get(`/warehouse/materials/issues/pending`);
+    console.log("📋 [directorAPI] Response from warehouse-service (issues):", response.data);
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    if (error.response?.status === 401) {
+      return [];
+    }
+    console.error("❌ [directorAPI] Lỗi lấy phiếu xuất kho NVL:", error);
+    console.error("❌ [directorAPI] Error details:", error.response?.data);
+    return [];
+  }
+};
+
+// 10. Duyệt Phiếu Xuất Kho NVL
+export const approveMaterialIssueApi = async (id) => {
+  try {
+    const response = await api.put(`/warehouse/materials/issues/${id}/approve`);
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      throw error;
+    }
+    throw error;
+  }
+};
+
 // --- Helper ---
 export const getEntityName = async (id, type = "user") => {
   if (MOCK_DATA[id]) return MOCK_DATA[id];

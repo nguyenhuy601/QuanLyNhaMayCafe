@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axiosInstance from '../../../api/axiosConfig';
+import useAutoRefresh from '../../../hooks/useAutoRefresh';
 
 export default function ThongSoKho() {
   const [materials, setMaterials] = useState([]);
@@ -7,11 +8,7 @@ export default function ThongSoKho() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchInventoryData();
-  }, []);
-
-  const fetchInventoryData = async () => {
+  const fetchInventoryData = useCallback(async () => {
     try {
       setLoading(true);
       // Gọi endpoint từ warehouse-service thay vì sales-service trực tiếp
@@ -29,7 +26,39 @@ export default function ThongSoKho() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchInventoryData();
+  }, [fetchInventoryData]);
+
+  // Auto-refresh mỗi 10 giây để đảm bảo dữ liệu luôn mới nhất
+  useAutoRefresh(fetchInventoryData, { interval: 10000 });
+
+  // Lắng nghe sự kiện cập nhật kho khi Ban giám đốc duyệt phiếu nhập/xuất
+  useEffect(() => {
+    const onInventoryUpdated = () => {
+      console.log("📢 Nhận được event inventory-updated, đang refresh dữ liệu...");
+      // Refresh ngay lập tức khi nhận được event
+      fetchInventoryData();
+    };
+    window.addEventListener('inventory-updated', onInventoryUpdated);
+    return () => window.removeEventListener('inventory-updated', onInventoryUpdated);
+  }, [fetchInventoryData]);
+
+  // Refresh khi tab/ cửa sổ quay lại foreground (trường hợp duyệt ở tab khác / tài khoản khác)
+  useEffect(() => {
+    const onFocus = () => fetchInventoryData();
+    const onVisibilityChange = () => {
+      if (!document.hidden) onFocus();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [fetchInventoryData]);
 
   // Tính tổng số lượng NVL
   const totalMaterials = materials.reduce((sum, item) => sum + (item.soLuong || 0), 0);
@@ -39,7 +68,15 @@ export default function ThongSoKho() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Thông số kho</h1>
+      <div className="flex items-center gap-3 mb-4">
+        <h1 className="text-2xl font-semibold">Thông số kho</h1>
+        <button
+          onClick={fetchInventoryData}
+          className="px-4 py-2 bg-[#8B4513] text-white rounded hover:bg-[#A0522D]"
+        >
+          Làm mới
+        </button>
+      </div>
 
       {loading && (
         <div className="flex items-center justify-center py-12">

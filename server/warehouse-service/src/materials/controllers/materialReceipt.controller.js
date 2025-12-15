@@ -14,11 +14,25 @@ exports.getAllReceipts = async (req, res) => {
   }
 };
 
+/**
+ * Lấy danh sách phiếu nhập kho chờ duyệt (trangThai: "Cho nhap")
+ */
+exports.getPendingReceipts = async (req, res) => {
+  try {
+    const list = await MaterialReceipt.find({ trangThai: "Cho nhap" }).sort({ ngayNhap: -1 });
+    console.log(`📋 [warehouse-service] Found ${list.length} pending receipts (Cho nhap)`);
+    res.status(200).json(list);
+  } catch (err) {
+    console.error("❌ [warehouse-service] Error fetching pending receipts:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.createReceipt = async (req, res) => {
   try {
     console.log("📥 [warehouse-service] Received receipt data:", JSON.stringify(req.body, null, 2));
     
-    // Kiểm tra kế hoạch đã được duyệt chưa (nếu có keHoach)
+    // Kiểm tra kế hoạch đã được duyệt chưa (nếu có keHoach) - TRƯỚC KHI TẠO RECEIPT
     if (req.body.keHoach) {
       try {
         const authHeader = req.headers.authorization;
@@ -40,6 +54,46 @@ exports.createReceipt = async (req, res) => {
       }
     }
     
+    // Kiểm tra MaterialRequest đã được duyệt chưa (nếu có keHoach) - TRƯỚC KHI TẠO RECEIPT
+    let materialRequestApproved = false;
+    if (req.body.keHoach) {
+      try {
+        const materialRequest = await MaterialRequest.findOne({ 
+          keHoach: req.body.keHoach,
+          trangThai: { $in: ["Đã duyệt", "Đã đặt hàng", "Hoàn thành"] }
+        });
+        
+        if (materialRequest) {
+          materialRequestApproved = true;
+          console.log(`✅ [warehouse-service] MaterialRequest ${materialRequest.maPhieu} is approved, allowing receipt creation`);
+        } else {
+          // Kiểm tra xem có MaterialRequest nào cho kế hoạch này không
+          const anyRequest = await MaterialRequest.findOne({ keHoach: req.body.keHoach });
+          if (anyRequest) {
+            console.warn(`⚠️ [warehouse-service] MaterialRequest ${anyRequest.maPhieu} exists but not approved (status: ${anyRequest.trangThai})`);
+            return res.status(400).json({
+              error: "MaterialRequest chưa được duyệt",
+              message: `Không thể nhập kho. Phiếu yêu cầu NVL (${anyRequest.maPhieu}) chưa được duyệt bởi ban giám đốc. Trạng thái hiện tại: ${anyRequest.trangThai}. Vui lòng đợi Director duyệt phiếu yêu cầu NVL trước khi nhập kho.`,
+            });
+          } else {
+            console.warn(`⚠️ [warehouse-service] No MaterialRequest found for plan ${req.body.keHoach}`);
+            // Nếu không có MaterialRequest, có thể kế hoạch đủ NVL, cho phép nhập kho
+            materialRequestApproved = true;
+            console.log("ℹ️ [warehouse-service] No MaterialRequest needed (sufficient materials), allowing receipt creation");
+          }
+        }
+      } catch (err) {
+        console.error("❌ [warehouse-service] Error checking MaterialRequest:", err.message);
+        // Nếu không kiểm tra được, vẫn cho phép tạo receipt nhưng không cộng vào kho
+        console.warn("⚠️ [warehouse-service] Cannot verify MaterialRequest, will NOT update inventory");
+        materialRequestApproved = false;
+      }
+    } else {
+      // Nếu không có keHoach, cho phép nhập kho (có thể là nhập NVL không liên quan đến kế hoạch)
+      materialRequestApproved = true;
+      console.log("ℹ️ [warehouse-service] No keHoach provided, allowing receipt creation");
+    }
+    
     // Chỉ lấy các field hợp lệ từ model PurchaseReceipt
     const receiptData = {
       maPhieu: req.body.maPhieu,
@@ -56,56 +110,30 @@ exports.createReceipt = async (req, res) => {
     
     console.log("📝 [warehouse-service] Creating receipt with data:", JSON.stringify(receiptData, null, 2));
     
-    const receipt = await MaterialReceipt.create(receiptData);
-    console.log("✅ [warehouse-service] Receipt (PurchaseReceipt) created:", receipt._id);
-    console.log("📋 [warehouse-service] Receipt details:", JSON.stringify({
-      maPhieu: receipt.maPhieu,
-      keHoach: receipt.keHoach,
-      chiTiet: receipt.chiTiet,
-      trangThai: receipt.trangThai,
-    }, null, 2));
-    
-    // LƯU Ý: MaterialReceipt (PurchaseReceipt) là phiếu NHẬP kho, KHÔNG phải MaterialRequest (phiếu YÊU CẦU NVL)
-    // MaterialRequest chỉ được tạo tự động khi kế hoạch được duyệt và thiếu NVL
-    
-    // Kiểm tra MaterialRequest đã được duyệt chưa (nếu có keHoach)
-    let materialRequestApproved = false;
-    if (req.body.keHoach) {
-      try {
-        const materialRequest = await MaterialRequest.findOne({ 
-          keHoach: req.body.keHoach,
-          trangThai: { $in: ["Đã duyệt", "Đã đặt hàng", "Hoàn thành"] }
+    // Tạo receipt - chỉ tạo sau khi đã kiểm tra tất cả điều kiện
+    let receipt;
+    try {
+      receipt = await MaterialReceipt.create(receiptData);
+      console.log("✅ [warehouse-service] Receipt (PurchaseReceipt) created successfully:", receipt._id);
+      console.log("📋 [warehouse-service] Receipt details:", JSON.stringify({
+        _id: receipt._id,
+        maPhieu: receipt.maPhieu,
+        keHoach: receipt.keHoach,
+        chiTiet: receipt.chiTiet,
+        trangThai: receipt.trangThai,
+      }, null, 2));
+    } catch (createError) {
+      // Xử lý lỗi validation (như duplicate maPhieu)
+      if (createError.code === 11000) {
+        console.error("❌ [warehouse-service] Duplicate maPhieu:", receiptData.maPhieu);
+        return res.status(400).json({
+          error: "Mã phiếu đã tồn tại",
+          message: `Mã phiếu ${receiptData.maPhieu} đã được sử dụng. Vui lòng chọn mã phiếu khác.`,
         });
-        
-        if (materialRequest) {
-          materialRequestApproved = true;
-          console.log(`✅ [warehouse-service] MaterialRequest ${materialRequest.maPhieu} is approved, allowing inventory update`);
-        } else {
-          // Kiểm tra xem có MaterialRequest nào cho kế hoạch này không
-          const anyRequest = await MaterialRequest.findOne({ keHoach: req.body.keHoach });
-          if (anyRequest) {
-            console.warn(`⚠️ [warehouse-service] MaterialRequest ${anyRequest.maPhieu} exists but not approved (status: ${anyRequest.trangThai})`);
-            return res.status(400).json({
-              error: "MaterialRequest chưa được duyệt",
-              message: `Không thể nhập kho. Phiếu yêu cầu NVL (${anyRequest.maPhieu}) chưa được duyệt bởi ban giám đốc. Trạng thái hiện tại: ${anyRequest.trangThai}. Vui lòng đợi Director duyệt phiếu yêu cầu NVL trước khi nhập kho.`,
-            });
-          } else {
-            console.warn(`⚠️ [warehouse-service] No MaterialRequest found for plan ${req.body.keHoach}`);
-            // Nếu không có MaterialRequest, có thể kế hoạch đủ NVL, cho phép nhập kho
-            materialRequestApproved = true;
-            console.log("ℹ️ [warehouse-service] No MaterialRequest needed (sufficient materials), allowing inventory update");
-          }
-        }
-      } catch (err) {
-        console.error("❌ [warehouse-service] Error checking MaterialRequest:", err.message);
-        // Nếu không kiểm tra được, không cho phép cộng vào kho để an toàn
-        console.warn("⚠️ [warehouse-service] Cannot verify MaterialRequest, NOT updating inventory");
-        materialRequestApproved = false;
       }
-    } else {
-      // Nếu không có keHoach, cho phép nhập kho (có thể là nhập NVL không liên quan đến kế hoạch)
-      materialRequestApproved = true;
-      console.log("ℹ️ [warehouse-service] No keHoach provided, allowing inventory update");
+      console.error("❌ [warehouse-service] Error creating receipt in DB:", createError.message);
+      console.error("❌ [warehouse-service] Error details:", JSON.stringify(createError, null, 2));
+      throw createError; // Re-throw để catch ở ngoài xử lý
     }
     
     // Lấy token từ request header để forward khi gọi API

@@ -34,6 +34,11 @@ export default function SidebarXuongTruong() {
       label: "Thông tin các tổ",
       icon: <Users size={18} />,
     },
+    {
+      path: `${basePath}/duyet-nvl`,
+      label: "Duyệt NVL đến xưởng",
+      icon: <ClipboardList size={18} />,
+    },
   ];
 
   const handleLogout = () => {

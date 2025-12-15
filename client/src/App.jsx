@@ -18,6 +18,7 @@ import DirectorHome from "./features/director/pages/Home.jsx";
 import ApprovePlan from "./features/director/pages/ApprovePlan.jsx";
 import ApproveOrders from "./features/director/pages/ApproveOrders.jsx";
 import ApproveMaterialRequests from "./features/director/pages/ApproveMaterialRequests.jsx";
+import ApproveMaterialTransactions from "./features/director/pages/ApproveMaterialTransactions.jsx";
 import Reports from "./features/director/pages/Reports.jsx";
 
 // --- Order (Nhân viên bán hàng)
@@ -34,6 +35,7 @@ import TrangChu from "./features/factory/pages/Dashboard.jsx";
 import PhanCong from "./features/factory/pages/PhanCong.jsx";
 import ThongKe from "./features/factory/pages/ThongKe.jsx";
 import XemKeHoach from "./features/factory/pages/XemKeHoach.jsx";
+import WarehouseHeadConfirmIssues from "./features/factory/pages/WarehouseHeadConfirmIssues.jsx";
 
 
 // --- To truong (Tổ trưởng)
@@ -116,7 +118,7 @@ export default function App() {
           <Route index element={<DirectorHome />} />
           <Route path="approve-plan" element={<ApprovePlan />} />
           <Route path="approve-orders" element={<ApproveOrders />} />
-          <Route path="approve-material-requests" element={<ApproveMaterialRequests />} />
+          <Route path="approve-material-requests" element={<ApproveMaterialTransactions />} />
           <Route path="reports" element={<Reports />} />
         </Route>
 
@@ -264,6 +266,7 @@ export default function App() {
           <Route path="thong-ke" element={<ThongKe />} />
           <Route path="xem-ke-hoach" element={<XemKeHoach />} />
           <Route path="thong-tin-to" element={<FactoryTeams />} />
+          <Route path="duyet-nvl" element={<WarehouseHeadConfirmIssues />} />
         </Route>
 
         {/* Protected Routes - Tổ trưởng */}

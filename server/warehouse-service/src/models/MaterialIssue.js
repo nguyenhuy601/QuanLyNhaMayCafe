@@ -12,7 +12,11 @@ const MaterialIssueSchema = new mongoose.Schema({
     { sanPham: { type: String }, soLuong: Number, loXuat: String } // Lưu ID dạng string, không ref vì là service khác
   ],
   xuongNhan: { type: String }, // Lưu ID dạng string, không ref vì là service khác
-  trangThai: { type: String, enum: ["Da xuat","Cho xuat"], default: "Da xuat" }
+  // Trạng thái: 
+  // - Cho xuat: chờ BGĐ duyệt
+  // - Da xuat: BGĐ đã duyệt, đang gửi đến xưởng
+  // - Da nhan: Xưởng trưởng đã xác nhận đã nhận NVL
+  trangThai: { type: String, enum: ["Da xuat","Cho xuat","Da nhan"], default: "Cho xuat" }
 }, { timestamps: true });
 
 module.exports = mongoose.model("MaterialIssue", MaterialIssueSchema);

@@ -81,3 +81,30 @@ exports.deleteProduct = async (req, res) => {
     res.status(500).json({ message: "Lỗi khi xóa sản phẩm", error: err.message });
   }
 };
+
+/** 🔵 Internal endpoint: Cập nhật số lượng tồn kho (cho warehouse-service) */
+exports.updateProductQuantityInternal = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { soLuong } = req.body;
+    
+    if (soLuong === undefined || soLuong === null) {
+      return res.status(400).json({ message: "Thiếu thông tin số lượng" });
+    }
+    
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+    }
+    
+    // Cập nhật số lượng
+    product.soLuong = Math.max(0, soLuong);
+    await product.save();
+    
+    console.log(`✅ [sales-service] Updated product ${id} quantity to ${product.soLuong}`);
+    res.json(product);
+  } catch (err) {
+    console.error(`❌ [sales-service] Error updating product quantity:`, err.message);
+    res.status(400).json({ message: "Lỗi khi cập nhật số lượng sản phẩm", error: err.message });
+  }
+};

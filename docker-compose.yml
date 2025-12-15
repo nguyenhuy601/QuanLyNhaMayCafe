@@ -180,6 +180,7 @@ services:
       PORT: 3008
       MONGO_URI: mongodb://mongodb:27017/salesDB
       JWT_SECRET: ${JWT_SECRET:-secret_key}
+      SERVICE_SECRET: ${SERVICE_SECRET:-warehouse-service-secret-key}
     ports:
       - "3008:3008"
 
@@ -194,6 +195,9 @@ services:
       PORT: 3009
       MONGO_URI: mongodb://mongodb:27017/warehouseDB
       JWT_SECRET: ${JWT_SECRET:-secret_key}
+      GATEWAY_URL: http://api-gateway:4000
+      SALES_SERVICE_URL: http://sales-service:3008
+      SERVICE_SECRET: ${SERVICE_SECRET:-warehouse-service-secret-key}
     ports:
       - "3009:3009"
 

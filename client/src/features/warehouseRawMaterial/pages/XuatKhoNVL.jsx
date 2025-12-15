@@ -60,7 +60,7 @@ const XuatKhoNVL = () => {
         ngayXuat: formData.ngayXuat || new Date(),
         chiTiet: materialDetails,
         ghiChu: formData.ghiChu,
-        trangThai: "Da xuat",
+        trangThai: "Cho xuat", // Mặc định là "Chờ xuất", cần duyệt trước khi trừ kho
       };
 
       await createMaterialIssue(issueData);

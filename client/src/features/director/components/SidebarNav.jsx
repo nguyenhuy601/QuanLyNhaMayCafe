@@ -27,7 +27,7 @@ export default function SidebarNav({ planCount = 0, orderCount = 0 }) {
     { to: "/director", icon: "home", label: "Trang chủ", end: true },
     { to: "/director/approve-plan", icon: "plan", label: "Phê duyệt kế hoạch", count: planCount },
     { to: "/director/approve-orders", icon: "order", label: "Phê duyệt đơn hàng", count: orderCount },
-    { to: "/director/approve-material-requests", icon: "order", label: "Phê duyệt phiếu NVL" },
+    { to: "/director/approve-material-requests", icon: "order", label: "Phê duyệt nhập xuất NVL" },
     { to: "/director/reports", icon: "report", label: "Xem báo cáo tổng hợp" },
   ];
 
