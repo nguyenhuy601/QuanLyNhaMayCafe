@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   UserCheck,
@@ -7,21 +7,227 @@ import {
   Search,
   PlusCircle,
 } from "lucide-react";
+import { getAllUsers, getAllRoles } from "../../../api/adminAPI";
+import { fetchTeams, saveAttendanceSheet } from "../../../services/factoryService";
+
+const getCurrentUser = () => {
+  try {
+    const token =
+      sessionStorage.getItem("token") || localStorage.getItem("token");
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const storedEmail =
+      sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail");
+    return {
+      id: payload.id || payload.userId || payload._id,
+      email: payload.email || storedEmail,
+      role: payload.role,
+      hoTen: payload.hoTen || payload.name,
+    };
+  } catch (err) {
+    console.error("Lỗi khi parse token:", err);
+    return null;
+  }
+};
 
 export default function Attendance() {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [keyword, setKeyword] = useState("");
-  const [workers, setWorkers] = useState([
-    { id: "CN001", name: "Nguyễn Văn A", shift: "Ca sáng", status: "present" },
-    { id: "CN002", name: "Trần Thị B", shift: "Ca chiều", status: "absent" },
-    { id: "CN003", name: "Lê Văn C", shift: "Ca tối", status: "present" },
-  ]);
+  const [workers, setWorkers] = useState([]);
   const [newWorker, setNewWorker] = useState({
     id: "",
     name: "",
     shift: "Ca sáng",
+    isOvertime: false,
   });
   const [toast, setToast] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [roles, setRoles] = useState([]);
+  const [users, setUsers] = useState([]);
+  const currentUser = useMemo(() => getCurrentUser(), []);
+  const [availableWorkers, setAvailableWorkers] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [teams, setTeams] = useState([]);
+
+  const normalizeRoleVal = (r) => {
+    if (!r) return "";
+    if (typeof r === "string") return r.toLowerCase();
+    if (typeof r === "object") {
+      return (
+        r.tenRole?.toLowerCase() ||
+        r.maRole?.toLowerCase() ||
+        r.name?.toLowerCase() ||
+        r.code?.toLowerCase() ||
+        ""
+      );
+    }
+    return String(r).toLowerCase();
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [u, r, t] = await Promise.all([
+          getAllUsers(),
+          getAllRoles(),
+          fetchTeams(),
+        ]);
+        setUsers(Array.isArray(u) ? u : []);
+        setRoles(Array.isArray(r) ? r : []);
+        setTeams(Array.isArray(t) ? t : []);
+      } catch (err) {
+        console.error("Lỗi tải dữ liệu chấm công:", err);
+        setUsers([]);
+        setRoles([]);
+        setTeams([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const roleIdBySlug = useMemo(() => {
+    const map = {};
+    roles.forEach((r) => (map[(r.tenRole || r.maRole || "").toLowerCase()] = r._id));
+    return map;
+  }, [roles]);
+
+  // Xác định user tổ trưởng hiện tại (giống trang Phân công ca làm)
+  const leader = useMemo(() => {
+    if (!currentUser) return null;
+    const byId = users.find((u) => u._id === currentUser.id);
+    if (byId) return byId;
+    const byEmail = users.find(
+      (u) => u.email?.toLowerCase() === currentUser.email?.toLowerCase()
+    );
+    if (byEmail) return byEmail;
+    // Không fallback sang tổ trưởng khác
+    return null;
+  }, [currentUser, users]);
+
+  // Tổ mà tổ trưởng hiện tại phụ trách (từ danh sách tổ sản xuất)
+  const currentTeam = useMemo(() => {
+    if (!teams.length) return null;
+
+    const matchBy = (userInfo) => {
+      if (!userInfo) return null;
+      const uId = userInfo.id?.toString() || userInfo._id?.toString();
+      const uEmail = userInfo.email?.toLowerCase();
+      const uMaNV = userInfo.maNV;
+
+      if (!uId && !uEmail && !uMaNV) return null;
+
+      return (
+        teams.find(
+          (t) =>
+            Array.isArray(t.toTruong) &&
+            t.toTruong.some((tt) => {
+              const ttId = tt.id?.toString();
+              const ttEmail = tt.email?.toLowerCase();
+              const ttMaNV = tt.maNV;
+              return (
+                (ttId && uId && ttId === uId) ||
+                (ttEmail && uEmail && ttEmail === uEmail) ||
+                (ttMaNV && uMaNV && ttMaNV === uMaNV)
+              );
+            })
+        ) || null
+      );
+    };
+
+    // Ưu tiên theo thông tin trong token, sau đó tới leader từ admin-service
+    const byToken = currentUser ? matchBy(currentUser) : null;
+    if (byToken) return byToken;
+    const byLeader = leader ? matchBy(leader) : null;
+    if (byLeader) return byLeader;
+
+    console.warn("[Attendance] Không tìm được tổ cho tổ trưởng.", {
+      currentUser,
+      leader,
+    });
+    return null;
+  }, [currentUser, leader, teams]);
+
+  useEffect(() => {
+    if (users.length === 0) {
+      console.log("[Attendance] users rỗng, không thể build danh sách công nhân.");
+      return;
+    }
+
+    console.log("[Attendance] currentUser:", currentUser);
+    console.log("[Attendance] leader (suy ra từ users):", leader);
+    console.log("[Attendance] currentTeam:", currentTeam);
+
+    const leaderDepts = leader?.phongBan || [];
+    const workerRoleId = roleIdBySlug["worker"];
+
+    const isWorkerFn = (u) => {
+      const field = u.roles || u.role || [];
+      const roleIds = Array.isArray(field) ? field : [field];
+      const roleNorm = roleIds.map(normalizeRoleVal);
+
+      if (workerRoleId) {
+        return (
+          roleIds.some((id) => String(id) === String(workerRoleId)) ||
+          roleNorm.includes("worker")
+        );
+      }
+      return roleNorm.includes("worker");
+    };
+
+    console.log("[Attendance] workerRoleId:", workerRoleId);
+
+    // Nếu tổ đã có danh sách thành viên thì chỉ lấy các thành viên đó
+    const memberIdSet =
+      currentTeam &&
+      Array.isArray(currentTeam.thanhVien) &&
+      currentTeam.thanhVien.length > 0
+        ? new Set(
+            currentTeam.thanhVien
+              .map((tv) => tv.id)
+              .filter(Boolean)
+              .map((id) => id.toString())
+          )
+        : null;
+
+    // 1) Lọc tất cả user là công nhân (giống ShiftAssignment)
+    let list = users
+      .filter((u) => {
+        if (!Array.isArray(u.phongBan)) return false;
+        // Bỏ qua nhân sự đã Inactive
+        if (u.trangThai && u.trangThai !== "Active") return false;
+        return isWorkerFn(u) && u._id !== leader?._id;
+      })
+      .map((u) => ({
+        id: u._id,
+        code: u.maNV || u._id,
+        name: u.hoTen,
+        depts: u.phongBan || [],
+      }));
+
+    // 2) Nếu tổ đã có danh sách thành viên thì CHỈ lấy những người thuộc tổ đó
+    if (memberIdSet) {
+      list = list.filter((w) => memberIdSet.has(w.id.toString()));
+    } else {
+      // Tổ chưa có thanhVien: không cho chấm công ai (chờ xưởng trưởng gán thành viên)
+      list = [];
+    }
+
+    console.log("[Attendance] leaderDepts:", leaderDepts);
+    console.log("[Attendance] Tổng users:", users.length);
+    console.log("[Attendance] memberIdSet size:", memberIdSet?.size || 0);
+    console.log("[Attendance] Tổng công nhân sau filter:", list.length);
+    console.log("[Attendance] Mẫu 3 công nhân:", list.slice(0, 3));
+
+    // Danh sách công nhân gốc để chọn trong combobox
+    setAvailableWorkers(list);
+
+    // Không tự khởi tạo bảng chấm công nữa.
+    // Bảng sẽ chỉ có dòng khi tổ trưởng chọn công nhân và bấm "Thêm công nhân".
+    // Giữ nguyên workers hiện tại để không mất trạng thái đã chọn.
+  }, [currentUser, leader, currentTeam, roleIdBySlug, users]);
 
   const toggleStatus = (id, status) => {
     setWorkers((prev) =>
@@ -31,25 +237,87 @@ export default function Attendance() {
     );
   };
 
-  const filteredWorkers = workers.filter(
-    (w) =>
-      w.name.toLowerCase().includes(keyword.toLowerCase()) ||
-      w.id.toLowerCase().includes(keyword.toLowerCase())
+  const filteredWorkers = workers.filter((w) =>
+    w.name.toLowerCase().includes(keyword.toLowerCase()) ||
+    (w.code || "").toLowerCase().includes(keyword.toLowerCase())
   );
 
   const addWorker = (e) => {
     e.preventDefault();
     if (!newWorker.id || !newWorker.name) return;
-    setWorkers((prev) => [
-      ...prev,
-      { ...newWorker, status: "present" },
-    ]);
-    setNewWorker({ id: "", name: "", shift: "Ca sáng" });
+
+    // Nếu công nhân đã có trong bảng thì chỉ cập nhật ca làm
+    setWorkers((prev) => {
+      const exists = prev.find((w) => w.id === newWorker.id);
+      if (exists) {
+        return prev.map((w) =>
+          w.id === newWorker.id ? { ...w, shift: newWorker.shift } : w
+        );
+      }
+      // Nếu chưa có (trường hợp nào đó), thêm mới
+      return [
+        ...prev,
+        {
+          id: newWorker.id,
+          code: newWorker.code,
+          name: newWorker.name,
+          shift: newWorker.shift,
+          status: "present",
+          isOvertime: newWorker.isOvertime || false,
+        },
+      ];
+    });
+
+    setNewWorker({ id: "", name: "", shift: "Ca sáng", isOvertime: false });
   };
 
-  const saveAttendance = () => {
-    setToast("✅ Đã lưu bảng chấm công hôm nay");
-    setTimeout(() => setToast(""), 1500);
+  const saveAttendance = async () => {
+    try {
+      setSaving(true);
+      const entries = workers.map((w) => ({
+        workerId: w.id,
+        maCongNhan: w.code,
+        hoTen: w.name,
+        caLam:
+          w.shift === "Ca chiều"
+            ? "ca_chieu"
+            : w.shift === "Ca tối"
+            ? "ca_toi"
+            : "ca_sang",
+        trangThai:
+          w.status === "absent"
+            ? "vang"
+            : "co_mat",
+        isOvertime: w.isOvertime || false,
+      }));
+
+      const payload = {
+        ngay: date,
+        caLam:
+          newWorker.shift === "Ca chiều"
+            ? "ca_chieu"
+            : newWorker.shift === "Ca tối"
+            ? "ca_toi"
+            : "ca_sang",
+        toSanXuat: currentTeam
+          ? {
+              id: currentTeam._id || currentTeam.id,
+              tenTo: currentTeam.tenTo,
+            }
+          : undefined,
+        entries,
+      };
+
+      await saveAttendanceSheet(payload);
+      setToast("✅ Đã lưu bảng chấm công hôm nay");
+      setTimeout(() => setToast(""), 1500);
+    } catch (err) {
+      console.error("❌ Lỗi lưu bảng chấm công:", err);
+      setToast("❌ Không thể lưu bảng chấm công");
+      setTimeout(() => setToast(""), 2000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -96,31 +364,30 @@ export default function Attendance() {
         >
           <div>
             <label className="text-sm font-semibold text-amber-800">
-              Mã công nhân
-            </label>
-            <input
-              type="text"
-              value={newWorker.id}
-              onChange={(e) =>
-                setNewWorker({ ...newWorker, id: e.target.value })
-              }
-              placeholder="VD: CN010"
-              className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-2.5 text-sm text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-amber-800">
               Họ tên
             </label>
-            <input
-              type="text"
-              value={newWorker.name}
-              onChange={(e) =>
-                setNewWorker({ ...newWorker, name: e.target.value })
-              }
-              placeholder="Tên công nhân"
+            <select
+              value={newWorker.id}
+              onChange={(e) => {
+                const selected = availableWorkers.find(
+                  (w) => w.id === e.target.value
+                );
+                setNewWorker({
+                  ...newWorker,
+                  id: selected?.id || "",
+                  code: selected?.code || "",
+                  name: selected?.name || "",
+                });
+              }}
               className="mt-2 w-full rounded-2xl border border-amber-200 bg-white px-4 py-2.5 text-sm text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
+            >
+              <option value="">-- Chọn công nhân --</option>
+              {availableWorkers.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name} ({w.code})
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="text-sm font-semibold text-amber-800">
@@ -137,6 +404,21 @@ export default function Attendance() {
               <option>Ca chiều</option>
               <option>Ca tối</option>
             </select>
+          </div>
+          <div className="md:col-span-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={newWorker.isOvertime}
+                onChange={(e) =>
+                  setNewWorker({ ...newWorker, isOvertime: e.target.checked })
+                }
+                className="w-5 h-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+              />
+              <span className="text-sm font-semibold text-amber-800">
+                Tăng ca
+              </span>
+            </label>
           </div>
           <div className="md:col-span-3 flex justify-end">
             <button
@@ -159,13 +441,14 @@ export default function Attendance() {
                 <th className="px-4 py-3 text-left font-semibold">Họ tên</th>
                 <th className="px-4 py-3 text-left font-semibold">Ca làm</th>
                 <th className="px-4 py-3 text-left font-semibold">Trạng thái</th>
+                <th className="px-4 py-3 text-left font-semibold">Tăng ca</th>
                 <th className="px-4 py-3 text-left font-semibold">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-amber-50 bg-white">
               {filteredWorkers.map((worker) => (
                 <tr key={worker.id} className="hover:bg-amber-50/60">
-                  <td className="px-4 py-3 font-semibold">{worker.id}</td>
+                  <td className="px-4 py-3 font-semibold">{worker.code}</td>
                   <td className="px-4 py-3">{worker.name}</td>
                   <td className="px-4 py-3">{worker.shift}</td>
                   <td className="px-4 py-3">
@@ -178,6 +461,17 @@ export default function Attendance() {
                     >
                       {worker.status === "present" ? "Có mặt" : "Vắng"}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {worker.isOvertime ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
+                        Có
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                        Không
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
@@ -214,9 +508,10 @@ export default function Attendance() {
       <div className="flex justify-end">
         <button
           onClick={saveAttendance}
-          className="px-8 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold shadow hover:shadow-lg transition"
+          disabled={saving}
+          className="px-8 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold shadow hover:shadow-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Lưu bảng chấm công
+          {saving ? "Đang lưu..." : "Lưu bảng chấm công"}
         </button>
       </div>
 

@@ -90,15 +90,28 @@ const Login = () => {
       // Gọi API login từ authAPI.js
       const data = await authAPI.login(email, password);
 
-      // Lưu token và role (sẽ được patch vào sessionStorage)
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
-      window.userToken = data.token;
-      window.userRole = data.role;
+      // Lưu token và role theo phiên (per-tab) để có thể đăng nhập nhiều tài khoản ở nhiều tab
+      if (data.token) {
+        sessionStorage.setItem("token", data.token);
+        localStorage.setItem("token", data.token); // fallback cho các chỗ cũ nếu cần
+        window.userToken = data.token;
+      }
+
+      if (data.role) {
+        sessionStorage.setItem("role", data.role);
+        localStorage.setItem("role", data.role); // fallback
+        window.userRole = data.role;
+      }
+
+      // Lưu email để dùng sau (để tìm user trong Danh sách nhân sự)
+      if (email) {
+        sessionStorage.setItem("userEmail", email);
+        localStorage.setItem("userEmail", email); // fallback
+      }
 
       // Lưu vào Redux store
       dispatch(loginUser({ 
-        user: { id: data.user?.id, email: data.user?.email, role: data.role },
+        user: { id: data.user?.id, email: data.user?.email || email, role: data.role },
         token: data.token 
       }));
 

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { CalendarDays, Search, ClipboardList, Info } from "lucide-react";
-import { fetchPlans, fetchPlanById } from "../../../services/factoryService";
+import { CalendarDays, Search, ClipboardList, Info, CheckCircle2, XCircle, Play } from "lucide-react";
+import { fetchPlans, fetchPlanById, checkStartConditions, startPlan } from "../../../services/factoryService";
 
 export default function XemKeHoach() {
   const [filter, setFilter] = useState({ tuNgay: "", denNgay: "", maKeHoach: "", trangThai: "all" });
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [conditions, setConditions] = useState(null);
+  const [loadingConditions, setLoadingConditions] = useState(false);
+  const [startingPlan, setStartingPlan] = useState(false);
 
   useEffect(() => {
     loadPlans();
@@ -168,16 +171,62 @@ export default function XemKeHoach() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-gray-400 text-xs">-</span>
+                      {row.trangThai === "Đã duyệt" ? (
+                        <button
+                          onClick={async () => {
+                            if (row._id) {
+                              const fullPlan = await fetchPlanById(row._id);
+                              const planToShow = fullPlan ? normalizePlan(fullPlan) : row;
+                              setSelectedPlan(planToShow);
+                              // Load điều kiện
+                              setLoadingConditions(true);
+                              try {
+                                const conditionsData = await checkStartConditions(row._id);
+                                setConditions(conditionsData);
+                              } catch (err) {
+                                console.error("Lỗi kiểm tra điều kiện:", err);
+                                setConditions(null);
+                              } finally {
+                                setLoadingConditions(false);
+                              }
+                            }
+                          }}
+                          className="px-4 py-2 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-semibold shadow hover:shadow-lg transition flex items-center gap-2"
+                        >
+                          <Play size={14} />
+                          Bắt đầu kế hoạch
+                        </button>
+                      ) : (
+                        <span className="text-gray-400 text-xs">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={async () => {
                           if (row._id) {
                             const fullPlan = await fetchPlanById(row._id);
-                            setSelectedPlan(fullPlan ? normalizePlan(fullPlan) : row);
+                            const planToShow = fullPlan ? normalizePlan(fullPlan) : row;
+                            setSelectedPlan(planToShow);
+                            
+                            // Nếu trạng thái là "Đã duyệt", load điều kiện
+                            if (planToShow.trangThai === "Đã duyệt") {
+                              setLoadingConditions(true);
+                              setConditions(null);
+                              try {
+                                const conditionsData = await checkStartConditions(row._id);
+                                setConditions(conditionsData);
+                              } catch (err) {
+                                console.error("Lỗi kiểm tra điều kiện:", err);
+                                setConditions(null);
+                              } finally {
+                                setLoadingConditions(false);
+                              }
+                            } else {
+                              setConditions(null);
+                            }
                           } else {
                             setSelectedPlan(row);
+                            setConditions(null);
                           }
                         }}
                         className="px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-semibold shadow hover:shadow-lg transition"
@@ -194,29 +243,217 @@ export default function XemKeHoach() {
       </div>
 
       {selectedPlan && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg space-y-4 border border-amber-100">
-            <div className="flex items-center gap-2 text-amber-800">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-amber-100">
+            <div className="flex items-center gap-2 text-amber-800 mb-6">
               <Info size={22} />
               <h2 className="text-xl font-bold">Chi tiết kế hoạch</h2>
             </div>
-            <div className="space-y-2 text-sm text-amber-900">
+            
+            {/* Thông tin cơ bản */}
+            <div className="space-y-2 text-sm text-amber-900 mb-6 pb-6 border-b border-amber-100">
               <p><strong>Mã kế hoạch:</strong> {selectedPlan.maKeHoach || selectedPlan._id}</p>
               <p><strong>Mã lô hàng:</strong> {selectedPlan._id?.slice(-6) || "N/A"}</p>
               <p><strong>Sản phẩm:</strong> {selectedPlan.sanPham}</p>
               <p><strong>Tổ sản xuất:</strong> {selectedPlan.toSanXuat}</p>
               <p><strong>Số lượng cần sản xuất:</strong> {selectedPlan.soLuong?.toLocaleString("vi-VN") || 0}</p>
-              <p>
-                <strong>Ngày bắt đầu:</strong> {formatDate(selectedPlan.ngayBatDau)}
-              </p>
-              <p>
-                <strong>Ngày kết thúc:</strong> {formatDate(selectedPlan.ngayKetThuc)}
-              </p>
+              <p><strong>Ngày bắt đầu:</strong> {formatDate(selectedPlan.ngayBatDau)}</p>
+              <p><strong>Ngày kết thúc:</strong> {formatDate(selectedPlan.ngayKetThuc)}</p>
               <p><strong>Trạng thái:</strong> {selectedPlan.trangThai}</p>
             </div>
-            <div className="text-right">
+
+            {/* 4 điều kiện bắt đầu kế hoạch */}
+            {selectedPlan.trangThai === "Đã duyệt" && (
+              <div className="space-y-4 mb-6">
+                <h3 className="text-lg font-bold text-amber-900 mb-4">Điều kiện bắt đầu kế hoạch</h3>
+                
+                {loadingConditions ? (
+                  <div className="text-center py-4 text-amber-600">Đang kiểm tra điều kiện...</div>
+                ) : conditions && conditions.conditions ? (
+                  <>
+                    {/* (1) Kế hoạch đã được phê duyệt */}
+                    <div className={`p-4 rounded-2xl border-2 ${
+                      conditions.conditions.planApproved.status 
+                        ? "bg-green-50 border-green-200" 
+                        : "bg-red-50 border-red-200"
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        {conditions.conditions.planApproved.status ? (
+                          <CheckCircle2 size={24} className="text-green-600 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <XCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-amber-900 mb-1">
+                            (1) Kế hoạch đã được phê duyệt
+                          </h4>
+                          <p className="text-sm text-amber-700 mb-2">
+                            {conditions.conditions.planApproved.message}
+                          </p>
+                          {Object.keys(conditions.conditions.planApproved.details).length > 0 && (
+                            <div className="text-xs text-amber-600 mt-2">
+                              {Object.entries(conditions.conditions.planApproved.details).map(([key, value]) => (
+                                <p key={key}><strong>{key}:</strong> {String(value)}</p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* (2) Nguyên vật liệu đã sẵn sàng */}
+                    <div className={`p-4 rounded-2xl border-2 ${
+                      conditions.conditions.materialsReady.status 
+                        ? "bg-green-50 border-green-200" 
+                        : "bg-red-50 border-red-200"
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        {conditions.conditions.materialsReady.status ? (
+                          <CheckCircle2 size={24} className="text-green-600 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <XCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-amber-900 mb-1">
+                            (2) Nguyên vật liệu đã sẵn sàng
+                          </h4>
+                          <p className="text-sm text-amber-700 mb-2">
+                            {conditions.conditions.materialsReady.message}
+                          </p>
+                          {Object.keys(conditions.conditions.materialsReady.details).length > 0 && (
+                            <div className="text-xs text-amber-600 mt-2">
+                              {Object.entries(conditions.conditions.materialsReady.details).map(([key, value]) => (
+                                <p key={key}><strong>{key}:</strong> {String(value)}</p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* (3) Năng lực sản xuất sẵn sàng */}
+                    <div className={`p-4 rounded-2xl border-2 ${
+                      conditions.conditions.productionCapacityReady.status 
+                        ? "bg-green-50 border-green-200" 
+                        : "bg-red-50 border-red-200"
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        {conditions.conditions.productionCapacityReady.status ? (
+                          <CheckCircle2 size={24} className="text-green-600 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <XCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-amber-900 mb-1">
+                            (3) Năng lực sản xuất sẵn sàng
+                          </h4>
+                          <p className="text-sm text-amber-700 mb-2">
+                            {conditions.conditions.productionCapacityReady.message}
+                          </p>
+                          {Object.keys(conditions.conditions.productionCapacityReady.details).length > 0 && (
+                            <div className="text-xs text-amber-600 mt-2">
+                              {Object.entries(conditions.conditions.productionCapacityReady.details).map(([key, value]) => (
+                                <p key={key}><strong>{key}:</strong> {String(value)}</p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* (4) Xưởng trưởng xác nhận */}
+                    <div className={`p-4 rounded-2xl border-2 ${
+                      conditions.conditions.managerConfirmation.status 
+                        ? "bg-green-50 border-green-200" 
+                        : "bg-red-50 border-red-200"
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        {conditions.conditions.managerConfirmation.status ? (
+                          <CheckCircle2 size={24} className="text-green-600 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <XCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-amber-900 mb-1">
+                            (4) Xưởng trưởng xác nhận có thể triển khai
+                          </h4>
+                          <p className="text-sm text-amber-700 mb-2">
+                            {conditions.conditions.managerConfirmation.message}
+                          </p>
+                          {Object.keys(conditions.conditions.managerConfirmation.details).length > 0 && (
+                            <div className="text-xs text-amber-600 mt-2">
+                              {Object.entries(conditions.conditions.managerConfirmation.details).map(([key, value]) => (
+                                <p key={key}><strong>{key}:</strong> {String(value)}</p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Nút bắt đầu kế hoạch */}
+                    {conditions.allConditionsMet && (
+                      <div className="mt-6 flex justify-end gap-3">
+                        <button
+                          onClick={async () => {
+                            if (selectedPlan._id) {
+                              setStartingPlan(true);
+                              try {
+                                await startPlan(selectedPlan._id);
+                                alert("✅ Đã bắt đầu kế hoạch thành công!");
+                                setSelectedPlan(null);
+                                setConditions(null);
+                                loadPlans(); // Reload danh sách
+                              } catch (err) {
+                                alert(`❌ Lỗi: ${err.response?.data?.message || err.message}`);
+                              } finally {
+                                setStartingPlan(false);
+                              }
+                            }
+                          }}
+                          disabled={startingPlan}
+                          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold shadow hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          <Play size={18} />
+                          {startingPlan ? "Đang xử lý..." : "Bắt đầu kế hoạch"}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-amber-600 mb-3">Chưa thể tải thông tin điều kiện</p>
+                    <button
+                      onClick={async () => {
+                        if (selectedPlan._id) {
+                          setLoadingConditions(true);
+                          try {
+                            const conditionsData = await checkStartConditions(selectedPlan._id);
+                            setConditions(conditionsData);
+                          } catch (err) {
+                            console.error("Lỗi kiểm tra điều kiện:", err);
+                            alert(`Lỗi: ${err.response?.data?.message || err.message}`);
+                            setConditions(null);
+                          } finally {
+                            setLoadingConditions(false);
+                          }
+                        }
+                      }}
+                      className="px-4 py-2 rounded-2xl bg-amber-100 text-amber-700 font-semibold hover:bg-amber-200 transition"
+                    >
+                      Tải lại điều kiện
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="text-right mt-6 pt-6 border-t border-amber-100">
               <button
-                onClick={() => setSelectedPlan(null)}
+                onClick={() => {
+                  setSelectedPlan(null);
+                  setConditions(null);
+                }}
                 className="px-5 py-2 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 text-white font-semibold shadow hover:shadow-lg transition"
               >
                 Đóng

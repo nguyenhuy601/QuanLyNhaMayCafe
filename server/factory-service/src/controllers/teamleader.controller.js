@@ -1,5 +1,6 @@
 const AttendanceSheet = require("../models/AttendanceSheet");
 const ShiftSchedule = require("../models/ShiftSchedule");
+const ToSanXuat = require("../models/ToSanXuat");
 
 const normalizeDateOnly = (value) => {
   const date = value ? new Date(value) : new Date();
@@ -103,6 +104,7 @@ exports.addAttendanceEntry = async (req, res) => {
       caLam: req.body.caLam || sheet.caLam,
       trangThai: req.body.trangThai || "co_mat",
       ghiChu: req.body.ghiChu,
+      isOvertime: req.body.isOvertime || false,
     };
 
     if (!entry.maCongNhan) {
@@ -125,10 +127,11 @@ exports.updateAttendanceEntry = async (req, res) => {
     const entry = sheet.entries.id(req.params.entryId);
     if (!entry) return res.status(404).json({ message: "Không tìm thấy bản ghi công nhân" });
 
-    const { trangThai, ghiChu, hoTen } = req.body;
+    const { trangThai, ghiChu, hoTen, isOvertime } = req.body;
     if (trangThai) entry.trangThai = trangThai;
     if (ghiChu !== undefined) entry.ghiChu = ghiChu;
     if (hoTen) entry.hoTen = hoTen;
+    if (isOvertime !== undefined) entry.isOvertime = isOvertime;
     entry.updatedAt = new Date();
 
     await sheet.save();
@@ -245,16 +248,46 @@ exports.addShiftMember = async (req, res) => {
       return res.status(400).json({ message: "Thiếu mã công nhân" });
     }
 
-    schedule.members.push({
+    const member = {
       workerId: req.body.workerId,
       maCongNhan: req.body.maCongNhan,
       hoTen: req.body.hoTen,
       nhiemVu: req.body.nhiemVu,
       trangThai: req.body.trangThai || "scheduled",
       ghiChu: req.body.ghiChu,
-    });
+      isOvertime: req.body.isOvertime || false,
+    };
 
+    schedule.members.push(member);
     await schedule.save();
+
+    // Đồng bộ: nếu có thông tin tổ sản xuất, auto thêm công nhân vào ToSanXuat.thanhVien
+    if (schedule.toSanXuat && schedule.toSanXuat.id) {
+      try {
+        const to = await ToSanXuat.findById(schedule.toSanXuat.id);
+        if (to) {
+          const exists = to.thanhVien.some(
+            (tv) => tv.id && tv.id.toString() === String(member.workerId)
+          );
+          if (!exists) {
+            to.thanhVien.push({
+              id: member.workerId,
+              hoTen: member.hoTen,
+              email: req.body.email || "",
+              maNV: member.maCongNhan,
+              role: "worker",
+            });
+            await to.save();
+          }
+        }
+      } catch (syncErr) {
+        console.warn(
+          "⚠️ [teamleader] Không thể đồng bộ thanhVien cho tổ trong addShiftMember:",
+          syncErr.message
+        );
+      }
+    }
+
     res.status(201).json(schedule);
   } catch (err) {
     res.status(500).json({ message: "Không thể thêm phân công", error: err.message });
@@ -295,6 +328,21 @@ exports.removeShiftMember = async (req, res) => {
     res.status(200).json(schedule);
   } catch (err) {
     res.status(500).json({ message: "Không thể xóa công nhân khỏi ca", error: err.message });
+  }
+};
+
+// Xóa hẳn một lịch phân ca (theo id)
+exports.deleteShiftSchedule = async (req, res) => {
+  try {
+    const deleted = await ShiftSchedule.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Không tìm thấy phân ca" });
+    }
+    res.status(200).json({ message: "Đã xóa lịch phân ca", schedule: deleted });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Không thể xóa lịch phân ca", error: err.message });
   }
 };
 

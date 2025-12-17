@@ -15,11 +15,6 @@ export default function SidebarXuongTruong() {
   const menu = [
     { path: basePath, label: "Trang chủ", icon: <Home size={18} /> },
     {
-      path: `${basePath}/phan-cong`,
-      label: "Phân công công việc",
-      icon: <ClipboardList size={18} />,
-    },
-    {
       path: `${basePath}/thong-ke`,
       label: "Thống kê kết quả sản xuất",
       icon: <BarChart3 size={18} />,
@@ -28,6 +23,11 @@ export default function SidebarXuongTruong() {
       path: `${basePath}/xem-ke-hoach`,
       label: "Xem kế hoạch",
       icon: <FileText size={18} />,
+    },
+    {
+      path: `${basePath}/phan-cong-cong-viec`,
+      label: "Phân công công việc",
+      icon: <ClipboardList size={18} />,
     },
     {
       path: `${basePath}/thong-tin-to`,

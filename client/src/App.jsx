@@ -32,9 +32,9 @@ import OrderEdit from "./features/order/components/OrderEdit.jsx";
 // --- Xuongtruong
 import LayoutXuongTruong from "./features/factory/layouts/XuongTruong.jsx";
 import TrangChu from "./features/factory/pages/Dashboard.jsx";
-import PhanCong from "./features/factory/pages/PhanCong.jsx";
 import ThongKe from "./features/factory/pages/ThongKe.jsx";
 import XemKeHoach from "./features/factory/pages/XemKeHoach.jsx";
+import PhanCongCongViec from "./features/factory/pages/PhanCongCongViec.jsx";
 import WarehouseHeadConfirmIssues from "./features/factory/pages/WarehouseHeadConfirmIssues.jsx";
 
 
@@ -262,9 +262,9 @@ export default function App() {
           }
         >
           <Route index element={<TrangChu />} />
-          <Route path="phan-cong" element={<PhanCong />} />
           <Route path="thong-ke" element={<ThongKe />} />
           <Route path="xem-ke-hoach" element={<XemKeHoach />} />
+          <Route path="phan-cong-cong-viec" element={<PhanCongCongViec />} />
           <Route path="thong-tin-to" element={<FactoryTeams />} />
           <Route path="duyet-nvl" element={<WarehouseHeadConfirmIssues />} />
         </Route>

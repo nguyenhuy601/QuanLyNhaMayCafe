@@ -21,6 +21,7 @@ router.post( "/shifts", verifyToken, authorizeRoles(TEAMLEADER_ROLES), controlle
 router.post( "/shifts/:id/members", verifyToken, authorizeRoles(TEAMLEADER_ROLES), controller.addShiftMember);
 router.patch( "/shifts/:id/members/:memberId", verifyToken, authorizeRoles(TEAMLEADER_ROLES), controller.updateShiftMember);
 router.delete( "/shifts/:id/members/:memberId", verifyToken, authorizeRoles(TEAMLEADER_ROLES), controller.removeShiftMember);
+router.delete( "/shifts/:id", verifyToken, authorizeRoles(TEAMLEADER_ROLES), controller.deleteShiftSchedule);
 
 module.exports = router;
 

@@ -1,10 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/user.controller");
+const { verifyToken } = require("../middleware/auth.middleware");
+const { authorizeRoles } = require("../middleware/role.middleware");
 
-router.get("/", controller.getAllUsers);
-router.post("/", controller.createUser);
-router.put("/:id", controller.updateUser);
-router.delete("/:id", controller.deleteUser);
+// Cho phép admin, tổ trưởng và xưởng trưởng xem/quản lý user
+router.get("/", verifyToken, authorizeRoles(["admin", "totruong", "xuongtruong"]), controller.getAllUsers);
+router.post("/", verifyToken, authorizeRoles(["admin", "totruong", "xuongtruong"]), controller.createUser);
+router.post("/bulk", verifyToken, authorizeRoles(["admin"]), controller.createUsersBulk);
+router.put("/:id", verifyToken, authorizeRoles(["admin", "totruong", "xuongtruong"]), controller.updateUser);
+router.delete("/:id", verifyToken, authorizeRoles(["admin", "totruong", "xuongtruong"]), controller.deleteUser);
 
 module.exports = router;

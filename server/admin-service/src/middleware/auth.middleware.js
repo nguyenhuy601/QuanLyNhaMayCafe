@@ -1,10 +1,10 @@
 const jwt = require("jsonwebtoken");
-const Account = require("../models/Account");
 
 const JWT_SECRET = process.env.JWT_SECRET || "secret_key";
 
 /**
- * Middleware xác thực token JWT
+ * Middleware xác thực token JWT (không phụ thuộc model Account)
+ * Lấy thông tin role/user trực tiếp từ payload token.
  */
 exports.verifyToken = async (req, res, next) => {
   try {
@@ -17,15 +17,14 @@ exports.verifyToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    const account = await Account.findById(decoded.id).populate("role employee");
-    if (!account) return res.status(404).json({ message: "Không tìm thấy tài khoản" });
-
-    // Gắn user vào request để controller có thể dùng
+    // Gắn user vào request từ payload token
     req.user = {
-      id: account._id,
-      username: account.username,
-      role: account.role?.tenQuyen,
-      employee: account.employee?.hoTen,
+      id: decoded.id || decoded.userId || decoded._id,
+      username: decoded.username || decoded.email,
+      role: decoded.role || decoded.roles || decoded.quyen,
+      employee: decoded.hoTen || decoded.name,
+      email: decoded.email,
+      roles: decoded.roles || decoded.role || [], // thêm trường roles dạng mảng để tiện normalize
     };
 
     next();

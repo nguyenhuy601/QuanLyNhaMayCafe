@@ -36,6 +36,48 @@ exports.createUser = async (req, res) => {
   }
 };
 
+/** Tạo nhiều người dùng cùng lúc (bulk create) */
+exports.createUsersBulk = async (req, res) => {
+  try {
+    const { users: usersData } = req.body;
+    
+    if (!Array.isArray(usersData) || usersData.length === 0) {
+      return res.status(400).json({ error: "Cần cung cấp mảng users với ít nhất 1 phần tử" });
+    }
+
+    const createdUsers = [];
+    const errors = [];
+
+    for (let i = 0; i < usersData.length; i++) {
+      try {
+        const user = await User.create(usersData[i]);
+        createdUsers.push(user);
+        
+        // Gửi event cho từng user (không block)
+        publishEvent("USER_CREATED", user).catch((err) => {
+          console.error(`⚠️ Failed to publish USER_CREATED event for user ${i + 1}:`, err.message);
+        });
+      } catch (err) {
+        errors.push({
+          index: i,
+          data: usersData[i],
+          error: err.message,
+        });
+      }
+    }
+
+    res.status(201).json({
+      message: `Đã tạo ${createdUsers.length}/${usersData.length} người dùng`,
+      created: createdUsers.length,
+      total: usersData.length,
+      users: createdUsers,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 /** Cập nhật người dùng */
 exports.updateUser = async (req, res) => {
   try {
@@ -57,16 +99,24 @@ exports.updateUser = async (req, res) => {
 /** Xóa người dùng */
 exports.deleteUser = async (req, res) => {
   try {
-    const deleted = await User.findByIdAndDelete(req.params.id);
+    // Soft delete: chỉ chuyển trạng thái sang Inactive để giữ lịch sử
+    const deleted = await User.findByIdAndUpdate(
+      req.params.id,
+      { trangThai: "Inactive" },
+      { new: true }
+    );
     if (!deleted) {
       return res.status(404).json({ error: "Không tìm thấy người dùng" });
     }
-    res.status(200).json({ message: "Xóa người dùng thành công" });
+    res.status(200).json({ message: "Đã vô hiệu hóa người dùng", user: deleted });
     
     // Gửi event sang auth-service (không block response nếu lỗi)
-    publishEvent("USER_DELETED", { _id: req.params.id }).catch((err) => {
-      console.error("⚠️ Failed to publish USER_DELETED event:", err.message);
-    });
+    // Có thể xử lý như "user deactivated" ở service khác
+    publishEvent("USER_DELETED", { _id: req.params.id, trangThai: "Inactive" }).catch(
+      (err) => {
+        console.error("⚠️ Failed to publish USER_DELETED event:", err.message);
+      }
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

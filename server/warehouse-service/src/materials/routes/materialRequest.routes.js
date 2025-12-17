@@ -16,7 +16,7 @@ router.post(
 router.get(
   "/",
   verifyToken,
-  authorizeRoles(["admin", "plan", "director", "khonvl"]),
+  authorizeRoles(["admin", "plan", "director", "khonvl", "xuongtruong"]),
   controller.getMaterialRequests
 );
 
@@ -24,7 +24,7 @@ router.get(
 router.get(
   "/:id",
   verifyToken,
-  authorizeRoles(["admin", "plan", "director", "khonvl"]),
+  authorizeRoles(["admin", "plan", "director", "khonvl", "xuongtruong"]),
   controller.getMaterialRequestById
 );
 

@@ -1,8 +1,9 @@
 import React from "react";
 import { Bell, Settings, User } from "lucide-react";
+import useCurrentUser from "../../../hooks/useCurrentUser";
 
 export default function Header() {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const { currentUser, loading } = useCurrentUser();
 
   return (
     <div className="bg-gradient-to-r from-amber-700 to-amber-800 text-white p-4 flex items-center justify-between shadow-lg">
@@ -20,7 +21,11 @@ export default function Header() {
             <User size={22} />
           </div>
           <div>
-            <div className="font-semibold">{user.hoTen || "Tổ trưởng"}</div>
+            <div className="font-semibold">
+              {loading
+                ? "Đang tải..."
+                : currentUser?.hoTen || currentUser?.email || "Tổ trưởng"}
+            </div>
             <div className="text-xs text-amber-200">Tổ trưởng sản xuất</div>
           </div>
         </div>

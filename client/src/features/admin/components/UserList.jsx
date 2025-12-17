@@ -1,6 +1,6 @@
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { useMemo } from "react";
-import { Edit2, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Edit2, Trash2, Users } from "lucide-react";
 
 const UserList = () => {
   const {
@@ -12,6 +12,7 @@ const UserList = () => {
     handleDeleteUser,
   } = useOutletContext();
   const navigate = useNavigate();
+  const [selectedPosition, setSelectedPosition] = useState("all");
 
   const roleMap = useMemo(() => {
     const map = {};
@@ -36,6 +37,49 @@ const UserList = () => {
     });
     return map;
   }, [positions]);
+
+  // Group users theo chức vụ
+  const usersByPosition = useMemo(() => {
+    const grouped = {
+      all: [],
+      noPosition: [],
+    };
+    
+    // Khởi tạo group cho mỗi chức vụ
+    positions.forEach((pos) => {
+      if (pos?._id) {
+        grouped[pos._id] = [];
+      }
+    });
+
+    // Phân loại users
+    users.forEach((user) => {
+      if (!user.chucVu || (Array.isArray(user.chucVu) && user.chucVu.length === 0)) {
+        grouped.noPosition.push(user);
+      } else {
+        const positionIds = Array.isArray(user.chucVu) ? user.chucVu : [user.chucVu];
+        positionIds.forEach((positionId) => {
+          if (grouped[positionId]) {
+            grouped[positionId].push(user);
+          }
+        });
+      }
+      grouped.all.push(user);
+    });
+
+    return grouped;
+  }, [users, positions]);
+
+  // Lấy danh sách users theo chức vụ được chọn
+  const filteredUsers = useMemo(() => {
+    if (selectedPosition === "all") {
+      return usersByPosition.all;
+    } else if (selectedPosition === "noPosition") {
+      return usersByPosition.noPosition;
+    } else {
+      return usersByPosition[selectedPosition] || [];
+    }
+  }, [selectedPosition, usersByPosition]);
 
   const renderNames = (value, lookup) => {
     if (!value || (Array.isArray(value) && value.length === 0)) return "-";
@@ -78,6 +122,56 @@ const UserList = () => {
         </button>
       </div>
 
+      {/* Tabs theo chức vụ */}
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="border-b border-amber-200">
+          <div className="flex overflow-x-auto">
+            <button
+              onClick={() => setSelectedPosition("all")}
+              className={`px-6 py-3 font-semibold text-sm whitespace-nowrap border-b-2 transition ${
+                selectedPosition === "all"
+                  ? "border-amber-600 text-amber-700 bg-amber-50"
+                  : "border-transparent text-gray-600 hover:text-amber-600 hover:bg-amber-50/50"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Users size={16} />
+                <span>Tất cả ({usersByPosition.all.length})</span>
+              </div>
+            </button>
+            {positions.map((pos) => {
+              const count = usersByPosition[pos._id]?.length || 0;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={pos._id}
+                  onClick={() => setSelectedPosition(pos._id)}
+                  className={`px-6 py-3 font-semibold text-sm whitespace-nowrap border-b-2 transition ${
+                    selectedPosition === pos._id
+                      ? "border-amber-600 text-amber-700 bg-amber-50"
+                      : "border-transparent text-gray-600 hover:text-amber-600 hover:bg-amber-50/50"
+                  }`}
+                >
+                  {pos.tenChucVu || pos.maChucVu} ({count})
+                </button>
+              );
+            })}
+            {usersByPosition.noPosition.length > 0 && (
+              <button
+                onClick={() => setSelectedPosition("noPosition")}
+                className={`px-6 py-3 font-semibold text-sm whitespace-nowrap border-b-2 transition ${
+                  selectedPosition === "noPosition"
+                    ? "border-amber-600 text-amber-700 bg-amber-50"
+                    : "border-transparent text-gray-600 hover:text-amber-600 hover:bg-amber-50/50"
+                }`}
+              >
+                Chưa phân chức vụ ({usersByPosition.noPosition.length})
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -94,14 +188,18 @@ const UserList = () => {
               </tr>
             </thead>
             <tbody>
-              {users.length === 0 ? (
+              {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-500">
-                    Chưa có tài khoản nào
+                  <td colSpan="8" className="py-8 text-center text-gray-500">
+                    {selectedPosition === "all" 
+                      ? "Chưa có tài khoản nào"
+                      : selectedPosition === "noPosition"
+                      ? "Không có nhân sự chưa phân chức vụ"
+                      : "Không có nhân sự với chức vụ này"}
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
+                filteredUsers.map((user) => (
                   <tr key={user._id} className="border-b hover:bg-amber-50 transition">
                     <td className="px-4 py-3">{user.hoTen}</td>
                     <td className="px-4 py-3">{user.email}</td>

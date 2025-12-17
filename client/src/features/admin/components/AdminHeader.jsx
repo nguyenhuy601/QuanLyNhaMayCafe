@@ -1,7 +1,8 @@
 import { Bell, Settings, User } from "lucide-react";
+import useCurrentUser from "../../../hooks/useCurrentUser";
 
 const AdminHeader = () => {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const { currentUser, loading } = useCurrentUser();
 
   return (
     <header className="bg-gradient-to-r from-amber-700 to-amber-800 text-white p-4 flex items-center justify-between shadow">
@@ -22,7 +23,11 @@ const AdminHeader = () => {
             <User size={20} />
           </div>
           <div>
-            <p className="font-semibold">{user.hoTen || "System Admin"}</p>
+            <p className="font-semibold">
+              {loading
+                ? "Đang tải..."
+                : currentUser?.hoTen || currentUser?.email || "System Admin"}
+            </p>
             <p className="text-xs text-amber-200">Quản trị viên</p>
           </div>
         </div>

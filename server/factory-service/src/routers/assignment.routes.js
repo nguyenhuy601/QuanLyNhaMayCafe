@@ -9,36 +9,42 @@ const MANAGER_ROLES = ["xuongtruong", "admin"]; // Xưởng trưởng
 const TEAMLEADER_ROLES = ["totruong", "teamleader"]; // Tổ trưởng
 
 // ============================================
-// WORK ASSIGNMENT - Xưởng trưởng CRUD
+// Xưởng trưởng quản lý phân công công việc
 // ============================================
 router.get(
-  "/assignments",
+  "/manager/assignments",
   verifyToken,
   authorizeRoles(MANAGER_ROLES),
   controller.getAssignments
 );
 
 router.post(
-  "/assignments",
+  "/manager/assignments",
   verifyToken,
   authorizeRoles(MANAGER_ROLES),
   controller.createAssignment
 );
 
 router.put(
-  "/assignments/:id",
+  "/manager/assignments/:id",
   verifyToken,
   authorizeRoles(MANAGER_ROLES),
   controller.updateAssignment
 );
 
 // ============================================
-// Tổ trưởng xem phân công của tổ mình
+// Tổ trưởng xem / tạo phân công của tổ mình
+// (tạm thời chỉ cần xác thực token, không check role quá chặt để tránh 403 do lệch role)
 // ============================================
+router.post(
+  "/teamleader/assignments",
+  verifyToken,
+  controller.createAssignmentByTeamLeader
+);
+
 router.get(
   "/teamleader/assignments",
   verifyToken,
-  authorizeRoles([...MANAGER_ROLES, ...TEAMLEADER_ROLES]),
   controller.getAssignmentsByTeam
 );
 

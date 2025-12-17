@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 
+// Thành viên trong một ca làm
 const ShiftMemberSchema = new mongoose.Schema(
   {
     workerId: String,
@@ -12,10 +13,15 @@ const ShiftMemberSchema = new mongoose.Schema(
       default: "scheduled",
     },
     ghiChu: String,
+    isOvertime: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: true }
 );
 
+// Lịch phân ca cho 1 tổ trong 1 ngày + ca
 const ShiftScheduleSchema = new mongoose.Schema(
   {
     maLich: { type: String, unique: true },
@@ -40,12 +46,18 @@ const ShiftScheduleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-ShiftScheduleSchema.index({ ngay: 1, caLam: 1, "toSanXuat.id": 1 }, { unique: true });
+ShiftScheduleSchema.index(
+  { ngay: 1, caLam: 1, "toSanXuat.id": 1 },
+  { unique: true }
+);
 
 ShiftScheduleSchema.pre("save", function (next) {
   if (!this.maLich) {
     const stamp = new Date().toISOString().split("T")[0].replace(/-/g, "");
-    this.maLich = `PC-${stamp}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    this.maLich = `PC-${stamp}-${Math.random()
+      .toString(36)
+      .substring(2, 6)
+      .toUpperCase()}`;
   }
   next();
 });

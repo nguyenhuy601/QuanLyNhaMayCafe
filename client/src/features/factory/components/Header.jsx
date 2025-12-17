@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Search, Bell, Settings, User } from "lucide-react";
+import useCurrentUser from "../../../hooks/useCurrentUser";
 
 // Parse thông tin sản phẩm phụ trách từ tenSP / maSP
 const parseProductInfo = (nameRaw = "") => {
@@ -30,13 +31,20 @@ const parseProductInfo = (nameRaw = "") => {
 };
 
 export default function Header() {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const role = (localStorage.getItem("role") || "").toLowerCase();
+  const { currentUser, loading } = useCurrentUser();
+  const role = (
+    sessionStorage.getItem("role") ||
+    localStorage.getItem("role") ||
+    ""
+  ).toLowerCase();
 
   // Lấy sản phẩm phụ trách từ JWT (nếu có) và phân tích thông tin
   let managedProductsLabel = "";
   try {
-    const token = localStorage.getItem("token") || window.userToken;
+    const token =
+      sessionStorage.getItem("token") ||
+      localStorage.getItem("token") ||
+      window.userToken;
     if (token) {
       const payload = JSON.parse(atob(token.split(".")[1]));
       const sanPhamPhuTrach = payload.sanPhamPhuTrach || [];
@@ -81,7 +89,11 @@ export default function Header() {
           </div>
           <div className="leading-tight">
             <p className="font-semibold truncate max-w-[220px]">
-              {user.hoTen || user.email || "Your Name"}
+              {loading ? (
+                "Đang tải..."
+              ) : (
+                currentUser?.hoTen || currentUser?.email || "Your Name"
+              )}
             </p>
             <p className="text-xs text-amber-200 max-w-[260px] truncate" title={managedProductsLabel ? `${roleLabel} · Phụ trách: ${managedProductsLabel}` : roleLabel}>
               {roleLabel}

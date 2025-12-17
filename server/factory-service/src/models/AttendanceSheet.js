@@ -12,6 +12,10 @@ const AttendanceEntrySchema = new mongoose.Schema(
       default: "co_mat",
     },
     ghiChu: String,
+    isOvertime: {
+      type: Boolean,
+      default: false,
+    },
     updatedAt: { type: Date, default: Date.now },
   },
   { _id: true }

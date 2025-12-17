@@ -45,6 +45,16 @@ const WorkAssignmentSchema = new mongoose.Schema(
         thoiGianKetThuc: String,
       },
     ],
+    // Danh sách nhân sự tham gia phân công (dùng cho tổ trưởng phân ca)
+    nhanSu: [
+      {
+        id: String,
+        hoTen: String,
+        email: String,
+        maNV: String,
+        role: String,
+      },
+    ],
     nguoiLap: {
       id: String,
       hoTen: String,

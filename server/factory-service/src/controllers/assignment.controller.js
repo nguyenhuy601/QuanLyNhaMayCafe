@@ -1,5 +1,6 @@
 const WorkAssignment = require("../models/WorkAssignment");
 const ProductionLog = require("../models/ProductionLog");
+const ToSanXuat = require("../models/ToSanXuat");
 
 /** Lấy danh sách phân công - Xưởng trưởng chỉ xem kế hoạch có sản phẩm phụ trách */
 exports.getAssignments = async (req, res) => {
@@ -28,18 +29,38 @@ exports.getAssignments = async (req, res) => {
 /** Tổ trưởng chỉ xem phân công của tổ mình */
 exports.getAssignmentsByTeam = async (req, res) => {
   try {
-    // Lấy ID tổ từ user (giả sử req.user có thông tin tổ)
-    const teamId = req.user?.teamId || req.user?.to?.id;
-    
-    if (!teamId) {
-      return res.status(403).json({ 
-        message: "Không xác định được tổ của bạn. Vui lòng liên hệ quản trị viên." 
+    // Xác định tổ mà tổ trưởng phụ trách dựa trên thông tin tài khoản
+    const leaderId = req.user?.id?.toString() || req.user?._id?.toString();
+    const leaderEmail = req.user?.email?.toLowerCase();
+
+    if (!leaderId && !leaderEmail) {
+      return res.status(403).json({
+        message: "Không xác định được tổ của bạn. Vui lòng liên hệ quản trị viên.",
       });
     }
 
-    // Tìm các phân công có tổ này
+    // Tìm các tổ có toTruong trùng id hoặc email
+    const teamFilter = {
+      toTruong: {
+        $elemMatch: {
+          $or: [
+            leaderId ? { id: leaderId } : null,
+            leaderEmail ? { email: leaderEmail } : null,
+          ].filter(Boolean),
+        },
+      },
+    };
+
+    const teams = await ToSanXuat.find(teamFilter).select("_id maTo tenTo");
+    if (!teams.length) {
+      return res.status(200).json([]);
+    }
+
+    const teamIds = teams.map((t) => t._id.toString());
+
+    // Tìm các phân công có tổ thuộc danh sách trên
     const list = await WorkAssignment.find({
-      "congViec.to.id": teamId
+      "congViec.to.id": { $in: teamIds },
     }).sort({ createdAt: -1 });
     
     res.status(200).json(list);
@@ -65,6 +86,63 @@ exports.createAssignment = async (req, res) => {
 
     const assignment = await WorkAssignment.create(payload);
     res.status(201).json({ message: "Phân công thành công", assignment });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Tổ trưởng tạo phân công ca làm đơn giản cho tổ của mình
+ * Body tối thiểu: { date, shift, tasks, worker: { id, hoTen, email, maNV, role }, team: { id, tenTo } }
+ */
+exports.createAssignmentByTeamLeader = async (req, res) => {
+  try {
+    const { date, shift, tasks, worker, team } = req.body;
+
+    if (!worker || !worker.id) {
+      return res.status(400).json({ message: "Thiếu thông tin công nhân" });
+    }
+    if (!team || !team.id) {
+      return res.status(400).json({ message: "Thiếu thông tin tổ" });
+    }
+
+    const payload = {
+      ngay: date ? new Date(date) : new Date(),
+      caLam: {
+        id: "",
+        tenCa: shift || "Ca không xác định",
+      },
+      congViec: [
+        {
+          to: {
+            id: team.id,
+            tenTo: team.tenTo || team.name || "",
+          },
+          moTa: tasks || "",
+        },
+      ],
+      nguoiLap: {
+        id: req.user?.id || req.user?._id,
+        hoTen: req.user?.employee?.hoTen || req.user?.hoTen || req.user?.username,
+        position: "totruong",
+      },
+      trangThai: "Dang thuc hien",
+      nhanSu: [
+        {
+          id: worker.id,
+          hoTen: worker.hoTen || worker.name || "",
+          email: worker.email || "",
+          maNV: worker.maNV || "",
+          role: worker.role || "worker",
+        },
+      ],
+      ghiChu: tasks || "",
+    };
+
+    const assignment = await WorkAssignment.create(payload);
+    res
+      .status(201)
+      .json({ message: "Phân công ca làm thành công", assignment });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

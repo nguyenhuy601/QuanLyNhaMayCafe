@@ -59,8 +59,75 @@ exports.getTos = async (req, res) => {
       
       return toObj;
     });
+
+    // =============================
+    // Lọc theo xưởng trưởng (nếu có)
+    // =============================
+    let result = tosWithAutoDetected;
+
+    try {
+      if (
+        req.user &&
+        req.user.role &&
+        Array.isArray(req.user.sanPhamPhuTrach) &&
+        req.user.sanPhamPhuTrach.length > 0
+      ) {
+        const normalize = (str = "") =>
+          str
+            .toString()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "");
+
+        const roleNorm = normalize(req.user.role);
+        if (roleNorm.includes("xuongtruong")) {
+          const products = req.user.sanPhamPhuTrach.map((sp) => {
+            const name = normalize(sp.tenSP || sp.maSP || "");
+            const p = {};
+            if (name.includes("rangxay")) p.nhom = "rangxay";
+            if (name.includes("hoatan")) p.nhom = "hoatan";
+            if (name.includes("arabica")) p.nl = "arabica";
+            if (name.includes("robusta")) p.nl = "robusta";
+            if (name.includes("civet") || name.includes("chon")) p.nl = "chon";
+            p.raw = name;
+            return p;
+          });
+
+          const visible = result.filter((to) => {
+            const teamNhom = to.nhomSanPham;
+            const teamNL = to.nguyenLieu;
+
+            return products.some((p) => {
+              if (!p.nhom && !p.nl) return false;
+              if (!teamNhom) return false;
+
+              const matchNhom = p.nhom ? teamNhom === p.nhom : true;
+
+              let matchNL;
+              if (!teamNL || teamNL === "") {
+                // tổ không phân loại nguyên liệu -> chỉ cần khớp theo nhóm sản phẩm
+                matchNL = true;
+              } else {
+                matchNL = p.nl ? teamNL === p.nl : true;
+              }
+
+              return matchNhom && matchNL;
+            });
+          });
+
+          // Nếu lọc ra được ít nhất 1 tổ thì dùng kết quả đã lọc,
+          // nếu không thì giữ nguyên (tránh trả mảng rỗng do logic chưa khớp)
+          if (visible.length > 0) {
+            result = visible;
+          }
+        }
+      }
+    } catch (filterErr) {
+      console.warn("⚠️ [factory-service] Error when filtering teams by xuongtruong:", filterErr.message);
+    }
     
-    res.status(200).json(tosWithAutoDetected);
+    res.status(200).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -247,21 +314,33 @@ exports.addToTruong = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy tổ sản xuất" });
     }
 
-    // Kiểm tra đã có trong danh sách chưa
-    const existing = to.toTruong.find(t => t.id === id);
-    if (!existing) {
-      to.toTruong.push({
-        id,
-        hoTen: hoTen || "",
-        email: email || "",
-        role: role || "",
-        maNV: maNV || "",
-      });
-      await to.save();
-    }
+    // 1. Xóa tổ trưởng cũ khỏi tổ hiện tại (nếu có)
+    to.toTruong = [];
+
+    // 2. Xóa tổ trưởng này khỏi các tổ khác (đảm bảo mỗi tổ trưởng chỉ ở 1 tổ)
+    await ToSanXuat.updateMany(
+      { 
+        _id: { $ne: req.params.id }, // Loại trừ tổ hiện tại
+        "toTruong.id": id 
+      },
+      { 
+        $pull: { toTruong: { id: id } } 
+      }
+    );
+
+    // 3. Thêm tổ trưởng mới vào tổ hiện tại
+    to.toTruong.push({
+      id,
+      hoTen: hoTen || "",
+      email: email || "",
+      role: role || "",
+      maNV: maNV || "",
+    });
+    
+    await to.save();
 
     res.status(200).json({ 
-      message: "Đã thêm tổ trưởng vào tổ", 
+      message: "Đã gán tổ trưởng vào tổ", 
       to 
     });
   } catch (err) {
@@ -317,8 +396,20 @@ exports.addThanhVien = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy tổ sản xuất" });
     }
 
+    // Đảm bảo mỗi công nhân chỉ thuộc 1 tổ:
+    // 1) Gỡ thành viên này khỏi các tổ khác (ngoài tổ hiện tại)
+    await ToSanXuat.updateMany(
+      {
+        _id: { $ne: req.params.id },
+        "thanhVien.id": id,
+      },
+      {
+        $pull: { thanhVien: { id: id } },
+      }
+    );
+
     // Kiểm tra đã có trong danh sách chưa
-    const existing = to.thanhVien.find(t => t.id === id);
+    const existing = to.thanhVien.find((t) => t.id === id);
     if (!existing) {
       to.thanhVien.push({
         id,

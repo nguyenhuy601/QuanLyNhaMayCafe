@@ -40,7 +40,7 @@ export const fetchTeams = async () => {
       message: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
-      data: error.response?.data
+      data: error.response?.data,
     });
     throw error; // Throw để component có thể xử lý
   }
@@ -55,6 +55,57 @@ export const updateTeamStatus = async (teamId, trangThai) => {
     return response.data;
   } catch (error) {
     console.error('❌ Error updating team status:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gán tổ trưởng cho một tổ sản xuất
+ * Body phía server: { id, hoTen, email, role, maNV }
+ */
+export const assignTeamLeader = async (teamId, leaderPayload) => {
+  try {
+    const response = await axiosInstance.post(
+      `/factory/to/${teamId}/to-truong`,
+      leaderPayload
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error assigning team leader:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gán công nhân (thành viên) vào tổ sản xuất
+ * Body phía server: { id, hoTen, email, role, maNV }
+ */
+export const assignTeamMember = async (teamId, memberPayload) => {
+  try {
+    const response = await axiosInstance.post(
+      `/factory/to/${teamId}/thanh-vien`,
+      memberPayload
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error assigning team member:', error);
+    throw error;
+  }
+};
+
+/**
+ * Xóa công nhân (thành viên) khỏi tổ sản xuất
+ * Body phía server: { id }
+ */
+export const removeTeamMember = async (teamId, memberId) => {
+  try {
+    const response = await axiosInstance.delete(
+      `/factory/to/${teamId}/thanh-vien`,
+      { data: { id: memberId } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error removing team member:', error);
     throw error;
   }
 };
@@ -107,6 +158,145 @@ export const fetchXuongs = async () => {
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     console.error('❌ Error fetching xuongs:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tổ trưởng: lấy danh sách phân công ca làm của tổ mình
+ */
+export const fetchTeamLeaderAssignments = async () => {
+  try {
+    const response = await axiosInstance.get('/factory/teamleader/assignments');
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error('❌ Error fetching teamleader assignments:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tổ trưởng: tạo phân công ca làm
+ */
+export const createTeamLeaderAssignment = async (payload) => {
+  try {
+    const response = await axiosInstance.post(
+      '/factory/teamleader/assignments',
+      payload
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error creating teamleader assignment:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tổ trưởng: lấy danh sách lịch phân ca (ShiftSchedule)
+ * params: { date, caLam, teamId } (tùy chọn)
+ */
+export const fetchTeamLeaderShifts = async (params = {}) => {
+  try {
+    const response = await axiosInstance.get('/factory/teamleader/shifts', { params });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error('❌ Error fetching teamleader shifts:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tổ trưởng: lưu / tạo mới lịch phân ca (không nhất thiết truyền members)
+ */
+export const saveShiftSchedule = async (payload) => {
+  try {
+    const response = await axiosInstance.post(
+      '/factory/teamleader/shifts',
+      payload
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error saving shift schedule:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tổ trưởng: thêm một công nhân vào lịch phân ca
+ */
+export const addShiftMember = async (scheduleId, payload) => {
+  try {
+    const response = await axiosInstance.post(
+      `/factory/teamleader/shifts/${scheduleId}/members`,
+      payload
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error adding shift member:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tổ trưởng: lưu bảng chấm công
+ * Body BE mong đợi: { ngay, caLam, toSanXuat, entries, trangThaiBang, ghiChuChung }
+ */
+export const saveAttendanceSheet = async (payload) => {
+  try {
+    const response = await axiosInstance.post(
+      '/factory/teamleader/attendance',
+      payload
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error saving attendance sheet:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tổ trưởng: lấy danh sách bảng chấm công (AttendanceSheet)
+ * params: { date, from, to, caLam, teamId } (tùy chọn)
+ */
+export const fetchAttendanceSheets = async (params = {}) => {
+  try {
+    const response = await axiosInstance.get(
+      '/factory/teamleader/attendance',
+      { params }
+    );
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error('❌ Error fetching attendance sheets:', error);
+    throw error;
+  }
+};
+
+/**
+ * Kiểm tra điều kiện bắt đầu kế hoạch
+ */
+export const checkStartConditions = async (planId) => {
+  try {
+    const response = await axiosInstance.get(
+      `/factory/manager/plans/${planId}/check-start-conditions`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error checking start conditions:', error);
+    throw error;
+  }
+};
+
+/**
+ * Bắt đầu kế hoạch (chuyển trạng thái sang Đang thực hiện)
+ */
+export const startPlan = async (planId) => {
+  try {
+    const response = await axiosInstance.put(
+      `/factory/manager/plans/${planId}/start`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error starting plan:', error);
     throw error;
   }
 };

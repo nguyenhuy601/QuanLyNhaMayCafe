@@ -5,7 +5,7 @@ const receiptCtrl = require("../controllers/materialReceipt.controller");
 const { verifyToken } = require("../../middlewares/auth.middleware");
 const { authorizeRoles } = require("../../middlewares/role.middleware");
 
-router.get("/", verifyToken, authorizeRoles(["khonvl", "khotp", "admin"]), receiptCtrl.getAllReceipts);
+router.get("/", verifyToken, authorizeRoles(["khonvl", "khotp", "admin", "xuongtruong"]), receiptCtrl.getAllReceipts);
 router.get("/pending", verifyToken, authorizeRoles(["khonvl", "khotp", "admin", "director"]), receiptCtrl.getPendingReceipts);
 router.post("/", verifyToken, authorizeRoles(["khonvl", "khotp", "admin"]), (req, res, next) => {
   console.log("🔵 [warehouse-service] POST /materials/receipts - Creating new receipt");

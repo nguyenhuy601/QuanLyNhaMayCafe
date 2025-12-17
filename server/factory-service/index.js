@@ -25,7 +25,12 @@ app.use(express.json());
 app.use("/manager", jobRoutes);
 app.use("/manager", assignmentRoutes);
 app.use("/manager", logRoutes);
-// app.use("/manager", planRoutes); // Đã tắt - chỉ director mới duyệt kế hoạch
+app.use("/manager", planRoutes); // Routes cho xưởng trưởng quản lý kế hoạch
+
+// Mount thêm assignmentRoutes tại root để phục vụ các route cho tổ trưởng:
+// - /teamleader/assignments
+// - /teamleader/submit-log
+app.use("/", assignmentRoutes);
 
 // ============================================
 // ROUTES QUẢN LÝ TỔ SẢN XUẤT

@@ -35,6 +35,22 @@ router.put(
   controller.rejectPlan
 );
 
+// Kiểm tra điều kiện bắt đầu kế hoạch
+router.get(
+  "/plans/:id/check-start-conditions",
+  verifyToken,
+  authorizeRoles(MANAGER_ROLES),
+  controller.checkStartConditions
+);
+
+// Bắt đầu kế hoạch (chuyển sang Đang thực hiện)
+router.put(
+  "/plans/:id/start",
+  verifyToken,
+  authorizeRoles(MANAGER_ROLES),
+  controller.startPlan
+);
+
 module.exports = router;
 
 
