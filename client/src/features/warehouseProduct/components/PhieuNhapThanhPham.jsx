@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createFinishedReceipt } from '../../../services/warehouseService.js';
 
 // Định nghĩa các màu sắc chính dựa trên hình ảnh
@@ -109,11 +109,18 @@ const SuccessModal = ({ isOpen, onClose }) => {
 //                 MAIN COMPONENT
 // =================================================================
 const PhieuNhapThanhPham = ({ selectedQC, onClose }) => {
+  // Tính toán ngày sản xuất (ngày hiện tại) và hạn sử dụng (2 năm sau)
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const expiryDate = new Date(today);
+  expiryDate.setFullYear(expiryDate.getFullYear() + 2);
+  const expiryDateStr = expiryDate.toISOString().split('T')[0];
+
   const [formData, setFormData] = useState({
     khoLuuTru: '',
     soLuongNhap: '',
-    ngaySanXuat: '',
-    hanSuDung: '',
+    ngaySanXuat: todayStr, // Tự động set ngày hiện tại
+    hanSuDung: expiryDateStr, // Tự động set 2 năm sau
     ghiChu: '',
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -124,12 +131,13 @@ const PhieuNhapThanhPham = ({ selectedQC, onClose }) => {
   const qcData = selectedQC ? {
     _id: selectedQC._id || '',
     maPhieuQC: selectedQC.qcRequest?.maPhieuQC || selectedQC.maPhieuQC || '',
-    maSanPham: selectedQC.qcRequest?.sanPham?.maSP || selectedQC.maSanPham || '',
-    tenSanPham: selectedQC.qcRequest?.sanPham?.tenSP || selectedQC.tenSanPham || '',
+    maSanPham: selectedQC.qcRequest?.sanPham?.maSP || selectedQC.qcRequest?.sanPham?.maSanPham || selectedQC.maSanPham || '',
+    tenSanPham: selectedQC.qcRequest?.sanPham?.tenSP || selectedQC.qcRequest?.sanPham?.tenSanPham || selectedQC.qcRequest?.sanPham?.ProductName || selectedQC.qcRequest?.sanPhamName || selectedQC.tenSanPham || '',
     soLuongDat: selectedQC.soLuongDat || 0,
     loSanXuat: selectedQC.loSanXuat || selectedQC.qcRequest?.loSanXuat || '',
     ngayKiemTra: selectedQC.ngayKiemTra || '',
   } : {};
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -144,24 +152,118 @@ const PhieuNhapThanhPham = ({ selectedQC, onClose }) => {
         setError("Vui lòng chọn Kho lưu trữ.");
         return;
       }
-      
-      if (!formData.soLuongNhap || parseInt(formData.soLuongNhap) <= 0) {
-        setError("Vui lòng nhập Số lượng nhập > 0.");
-        return;
-      }
-
-      if (parseInt(formData.soLuongNhap) > qcData.soLuongDat) {
-        setError("Số lượng nhập không được vượt quá số lượng đạt.");
-        return;
-      }
 
       setLoading(true);
 
+      // Lấy phieuQC - có thể là ID của QCResult hoặc QCRequest
+      const phieuQCId = selectedQC._id || selectedQC.qcRequest?._id || qcData._id || '';
+      
+      // Lấy sanPham ID - thử nhiều cách
+      // sanPham có thể là ObjectId (string) hoặc object với _id
+      let sanPhamId = '';
+      
+      // Cách 1: Lấy từ qcRequest.sanPham (có thể là ObjectId string hoặc object)
+      if (selectedQC.qcRequest?.sanPham) {
+        // Nếu sanPham là object có _id
+        if (typeof selectedQC.qcRequest.sanPham === 'object' && selectedQC.qcRequest.sanPham._id) {
+          sanPhamId = selectedQC.qcRequest.sanPham._id.toString();
+        } 
+        // Nếu sanPham là string/ObjectId trực tiếp
+        else if (typeof selectedQC.qcRequest.sanPham === 'string') {
+          sanPhamId = selectedQC.qcRequest.sanPham;
+        }
+        // Nếu sanPham là object nhưng không có _id, thử lấy trực tiếp
+        else {
+          sanPhamId = selectedQC.qcRequest.sanPham.toString();
+        }
+      }
+      
+      // Cách 2: Nếu không có sanPham, lấy từ QCRequest bằng cách query lại
+      if (!sanPhamId && selectedQC.qcRequest?._id) {
+        try {
+          const { getQcRequestById } = await import("../../../services/qcService");
+          const qcRequestDetail = await getQcRequestById(selectedQC.qcRequest._id);
+          
+          if (qcRequestDetail?.sanPham) {
+            sanPhamId = typeof qcRequestDetail.sanPham === 'object' 
+              ? (qcRequestDetail.sanPham._id || qcRequestDetail.sanPham).toString()
+              : qcRequestDetail.sanPham.toString();
+          }
+          
+          // Nếu vẫn không có, thử lấy từ kế hoạch
+          if (!sanPhamId && qcRequestDetail?.keHoach) {
+            try {
+              const planId = typeof qcRequestDetail.keHoach === 'object' 
+                ? qcRequestDetail.keHoach._id || qcRequestDetail.keHoach
+                : qcRequestDetail.keHoach;
+              
+              // Import và gọi API lấy kế hoạch
+              const { fetchPlanById } = await import("../../../services/planService");
+              const plan = await fetchPlanById(planId);
+              
+              if (plan?.sanPham) {
+                // Kế hoạch có sanPham.productId
+                sanPhamId = plan.sanPham.productId || 
+                           (typeof plan.sanPham === 'object' 
+                             ? (plan.sanPham._id || plan.sanPham).toString()
+                             : plan.sanPham.toString());
+              }
+              
+            } catch (planErr) {
+              // Silent fail
+            }
+          }
+        } catch (err) {
+          // Silent fail
+        }
+      }
+      
+      // Cách 3: Thử lấy từ kế hoạch trực tiếp từ selectedQC.qcRequest.keHoach
+      if (!sanPhamId && selectedQC.qcRequest?.keHoach) {
+        try {
+          const planId = typeof selectedQC.qcRequest.keHoach === 'object' 
+            ? selectedQC.qcRequest.keHoach._id || selectedQC.qcRequest.keHoach
+            : selectedQC.qcRequest.keHoach;
+          
+          const { fetchPlanById } = await import("../../../services/planService");
+          const plan = await fetchPlanById(planId);
+          
+          if (plan?.sanPham) {
+            sanPhamId = plan.sanPham.productId || 
+                       (typeof plan.sanPham === 'object' 
+                         ? (plan.sanPham._id || plan.sanPham).toString()
+                         : plan.sanPham.toString());
+          }
+          
+        } catch (planErr) {
+          // Silent fail
+        }
+      }
+      
+      // Cách 4: Fallback - thử các nguồn khác
+      if (!sanPhamId) {
+        sanPhamId = selectedQC.sanPham?._id?.toString() || 
+                   selectedQC.sanPham?.toString() || 
+                   selectedQC.sanPham || 
+                   '';
+      }
+      
+      // Lấy soLuong từ số lượng đạt
+      const soLuong = parseInt(qcData.soLuongDat || 0);
+
+      // Chỉ validate phieuQC và soLuong, sanPham sẽ được backend tự động lấy từ kế hoạch
+      if (!phieuQCId || !soLuong || soLuong <= 0) {
+        setError(`Thiếu thông tin bắt buộc: phieuQC=${phieuQCId ? 'OK' : 'MISSING'}, soLuong=${soLuong}`);
+        setLoading(false);
+        return;
+      }
+
       const payload = {
-        phieuQC: qcData._id,
-        sanPham: selectedQC.qcRequest?.sanPham?._id || selectedQC.sanPham?._id || '',
-        soLuong: parseInt(formData.soLuongNhap),
-        loSanXuat: formData.loSanXuat || qcData.loSanXuat,
+        phieuQC: phieuQCId,
+        sanPham: sanPhamId, // ID sản phẩm (có thể rỗng, backend sẽ tự động lấy)
+        sanPhamName: qcData.tenSanPham || selectedQC.qcRequest?.sanPhamName || '', // Tên sản phẩm để backend tìm nếu không có ID
+        soLuong: soLuong,
+        loSanXuat: formData.loSanXuat || qcData.loSanXuat || '',
         ngaySanXuat: formData.ngaySanXuat || new Date().toISOString().split('T')[0],
         hanSuDung: formData.hanSuDung,
         khoLuuTru: formData.khoLuuTru,
@@ -171,7 +273,6 @@ const PhieuNhapThanhPham = ({ selectedQC, onClose }) => {
       await createFinishedReceipt(payload);
       setIsModalOpen(true);
     } catch (err) {
-      console.error("Lỗi tạo phiếu nhập:", err);
       setError(err.response?.data?.error || err.response?.data?.message || "Lỗi tạo phiếu nhập thành phẩm");
     } finally {
       setLoading(false);
@@ -179,7 +280,14 @@ const PhieuNhapThanhPham = ({ selectedQC, onClose }) => {
   };
   
   const handleCancel = () => {
-    setFormData({ khoLuuTru: '', soLuongNhap: '', ngaySanXuat: '', hanSuDung: '', ghiChu: '' });
+    // Reset form nhưng giữ ngày sản xuất và hạn sử dụng
+    setFormData({ 
+      khoLuuTru: '', 
+      soLuongNhap: '', 
+      ngaySanXuat: todayStr, 
+      hanSuDung: expiryDateStr, 
+      ghiChu: '' 
+    });
     setError(null);
     onClose();
   };
@@ -203,7 +311,6 @@ const PhieuNhapThanhPham = ({ selectedQC, onClose }) => {
         {/* Form Inputs */}
         <div className="space-y-4">
           <InputField label="Mã phiếu QC" value={qcData.maPhieuQC || ''} readOnly={true} name="maPhieuQC"/>
-          <InputField label="Mã sản phẩm" value={qcData.maSanPham || ''} readOnly={true} name="maSanPham"/>
           <InputField label="Tên sản phẩm" value={qcData.tenSanPham || ''} readOnly={true} name="tenSanPham"/>
           <InputField label="Lô sản xuất" value={formData.loSanXuat || qcData.loSanXuat || ''} onChange={handleChange} name="loSanXuat"/>
           <InputField label="Ngày sản xuất" value={formData.ngaySanXuat} onChange={handleChange} type="date" name="ngaySanXuat"/>
@@ -220,14 +327,10 @@ const PhieuNhapThanhPham = ({ selectedQC, onClose }) => {
           <InputField 
             label="Số lượng nhập" 
             name="soLuongNhap"
-            value={formData.soLuongNhap}
-            onChange={handleChange}
-            type="number" 
-            readOnly={false} 
-            placeholder={`Tối đa: ${qcData.soLuongDat || 0}`}
+            value={qcData.soLuongDat || 0}
+            readOnly={true}
+            type="number"
           />
-          
-          <InputField label="Tổng số lượng đạt" value={qcData.soLuongDat || 0} readOnly={true} name="soLuongDat"/>
           
           <InputField 
             label="Ghi chú" 

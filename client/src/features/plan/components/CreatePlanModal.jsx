@@ -10,6 +10,7 @@ const CreatePlanModal = ({ onClose, orders }) => {
     tenSanPham: "",
     soLuongCanSanXuat: "",
     donVi: "kg", // Đơn vị của sản phẩm (kg hoặc túi)
+    loaiTui: null, // Loại túi (500g, 1kg, hop)
     ngayBatDauDuKien: "",
     ngayKetThucDuKien: "",
     xuongPhuTrach: "",
@@ -57,7 +58,6 @@ const CreatePlanModal = ({ onClose, orders }) => {
         
         setXuongs(uniqueXuongs);
       } catch (error) {
-        console.error('Lỗi khi tải dữ liệu:', error);
         // Vẫn load materials nếu xuongs lỗi
         const materialsList = await fetchMaterials();
         setMaterials(materialsList || []);
@@ -73,6 +73,7 @@ const CreatePlanModal = ({ onClose, orders }) => {
     if (orders && orders.length > 0) {
       const firstOrder = orders[0];
       const donVi = firstOrder.chiTiet?.[0]?.donVi || "kg";
+      const loaiTui = firstOrder.chiTiet?.[0]?.loaiTui;
       const totalThanhPham = orders.reduce(
         (sum, o) => sum + (o.chiTiet?.[0]?.soLuong || 0),
         0
@@ -89,6 +90,7 @@ const CreatePlanModal = ({ onClose, orders }) => {
             : `Nhiều đơn (${orders.length})`,
         soLuongCanSanXuat: totalThanhPham,
         donVi: donVi,
+        loaiTui: loaiTui, // Lưu loại túi để hiển thị
         ngayBatDauDuKien: "",
         ngayKetThucDuKien: "",
         xuongPhuTrach: "",
@@ -135,7 +137,7 @@ const CreatePlanModal = ({ onClose, orders }) => {
       const decoded = JSON.parse(atob(token.split(".")[1]));
       currentUserId = decoded.id || decoded._id;
     } catch (err) {
-      console.warn("Không decode được token.");
+      // Silent fail
     }
 
     // Build NVL list từ radio và tính số lượng riêng từng loại
@@ -342,20 +344,40 @@ const CreatePlanModal = ({ onClose, orders }) => {
             ["Mã đơn hàng", "maDonHang"],
             ["Tên sản phẩm", "tenSanPham"],
             ["Số lượng cần sản xuất", "soLuongCanSanXuat"],
-            ["Đơn vị", "donVi"],
-          ].map(([label, key]) => (
-            <div key={key}>
-              <label className="text-white text-sm font-medium mb-1 block">{label}</label>
-              <input
-                type="text"
-                value={key === "soLuongCanSanXuat" 
-                  ? `${formData[key]} ${formData.donVi || "kg"}`
-                  : formData[key]}
-                readOnly
-                className="w-full px-4 py-2.5 rounded-lg bg-amber-600 text-white font-medium border border-amber-500"
-              />
-            </div>
-          ))}
+          ].map(([label, key]) => {
+            // Xác định đơn vị hiển thị cho số lượng
+            let displayValue = formData[key];
+            if (key === "soLuongCanSanXuat") {
+              const donVi = formData.donVi;
+              const loaiTui = formData.loaiTui;
+              
+              if (loaiTui === "hop") {
+                displayValue = `${formData[key]} Hộp`;
+              } else if (donVi === "túi") {
+                if (loaiTui === "500g") {
+                  displayValue = `${formData[key]} túi 500g`;
+                } else if (loaiTui === "1kg") {
+                  displayValue = `${formData[key]} túi 1kg`;
+                } else {
+                  displayValue = `${formData[key]} túi`;
+                }
+              } else {
+                displayValue = `${formData[key]} ${donVi || "kg"}`;
+              }
+            }
+            
+            return (
+              <div key={key}>
+                <label className="text-white text-sm font-medium mb-1 block">{label}</label>
+                <input
+                  type="text"
+                  value={displayValue}
+                  readOnly
+                  className="w-full px-4 py-2.5 rounded-lg bg-amber-600 text-white font-medium border border-amber-500"
+                />
+              </div>
+            );
+          })}
           
           {/* Bảng thống kê NVL - Cải thiện UI */}
           <div className="mt-6 p-4 bg-gradient-to-br from-amber-900 to-amber-800 rounded-xl border-2 border-amber-600 shadow-lg">

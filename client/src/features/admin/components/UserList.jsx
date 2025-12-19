@@ -1,6 +1,6 @@
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { Edit2, Trash2, Users } from "lucide-react";
+import { Edit2, Trash2, Users, ChevronDown, Filter } from "lucide-react";
 
 const UserList = () => {
   const {
@@ -13,6 +13,7 @@ const UserList = () => {
   } = useOutletContext();
   const navigate = useNavigate();
   const [selectedPosition, setSelectedPosition] = useState("all");
+  const [showPositionDropdown, setShowPositionDropdown] = useState(false);
 
   const roleMap = useMemo(() => {
     const map = {};
@@ -109,64 +110,141 @@ const UserList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-[#5a2e0f]">Danh sách nhân sự</h2>
-          <p className="text-gray-600">Theo dõi và quản lý quyền truy cập hệ thống</p>
-        </div>
-        <button
-          onClick={() => navigate("/admin/users/create")}
-          className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-500 transition"
-        >
-          + Thêm nhân sự
-        </button>
+      <div>
+        <h2 className="text-2xl font-bold text-[#5a2e0f]">Danh sách nhân sự</h2>
+        <p className="text-gray-600">Theo dõi và quản lý quyền truy cập hệ thống</p>
       </div>
 
-      {/* Tabs theo chức vụ */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="border-b border-amber-200">
-          <div className="flex overflow-x-auto">
+      {/* Filter Section - Tab "Tất cả" + Dropdown chức vụ */}
+      <div className="bg-white rounded-xl shadow-lg p-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* Tab "Tất cả" nổi bật */}
+          <button
+            onClick={() => {
+              setSelectedPosition("all");
+              setShowPositionDropdown(false);
+            }}
+            className={`px-6 py-3 font-semibold text-sm rounded-lg transition flex items-center gap-2 ${
+              selectedPosition === "all"
+                ? "bg-amber-600 text-white shadow-md"
+                : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+            }`}
+          >
+            <Users size={18} />
+            <span>Tất cả ({usersByPosition.all.length})</span>
+          </button>
+
+          {/* Dropdown chọn chức vụ */}
+          <div className="relative">
             <button
-              onClick={() => setSelectedPosition("all")}
-              className={`px-6 py-3 font-semibold text-sm whitespace-nowrap border-b-2 transition ${
-                selectedPosition === "all"
-                  ? "border-amber-600 text-amber-700 bg-amber-50"
-                  : "border-transparent text-gray-600 hover:text-amber-600 hover:bg-amber-50/50"
+              onClick={() => setShowPositionDropdown(!showPositionDropdown)}
+              className={`px-6 py-3 font-semibold text-sm rounded-lg transition flex items-center gap-2 border ${
+                selectedPosition !== "all" && selectedPosition !== "noPosition"
+                  ? "bg-amber-600 text-white border-amber-600 shadow-md"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Users size={16} />
-                <span>Tất cả ({usersByPosition.all.length})</span>
-              </div>
+              <Filter size={18} />
+              <span>
+                {selectedPosition === "all"
+                  ? "Lọc theo chức vụ"
+                  : selectedPosition === "noPosition"
+                  ? "Chưa phân chức vụ"
+                  : positionMap[selectedPosition] || "Chọn chức vụ"}
+              </span>
+              <ChevronDown 
+                size={16} 
+                className={`transition-transform ${showPositionDropdown ? "rotate-180" : ""}`}
+              />
             </button>
-            {positions.map((pos) => {
-              const count = usersByPosition[pos._id]?.length || 0;
-              if (count === 0) return null;
-              return (
-                <button
-                  key={pos._id}
-                  onClick={() => setSelectedPosition(pos._id)}
-                  className={`px-6 py-3 font-semibold text-sm whitespace-nowrap border-b-2 transition ${
-                    selectedPosition === pos._id
-                      ? "border-amber-600 text-amber-700 bg-amber-50"
-                      : "border-transparent text-gray-600 hover:text-amber-600 hover:bg-amber-50/50"
-                  }`}
-                >
-                  {pos.tenChucVu || pos.maChucVu} ({count})
-                </button>
-              );
-            })}
-            {usersByPosition.noPosition.length > 0 && (
-              <button
-                onClick={() => setSelectedPosition("noPosition")}
-                className={`px-6 py-3 font-semibold text-sm whitespace-nowrap border-b-2 transition ${
-                  selectedPosition === "noPosition"
-                    ? "border-amber-600 text-amber-700 bg-amber-50"
-                    : "border-transparent text-gray-600 hover:text-amber-600 hover:bg-amber-50/50"
-                }`}
-              >
-                Chưa phân chức vụ ({usersByPosition.noPosition.length})
-              </button>
+
+            {/* Dropdown menu */}
+            {showPositionDropdown && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowPositionDropdown(false)}
+                />
+                <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 z-20 max-h-96 overflow-y-auto">
+                  <div className="p-2">
+                    {/* Option: Chưa phân chức vụ */}
+                    {usersByPosition.noPosition.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setSelectedPosition("noPosition");
+                          setShowPositionDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 rounded-lg transition mb-1 ${
+                          selectedPosition === "noPosition"
+                            ? "bg-amber-50 text-amber-700 font-semibold border border-amber-300"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>Chưa phân chức vụ</span>
+                          <span className="text-sm text-gray-500">
+                            ({usersByPosition.noPosition.length})
+                          </span>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Divider */}
+                    {usersByPosition.noPosition.length > 0 && positions.filter(p => (usersByPosition[p._id]?.length || 0) > 0).length > 0 && (
+                      <div className="border-t border-gray-200 my-2" />
+                    )}
+
+                    {/* Danh sách chức vụ */}
+                    {positions
+                      .filter((pos) => {
+                        const count = usersByPosition[pos._id]?.length || 0;
+                        return count > 0;
+                      })
+                      .map((pos) => {
+                        const count = usersByPosition[pos._id]?.length || 0;
+                        return (
+                          <button
+                            key={pos._id}
+                            onClick={() => {
+                              setSelectedPosition(pos._id);
+                              setShowPositionDropdown(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg transition mb-1 ${
+                              selectedPosition === pos._id
+                                ? "bg-amber-50 text-amber-700 font-semibold border border-amber-300"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>{pos.tenChucVu || pos.maChucVu}</span>
+                              <span className="text-sm text-gray-500">({count})</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+
+                    {/* Nếu không có chức vụ nào */}
+                    {positions.filter(p => (usersByPosition[p._id]?.length || 0) > 0).length === 0 && 
+                     usersByPosition.noPosition.length === 0 && (
+                      <div className="px-4 py-3 text-center text-gray-500 text-sm">
+                        Không có chức vụ nào
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Hiển thị số lượng kết quả */}
+          <div className="ml-auto text-sm text-gray-600">
+            <span className="font-semibold text-amber-700">{filteredUsers.length}</span> nhân sự
+            {selectedPosition !== "all" && (
+              <span className="ml-2">
+                {selectedPosition === "noPosition"
+                  ? "(Chưa phân chức vụ)"
+                  : `(${positionMap[selectedPosition] || ""})`}
+              </span>
             )}
           </div>
         </div>

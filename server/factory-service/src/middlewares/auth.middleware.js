@@ -37,7 +37,7 @@ exports.verifyToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Query Account từ DB để lấy sanPhamPhuTrach
+    // Query Account từ DB để lấy email và sanPhamPhuTrach
     try {
       const account = await Account.findById(decoded.id);
       if (account) {
@@ -48,13 +48,16 @@ exports.verifyToken = async (req, res, next) => {
           sanPhamPhuTrach: account.sanPhamPhuTrach || [],
         };
       } else {
-        // Nếu không tìm thấy account, dùng thông tin từ JWT
-        req.user = decoded;
+        req.user = {
+          ...decoded,
+          email: decoded.email || null,
+        };
       }
     } catch (dbErr) {
-      // Nếu lỗi query DB, dùng thông tin từ JWT
-      console.warn("⚠️ [factory-service] Could not fetch account from DB:", dbErr.message);
-      req.user = decoded;
+      req.user = {
+        ...decoded,
+        email: decoded.email || null,
+      };
     }
 
     next();

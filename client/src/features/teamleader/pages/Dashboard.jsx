@@ -14,7 +14,6 @@ const getCurrentUser = () => {
       hoTen: payload.hoTen || payload.name,
     };
   } catch (err) {
-    console.error("Lỗi khi parse token:", err);
     return null;
   }
 };
@@ -34,7 +33,6 @@ export default function Dashboard() {
         setRoles(Array.isArray(r) ? r : []);
         setDepartments(Array.isArray(d) ? d : []);
       } catch (err) {
-        console.error("Lỗi tải dữ liệu dashboard tổ trưởng:", err);
         setUsers([]);
         setRoles([]);
         setDepartments([]);

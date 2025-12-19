@@ -26,6 +26,22 @@ router.put(
   controller.finishProduction
 );
 
+// Tiến độ theo kế hoạch
+router.get(
+  "/production-logs/plan/:planId/progress",
+  verifyToken,
+  authorizeRoles([...MANAGER_ROLES, ...TEAMLEADER_ROLES]),
+  controller.getPlanProgress
+);
+
+// Dashboard tiến độ tổng quan
+router.get(
+  "/production-logs/dashboard",
+  verifyToken,
+  authorizeRoles(MANAGER_ROLES),
+  controller.getProgressDashboard
+);
+
 // ============================================
 // Tổ trưởng chỉ xem logs của tổ mình
 // ============================================
@@ -34,6 +50,22 @@ router.get(
   verifyToken,
   authorizeRoles([...MANAGER_ROLES, ...TEAMLEADER_ROLES]),
   controller.getLogsByTeam
+);
+
+// Tổ trưởng/Công nhân tạo/cập nhật log sản xuất
+router.post(
+  "/teamleader/production-logs",
+  verifyToken,
+  authorizeRoles([...MANAGER_ROLES, ...TEAMLEADER_ROLES]),
+  controller.createOrUpdateLog
+);
+
+// Xưởng trưởng tạo ProductionLog từ giả lập
+router.post(
+  "/manager/production-logs/simulation",
+  verifyToken,
+  authorizeRoles(MANAGER_ROLES),
+  controller.createLogFromSimulation
 );
 
 // Legacy routes (giữ để tương thích)
@@ -49,6 +81,14 @@ router.put(
   verifyToken,
   authorizeRoles(MANAGER_ROLES),
   controller.finishProduction
+);
+
+// Xóa tất cả nhật ký sản xuất theo kế hoạch
+router.delete(
+  "/production-logs/plan/:planId",
+  verifyToken,
+  authorizeRoles(MANAGER_ROLES),
+  controller.deleteLogsByPlanId
 );
 
 module.exports = router;

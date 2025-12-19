@@ -12,6 +12,7 @@ const toRoutes = require("./src/routers/to.routes");
 const xuongRoutes = require("./src/routers/xuong.routes");
 const caRoutes = require("./src/routers/ca.routes");
 const planRoutes = require("./src/routers/plan.routes");
+const lotRoutes = require("./src/routers/lot.routes");
 const { listenPlanEvents } = require("./src/rabbitmq/listener");
 
 const app = express();
@@ -56,6 +57,12 @@ app.use("/ca", caRoutes);
 // ============================================
 // Gateway đã strip prefix /factory rồi, nên mount tại /teamleader
 app.use("/teamleader", teamleaderRoutes);
+
+// ============================================
+// ROUTES CHO LÔ SẢN XUẤT
+// ============================================
+// Mount tại /api/lot để các service khác gọi
+app.use("/api/lot", lotRoutes);
 
 // Nhận event từ kế hoạch sản xuất
 listenPlanEvents();

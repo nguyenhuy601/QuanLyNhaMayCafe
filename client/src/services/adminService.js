@@ -54,7 +54,6 @@ export const fetchAdminUsers = async () => {
     cacheUsers(users);
     return users;
   } catch (error) {
-    console.error("⚠️ fetchAdminUsers fallback:", error);
     return getCachedUsers();
   }
 };

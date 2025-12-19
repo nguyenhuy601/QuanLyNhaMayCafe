@@ -21,7 +21,6 @@ export default function ThongSoKho() {
       setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
       setError(null);
     } catch (err) {
-      console.error('Lỗi khi tải thông số kho:', err);
       setError(`Không thể tải thông số kho: ${err.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
@@ -38,7 +37,6 @@ export default function ThongSoKho() {
   // Lắng nghe sự kiện cập nhật kho khi Ban giám đốc duyệt phiếu nhập/xuất
   useEffect(() => {
     const onInventoryUpdated = () => {
-      console.log("📢 Nhận được event inventory-updated, đang refresh dữ liệu...");
       // Refresh ngay lập tức khi nhận được event
       fetchInventoryData();
     };

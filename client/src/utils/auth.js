@@ -1,6 +1,17 @@
 // Helper function để lấy token (dùng ở mọi nơi)
+// Ưu tiên sessionStorage (per-tab) để tránh conflict giữa các tab
 export const getToken = () => {
   return sessionStorage.getItem("token") || localStorage.getItem("token") || window.userToken || null;
+};
+
+// Helper function để lấy role (ưu tiên sessionStorage)
+export const getRole = () => {
+  return sessionStorage.getItem("role") || localStorage.getItem("role") || window.userRole || null;
+};
+
+// Helper function để lấy userEmail (ưu tiên sessionStorage)
+export const getUserEmail = () => {
+  return sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail") || null;
 };
 
 // Helper function để xử lý lỗi 401 (token expired)
@@ -32,19 +43,19 @@ export const authUtils = {
     return getToken();
   },
 
-  // Lấy role
+  // Lấy role (ưu tiên sessionStorage)
   getRole: () => {
-    return localStorage.getItem("role");
+    return sessionStorage.getItem("role") || localStorage.getItem("role") || window.userRole || null;
   },
 
-  // Kiểm tra đã đăng nhập chưa
+  // Kiểm tra đã đăng nhập chưa (ưu tiên sessionStorage)
   isAuthenticated: () => {
-    return !!localStorage.getItem("token");
+    return !!(sessionStorage.getItem("token") || localStorage.getItem("token") || window.userToken);
   },
 
-  // Kiểm tra role
+  // Kiểm tra role (ưu tiên sessionStorage)
   hasRole: (allowedRoles) => {
-    const userRole = localStorage.getItem("role");
+    const userRole = sessionStorage.getItem("role") || localStorage.getItem("role") || window.userRole;
     if (!userRole) return false;
     
     return allowedRoles.some(

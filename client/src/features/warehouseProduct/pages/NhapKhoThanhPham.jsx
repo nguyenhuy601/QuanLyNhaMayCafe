@@ -24,7 +24,6 @@ const NhapKhoThanhPham = () => {
         setQcList(passedQC);
         setError(null);
       } catch (err) {
-        console.error('Lỗi lấy dữ liệu QC:', err.response?.data || err.message || err);
         setError('Không thể lấy dữ liệu phiếu QC');
       } finally {
         setLoading(false);

@@ -1,8 +1,9 @@
 import React from 'react';
 import { Search, Bell, Settings, User } from 'lucide-react';
+import useCurrentUser from '../../../hooks/useCurrentUser';
 
 const Header = () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const { currentUser, loading } = useCurrentUser();
 
   return (
     <div className="bg-gradient-to-r from-amber-700 to-amber-800 text-white p-4 flex items-center justify-between shadow-lg">
@@ -23,7 +24,11 @@ const Header = () => {
             <User size={22} />
           </div>
           <div>
-            <div className="font-semibold">{user.hoTen || 'Your Name'}</div>
+            <div className="font-semibold">
+              {loading
+                ? 'Đang tải...'
+                : currentUser?.hoTen || currentUser?.email || 'Your Name'}
+            </div>
             <div className="text-xs text-amber-200">Nhân viên bán hàng</div>
           </div>
         </div>

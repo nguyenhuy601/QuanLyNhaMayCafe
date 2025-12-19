@@ -2,30 +2,72 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axiosInstance from '../../../api/axiosConfig';
 import OrdersList from '../components/OrdersList.jsx';
 import ExportSlip from '../components/ExportSlip.jsx';
+import { fetchProductionPlans, fetchPlanById } from '../../../services/planService';
+import { fetchOrders } from '../../../services/orderService';
 
 export default function XuatKhoThanhPham() {
 
   // UI state
-  const [step, setStep] = useState(1); // 1 = danh sách đơn, 2 = phiếu xuất
+  const [step, setStep] = useState(1); // 1 = danh sách kế hoạch, 2 = danh sách đơn hàng, 3 = phiếu xuất
+  const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [plans, setPlans] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchOrders();
+    fetchPlans();
   }, []);
 
-  const fetchOrders = async () => {
+  const fetchPlans = async () => {
     try {
       setLoading(true);
-      // Gọi qua API gateway với axiosInstance để có token
-      const res = await axiosInstance.get('/orders');
+      const data = await fetchProductionPlans();
+      // Chỉ lấy kế hoạch đã duyệt và đang thực hiện
+      const filteredPlans = data.filter(plan => 
+        plan.trangThai === 'Đã duyệt' || 
+        plan.trangThai === 'Đang thực hiện' ||
+        plan.trangThai === 'Hoàn thành'
+      );
+      setPlans(filteredPlans);
+      setError(null);
+    } catch (err) {
+      setError('Không thể lấy danh sách kế hoạch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePlanSelect = async (planId) => {
+    try {
+      setLoading(true);
+      setSelectedPlanId(planId);
       
+      // Lấy chi tiết kế hoạch
+      const plan = await fetchPlanById(planId);
+      if (!plan || !plan.donHangLienQuan || plan.donHangLienQuan.length === 0) {
+        alert('Kế hoạch này không có đơn hàng liên quan');
+        setLoading(false);
+        return;
+      }
+
+      // Lấy danh sách đơn hàng
+      const allOrders = await fetchOrders();
+      
+      // Lọc đơn hàng thuộc kế hoạch này (chỉ lấy đơn đã duyệt và chưa xuất kho)
+      const planOrderIds = plan.donHangLienQuan.map(dh => dh.orderId);
+      const planOrders = allOrders.filter(order => {
+        const orderId = order._id?.toString() || order.maDH;
+        const isInPlan = planOrderIds.includes(orderId);
+        const isApproved = order.trangThai === 'Đã duyệt';
+        const notExported = order.trangThai !== 'Đã xuất kho' && order.trangThai !== 'Đã giao';
+        return isInPlan && isApproved && notExported;
+      });
+
       // Transform order data to match component structure
-      const transformedOrders = (Array.isArray(res.data) ? res.data : []).map(order => {
-        // Get first product from chiTiet
+      const transformedOrders = planOrders.map(order => {
         const firstItem = order.chiTiet?.[0];
         const product = firstItem?.sanPham;
         
@@ -34,13 +76,12 @@ export default function XuatKhoThanhPham() {
           orderCode: order.maDH,
           productCode: product?.maSP || '',
           productName: product?.tenSP || '',
-          productId: product?._id || '', // Add productId for API calls
+          productId: product?._id || '',
           quantity: firstItem?.soLuong || 0,
           createdAt: order.ngayDat ? new Date(order.ngayDat).toLocaleDateString('vi-VN') : '',
           creator: order.nguoiTao?.username || 'N/A',
           status: order.trangThai || 'Chờ xuất',
           availableStock: product?.soLuong || 0,
-          lot: product?.loSanXuat || '',
           customerName: order.khachHang?.tenKH || '',
           customerPhone: order.khachHang?.sdt || '',
           deliveryDate: order.ngayYeuCauGiao ? new Date(order.ngayYeuCauGiao).toLocaleDateString('vi-VN') : '',
@@ -50,19 +91,19 @@ export default function XuatKhoThanhPham() {
       });
       
       setOrders(transformedOrders);
+      setStep(2); // Chuyển sang step 2: danh sách đơn hàng
       setError(null);
     } catch (err) {
-      console.error('Lỗi lấy danh sách đơn hàng:', err.response?.data || err.message || err);
-      setError('Không thể lấy danh sách đơn hàng');
+      setError('Không thể lấy đơn hàng của kế hoạch');
     } finally {
       setLoading(false);
     }
   };
 
   const toggleSelect = (id) => {
-    // Prevent selecting orders that are already approved ('Đã duyệt')
+    // Cho phép chọn đơn hàng "Đã duyệt" vì đây là đơn sẵn sàng xuất kho
     const order = orders.find((o) => o.id === id);
-    if (!order || order.status === 'Đã duyệt') return;
+    if (!order) return;
     setSelectedIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       return [...prev, id];
@@ -70,17 +111,21 @@ export default function XuatKhoThanhPham() {
   };
 
   const selectAll = (checked) => {
-    if (checked) setSelectedIds(orders.filter((o) => o.status !== 'Đã duyệt').map((o) => o.id));
-    else setSelectedIds([]);
+    if (checked) {
+      // Cho phép chọn tất cả đơn hàng (đều là "Đã duyệt" và sẵn sàng xuất kho)
+      setSelectedIds(orders.map((o) => o.id));
+    } else {
+      setSelectedIds([]);
+    }
   };
 
   const selectedOrders = useMemo(() => orders.filter((o) => selectedIds.includes(o.id)), [orders, selectedIds]);
 
-  // Step 2 editable rows (lot, note) kept in state
+  // Step 2 editable rows (note) kept in state
   const [issueRows, setIssueRows] = useState([]);
 
   useEffect(() => {
-    if (step === 2) {
+    if (step === 3) {
       // initialize issueRows from selectedOrders
       const init = selectedOrders.map((o) => ({
         id: o.id,
@@ -88,7 +133,6 @@ export default function XuatKhoThanhPham() {
         productCode: o.productCode,
         productName: o.productName,
         productId: o.productId || o.id, // Add productId for API
-        lot: o.lot || '',
         quantity: o.quantity,
         availableStock: o.availableStock,
         note: '',
@@ -103,11 +147,18 @@ export default function XuatKhoThanhPham() {
 
   const handleContinue = () => {
     if (selectedIds.length === 0) return;
-    setStep(2);
+    setStep(3); // Chuyển sang step 3: phiếu xuất
   };
 
   const handleBack = () => {
-    setStep(1);
+    if (step === 3) {
+      setStep(2); // Từ phiếu xuất về danh sách đơn hàng
+    } else if (step === 2) {
+      setStep(1); // Từ danh sách đơn hàng về danh sách kế hoạch
+      setSelectedPlanId(null);
+      setOrders([]);
+      setSelectedIds([]);
+    }
   };
 
   const handleConfirm = async () => {
@@ -120,24 +171,30 @@ export default function XuatKhoThanhPham() {
             {
               sanPham: row.productId,
               soLuong: row.quantity,
-              loXuat: row.lot,
             }
           ],
           ghiChu: row.note,
         };
-        await axiosInstance.post('/warehouse/issues', payload);
+        await axiosInstance.post('/warehouse/products/issues', payload);
       }
       
       setShowSuccess(true);
       // reset selections after confirm
       setSelectedIds([]);
       setIssueRows([]);
-      setStep(1);
       
-      // Refresh orders list
-      await fetchOrders();
+      // Refresh danh sách đơn hàng để loại bỏ đơn đã xuất
+      if (selectedPlanId) {
+        // Reload đơn hàng của kế hoạch để cập nhật danh sách (loại bỏ đơn đã xuất)
+        await handlePlanSelect(selectedPlanId);
+      } else {
+        setStep(1);
+        setSelectedPlanId(null);
+        setOrders([]);
+        // Refresh plans list
+        await fetchPlans();
+      }
     } catch (err) {
-      console.error("Lỗi tạo phiếu xuất:", err.response?.data || err.message || err);
       alert("Lỗi tạo phiếu xuất: " + (err.response?.data?.error || err.message));
     }
   };
@@ -178,7 +235,9 @@ export default function XuatKhoThanhPham() {
 
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <p className="text-lg font-semibold">Đang tải danh sách đơn hàng...</p>
+          <p className="text-lg font-semibold">
+            {step === 1 ? 'Đang tải danh sách kế hoạch...' : 'Đang tải đơn hàng...'}
+          </p>
         </div>
       )}
 
@@ -191,16 +250,106 @@ export default function XuatKhoThanhPham() {
       {!loading && (
         <>
           {step === 1 && (
-            <OrdersList
-              orders={orders}
-              selectedIds={selectedIds}
-              onToggleSelect={toggleSelect}
-              onSelectAll={selectAll}
-              onContinue={handleContinue}
-            />
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="px-6 py-4 bg-[#8B4513] text-white">
+                <h2 className="text-lg font-semibold">Danh sách kế hoạch</h2>
+                <p className="text-sm text-amber-200 mt-1">Chọn kế hoạch để xem đơn hàng</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã kế hoạch</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sản phẩm</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày bắt đầu</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày kết thúc</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số đơn hàng</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {plans.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                          Không có kế hoạch nào
+                        </td>
+                      </tr>
+                    ) : (
+                      plans.map((plan) => {
+                        const productName = plan.sanPham?.tenSanPham || plan.sanPham?.tenSP || 'N/A';
+                        const orderCount = plan.donHangLienQuan?.length || 0;
+                        return (
+                          <tr key={plan._id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#5A2E0E]">
+                              {plan.maKeHoach || plan._id}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{productName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{plan.soLuongCanSanXuat || 0}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {plan.ngayBatDauDuKien ? new Date(plan.ngayBatDauDuKien).toLocaleDateString('vi-VN') : 'N/A'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {plan.ngayKetThucDuKien ? new Date(plan.ngayKetThucDuKien).toLocaleDateString('vi-VN') : 'N/A'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{orderCount}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                plan.trangThai === 'Đã duyệt' ? 'bg-green-100 text-green-800' :
+                                plan.trangThai === 'Đang thực hiện' ? 'bg-blue-100 text-blue-800' :
+                                plan.trangThai === 'Hoàn thành' ? 'bg-gray-100 text-gray-800' :
+                                'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {plan.trangThai || 'Chờ duyệt'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                              <button
+                                onClick={() => handlePlanSelect(plan._id)}
+                                disabled={orderCount === 0}
+                                className={`px-4 py-2 rounded-md text-white ${
+                                  orderCount === 0 
+                                    ? 'bg-gray-400 cursor-not-allowed' 
+                                    : 'bg-[#8B4513] hover:bg-[#A0522D]'
+                                }`}
+                              >
+                                {orderCount === 0 ? 'Không có đơn hàng' : 'Xem đơn hàng'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
 
           {step === 2 && (
+            <div>
+              <div className="mb-4 flex items-center justify-between">
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                >
+                  ← Quay lại danh sách kế hoạch
+                </button>
+                <h2 className="text-xl font-semibold">Danh sách đơn hàng</h2>
+                <div className="w-32"></div>
+              </div>
+              <OrdersList
+                orders={orders}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                onSelectAll={selectAll}
+                onContinue={handleContinue}
+              />
+            </div>
+          )}
+
+          {step === 3 && (
             <ExportSlip issueRows={issueRows} updateRow={updateRow} onBack={handleBack} onConfirm={handleConfirm} />
           )}
         </>

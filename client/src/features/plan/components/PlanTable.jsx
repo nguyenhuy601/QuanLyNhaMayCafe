@@ -9,11 +9,31 @@ const formatDate = (dateStr) => {
   return date.toLocaleDateString("vi-VN");
 };
 
-const PlanTable = ({ orders = [], onModalStateChange }) => {
+const PlanTable = ({ orders = [], onModalStateChange, plans = [] }) => {
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [sortType, setSortType] = useState("date");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  // Tạo map để kiểm tra nhanh đơn hàng đã thuộc kế hoạch nào
+  const orderInPlanMap = useMemo(() => {
+    const map = new Map();
+    plans.forEach(plan => {
+      if (plan.donHangLienQuan && Array.isArray(plan.donHangLienQuan)) {
+        plan.donHangLienQuan.forEach(dh => {
+          const orderId = dh.orderId?.toString() || dh.orderId;
+          if (orderId) {
+            map.set(orderId, {
+              planId: plan._id,
+              maKeHoach: plan.maKeHoach || plan._id,
+              trangThai: plan.trangThai
+            });
+          }
+        });
+      }
+    });
+    return map;
+  }, [plans]);
 
   useEffect(() => {
     onModalStateChange?.(showModal);
@@ -34,11 +54,90 @@ const PlanTable = ({ orders = [], onModalStateChange }) => {
   }, [orders, sortType]);
 
   const toggleSelect = (maDH) => {
-    setSelectedOrders((prev) =>
-      prev.includes(maDH)
-        ? prev.filter((id) => id !== maDH)
-        : [...prev, maDH]
-    );
+    // Nếu đang bỏ chọn, cho phép bỏ chọn luôn
+    if (selectedOrders.includes(maDH)) {
+      setSelectedOrders((prev) => prev.filter((id) => id !== maDH));
+      return;
+    }
+
+    // Lấy đơn hàng đang được chọn
+    const currentOrder = orders.find((o) => o.maDH === maDH);
+    if (!currentOrder) return;
+
+    // Kiểm tra đơn hàng đã thuộc kế hoạch nào chưa
+    const orderId = currentOrder._id?.toString() || currentOrder.maDH;
+    const existingPlan = orderInPlanMap.get(orderId);
+    if (existingPlan) {
+      alert(`❌ Đơn hàng ${maDH} đã thuộc kế hoạch ${existingPlan.maKeHoach} (${existingPlan.trangThai})\n\nKhông thể chọn đơn hàng đã thuộc kế hoạch khác.`);
+      return;
+    }
+
+    // Nếu đã có đơn hàng được chọn, kiểm tra ràng buộc
+    if (selectedOrders.length > 0) {
+      // Lấy danh sách đơn hàng đã chọn
+      const selectedData = orders.filter((o) => selectedOrders.includes(o.maDH));
+      
+      // Ràng buộc 1: Tất cả đơn hàng phải cùng sản phẩm
+      const firstProductName = selectedData[0]?.chiTiet?.[0]?.sanPham?.tenSP;
+      const currentProductName = currentOrder.chiTiet?.[0]?.sanPham?.tenSP;
+      
+      if (firstProductName !== currentProductName) {
+        alert(`❌ Không thể chọn đơn hàng khác sản phẩm!\n\nĐơn hàng đã chọn: ${firstProductName}\nĐơn hàng muốn chọn: ${currentProductName}\n\nVui lòng chọn các đơn hàng cùng sản phẩm.`);
+        return;
+      }
+
+      // Ràng buộc 2: Kiểm tra thời gian (chỉ khi có 2 đơn hàng trở lên)
+      const allSelectedOrders = [...selectedData, currentOrder];
+      
+      if (allSelectedOrders.length >= 2) {
+        // Lấy tất cả ngày tạo đơn và ngày giao
+        const ngayTaoDon = allSelectedOrders.map((o) => {
+          const date = new Date(o.ngayDat);
+          return isNaN(date.getTime()) ? null : date;
+        }).filter(Boolean);
+
+        const ngayGiao = allSelectedOrders.map((o) => {
+          const date = new Date(o.ngayYeuCauGiao);
+          return isNaN(date.getTime()) ? null : date;
+        }).filter(Boolean);
+
+        if (ngayTaoDon.length === 0 || ngayGiao.length === 0) {
+          alert("❌ Không thể xác định ngày tạo đơn hoặc ngày giao của một số đơn hàng.");
+          return;
+        }
+
+        // Kiểm tra ngày tạo đơn không cách nhau quá 3 ngày
+        const minNgayTao = new Date(Math.min(...ngayTaoDon.map(d => d.getTime())));
+        const maxNgayTao = new Date(Math.max(...ngayTaoDon.map(d => d.getTime())));
+        const diffNgayTao = Math.ceil((maxNgayTao - minNgayTao) / (1000 * 60 * 60 * 24));
+
+        if (diffNgayTao > 3) {
+          alert(`❌ Ngày tạo đơn của các đơn hàng không được cách nhau quá 3 ngày!\n\nKhoảng cách hiện tại: ${diffNgayTao} ngày\n\nVui lòng chọn các đơn hàng có ngày tạo đơn gần nhau hơn.`);
+          return;
+        }
+
+        // Kiểm tra ngày giao không cách nhau quá 3 ngày
+        const minNgayGiao = new Date(Math.min(...ngayGiao.map(d => d.getTime())));
+        const maxNgayGiao = new Date(Math.max(...ngayGiao.map(d => d.getTime())));
+        const diffNgayGiao = Math.ceil((maxNgayGiao - minNgayGiao) / (1000 * 60 * 60 * 24));
+
+        if (diffNgayGiao > 3) {
+          alert(`❌ Ngày giao của các đơn hàng không được cách nhau quá 3 ngày!\n\nKhoảng cách hiện tại: ${diffNgayGiao} ngày\n\nVui lòng chọn các đơn hàng có ngày giao gần nhau hơn.`);
+          return;
+        }
+
+        // Kiểm tra tổng thời gian từ ngày tạo đơn sớm nhất đến ngày giao muộn nhất phải >= 90 ngày
+        const tongThoiGian = Math.ceil((maxNgayGiao - minNgayTao) / (1000 * 60 * 60 * 24));
+
+        if (tongThoiGian < 90) {
+          alert(`❌ Tổng thời gian từ ngày tạo đơn sớm nhất đến ngày giao muộn nhất phải ít nhất 90 ngày (3 tháng)!\n\nTổng thời gian hiện tại: ${tongThoiGian} ngày\n\nVui lòng chọn các đơn hàng có khoảng thời gian đủ dài.`);
+          return;
+        }
+      }
+    }
+
+    // Nếu tất cả ràng buộc đều thỏa mãn, cho phép chọn
+    setSelectedOrders((prev) => [...prev, maDH]);
   };
 
   const selectedData = orders.filter((o) =>
@@ -133,18 +232,24 @@ const PlanTable = ({ orders = [], onModalStateChange }) => {
                     const donVi = chiTiet?.donVi;
                     const loaiTui = chiTiet?.loaiTui;
                     
-                    // Nếu loaiTui = "hop" thì hiển thị "Hộp"
+                    // Xác định đơn vị hiển thị
+                    let displayUnit = "";
                     if (loaiTui === "hop") {
-                      return `${soLuong} Hộp`;
+                      displayUnit = "Hộp";
+                    } else if (donVi === "túi") {
+                      // Hiển thị loại túi nếu có
+                      if (loaiTui === "500g") {
+                        displayUnit = "túi 500g";
+                      } else if (loaiTui === "1kg") {
+                        displayUnit = "túi 1kg";
+                      } else {
+                        displayUnit = "túi";
+                      }
+                    } else {
+                      displayUnit = donVi !== null && donVi !== undefined ? donVi : "null";
                     }
                     
-                    // Nếu có donVi thì hiển thị donVi
-                    if (donVi !== null && donVi !== undefined) {
-                      return `${soLuong} ${donVi}`;
-                    }
-                    
-                    // Mặc định hiển thị "null"
-                    return `${soLuong} null`;
+                    return `${soLuong} ${displayUnit}`;
                   })()}
                 </td>
 
@@ -169,16 +274,33 @@ const PlanTable = ({ orders = [], onModalStateChange }) => {
                 </td>
 
                 <td className="px-3 py-3 text-center">
-                  <button
-                    onClick={() => toggleSelect(order.maDH)}
-                    className="text-[#8B4513] hover:text-[#5A2E0E] transition"
-                  >
-                    {selectedOrders.includes(order.maDH) ? (
-                      <CheckSquare size={20} />
-                    ) : (
-                      <Square size={20} />
-                    )}
-                  </button>
+                  {(() => {
+                    const orderId = order._id?.toString() || order.maDH;
+                    const existingPlan = orderInPlanMap.get(orderId);
+                    const isSelected = selectedOrders.includes(order.maDH);
+                    const isDisabled = !!existingPlan;
+
+                    return (
+                      <button
+                        onClick={() => !isDisabled && toggleSelect(order.maDH)}
+                        disabled={isDisabled}
+                        className={`transition ${
+                          isDisabled 
+                            ? 'text-gray-300 cursor-not-allowed' 
+                            : isSelected
+                            ? 'text-[#8B4513] hover:text-[#5A2E0E]'
+                            : 'text-gray-400 hover:text-[#8B4513]'
+                        }`}
+                        title={isDisabled ? `Đơn hàng đã thuộc kế hoạch ${existingPlan?.maKeHoach}` : ''}
+                      >
+                        {isSelected ? (
+                          <CheckSquare size={20} />
+                        ) : (
+                          <Square size={20} />
+                        )}
+                      </button>
+                    );
+                  })()}
                 </td>
               </tr>
             ))}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Filter } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../../api/axiosConfig";
 
 const KiemDinhList = () => {
   const navigate = useNavigate();
@@ -12,10 +12,9 @@ const KiemDinhList = () => {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const res = await axios.get("http://localhost:3006/qc-request");
+        const res = await axiosInstance.get("/qc-request");
         setRequests(res.data);
       } catch (err) {
-        console.error("Lỗi khi tải danh sách yêu cầu:", err);
       }
     };
     fetchRequests();
@@ -98,7 +97,9 @@ const KiemDinhList = () => {
                   <td className="py-3 px-3">{index + 1}</td>
                   <td className="py-3 px-3">{row.maPhieuQC}</td>
                   <td className="py-3 px-3">{row.xuong}</td>
-                  <td className="py-3 px-3">{row.sanPham?.ProductName || "Chưa có tên"}</td>
+                  <td className="py-3 px-3">
+                    {row.sanPham?.ProductName || row.sanPhamName || "Chưa có tên"}
+                  </td>
                   <td className="py-3 px-3">
                     {new Date(row.ngayYeuCau).toLocaleDateString("vi-VN")}
                   </td>

@@ -1,114 +1,130 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getAllUsers } from "../api/adminAPI";
 
 // Hook dùng chung để lấy thông tin nhân sự tương ứng với account đang đăng nhập
-// Ưu tiên dữ liệu theo từng tab (sessionStorage), fallback sang localStorage.
+// Logic đơn giản theo cách trang admin hoạt động: luôn load từ token, mỗi tab độc lập
 export default function useCurrentUser() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadUserInfo = async () => {
-      setLoading(true);
-      try {
-        // Ưu tiên user trong sessionStorage (per-tab), sau đó tới localStorage
-        const storedUser = JSON.parse(
-          sessionStorage.getItem("user") ||
-            localStorage.getItem("user") ||
-            "{}"
-        );
-        if (storedUser.hoTen && storedUser._id) {
-          setCurrentUser(storedUser);
-          setLoading(false);
-          // vẫn tiếp tục load để cập nhật nếu cần
-        }
+  const loadUserInfo = useCallback(async () => {
+    setLoading(true);
 
-        const token =
-          sessionStorage.getItem("token") ||
-          localStorage.getItem("token") ||
-          window.userToken;
-        if (!token) {
-          setLoading(false);
-          return;
-        }
+    // 1. Lấy token: ưu tiên sessionStorage (per-tab), fallback localStorage
+    const token =
+      sessionStorage.getItem("token") ||
+      localStorage.getItem("token") ||
+      window.userToken;
 
-        // Decode JWT để lấy thông tin account
-        let payload;
-        try {
-          payload = JSON.parse(atob(token.split(".")[1]));
-        } catch (e) {
-          console.error("❌ Lỗi decode JWT:", e);
-          setLoading(false);
-          return;
-        }
+    if (!token) {
+      setCurrentUser(null);
+      setLoading(false);
+      return;
+    }
 
-        // Lấy email để map sang bảng nhân sự
-        let emailToSearch =
-          sessionStorage.getItem("userEmail") ||
-          localStorage.getItem("userEmail") ||
-          payload.email;
+    // 2. Decode JWT để lấy thông tin account (payload)
+    let payload;
+    try {
+      payload = JSON.parse(atob(token.split(".")[1]));
+    } catch (e) {
+      setCurrentUser(null);
+      setLoading(false);
+      return;
+    }
 
-        if (!emailToSearch) {
-          const fallbackStored = JSON.parse(
-            sessionStorage.getItem("user") ||
-              localStorage.getItem("user") ||
-              "{}"
-          );
-          emailToSearch = fallbackStored.email;
-        }
+    try {
+      // 3. Lấy email để map sang bảng nhân sự
+      const emailToSearch =
+        sessionStorage.getItem("userEmail") ||
+        localStorage.getItem("userEmail") ||
+        payload.email;
 
-        const users = await getAllUsers();
+      if (!emailToSearch) {
+        // Không có email trong hệ thống users, dùng thông tin từ token
+        setCurrentUser({
+          email: payload.email || null,
+          hoTen: payload.hoTen || payload.name || payload.fullName || null,
+        });
+        setLoading(false);
+        return;
+      }
 
-        let user = null;
-        if (emailToSearch) {
-          const emailNormalized = emailToSearch.trim().toLowerCase();
+      // 4. Load danh sách users và tìm user theo email
+      const users = await getAllUsers();
+      const emailNormalized = emailToSearch.trim().toLowerCase();
+
+      let user = users.find((u) => {
+        if (!u.email) return false;
+        return u.email.trim().toLowerCase() === emailNormalized;
+      });
+
+      // 5. Fallback: thử tìm theo id trong payload
+      if (!user && payload) {
+        const accountId = payload.id || payload._id || payload.userId;
+        if (accountId) {
+          const accountIdStr = accountId.toString();
           user = users.find((u) => {
-            if (!u.email) return false;
-            return u.email.trim().toLowerCase() === emailNormalized;
+            const uId = u._id?.toString() || u.id?.toString();
+            return uId === accountIdStr;
           });
         }
+      }
 
-        // Fallback: thử theo id trong payload
-        if (!user && payload) {
-          const accountId = payload.id || payload._id || payload.userId;
-          if (accountId) {
-            const accountIdStr = accountId.toString();
-            user = users.find((u) => {
-              const uId = u._id?.toString() || u.id?.toString();
-              return uId === accountIdStr;
-            });
-          }
-        }
+      // 6. Nếu tìm được trong bảng nhân sự thì dùng, ngược lại fallback token
+      if (user) {
+        setCurrentUser(user);
+        sessionStorage.setItem("user", JSON.stringify(user));
+      } else {
+        setCurrentUser({
+          email: payload.email || emailToSearch,
+          hoTen: payload.hoTen || payload.name || payload.fullName || null,
+        });
+      }
+    } catch (err) {
+      // Fallback trong trường hợp không gọi được adminAPI (403, 500, network error, ...)
+      setCurrentUser({
+        email: payload?.email || null,
+        hoTen: payload?.hoTen || payload?.name || payload?.fullName || null,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-        if (user) {
-          setCurrentUser(user);
-          const userStr = JSON.stringify(user);
-          sessionStorage.setItem("user", userStr);
-          localStorage.setItem("user", userStr);
-        } else if (payload?.email) {
-          // Nếu vẫn không map được thì dùng email trong payload
-          setCurrentUser({ email: payload.email, hoTen: null });
-        }
-      } catch (err) {
-        console.error("❌ Lỗi khi tải thông tin user:", err);
-        const storedUser = JSON.parse(
-          sessionStorage.getItem("user") ||
-            localStorage.getItem("user") ||
-            "{}"
-        );
-        if (storedUser.hoTen || storedUser.email) {
-          setCurrentUser(storedUser);
-        }
-      } finally {
-        setLoading(false);
+  useEffect(() => {
+    loadUserInfo();
+
+    // Lắng nghe sự kiện storage để reload khi token thay đổi từ tab khác
+    const handleStorageChange = (e) => {
+      if (e.key === "token" || e.key === "userEmail" || e.key === "user") {
+        loadUserInfo();
       }
     };
 
-    loadUserInfo();
-  }, []);
+    // Lắng nghe custom event khi token thay đổi trong cùng tab
+    const handleTokenChanged = () => {
+      loadUserInfo();
+    };
+
+    // Lắng nghe storage event (chỉ trigger khi thay đổi từ tab khác)
+    window.addEventListener("storage", handleStorageChange);
+    
+    // Lắng nghe custom event (trigger khi đăng nhập trong cùng tab)
+    window.addEventListener("tokenChanged", handleTokenChanged);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("tokenChanged", handleTokenChanged);
+    };
+  }, [loadUserInfo]);
 
   return { currentUser, loading };
 }
+
+
+
+
+
 
 
 

@@ -132,8 +132,7 @@ const UserForm = () => {
             });
           } catch (accountErr) {
             // Nếu tạo account lỗi (ví dụ email đã tồn tại), chỉ cảnh báo, không block việc tạo user
-            console.warn("Không thể tạo tài khoản:", accountErr.response?.data?.message || accountErr.message);
-            // Có thể hiển thị warning nhưng vẫn tiếp tục
+            // Silent fail - có thể hiển thị warning nhưng vẫn tiếp tục
           }
         }
       }

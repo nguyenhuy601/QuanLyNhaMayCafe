@@ -7,8 +7,8 @@ const { authorizeRoles } = require("../middlewares/role.middleware");
 router.post("/", verifyToken, authorizeRoles(["admin","plan"]), controller.createProductionPlan);  
 router.get("/", verifyToken, authorizeRoles(["admin","plan","director","xuongtruong","totruong","worker","khonvl","khotp"]), controller.getPlans);              
 router.get("/:id", verifyToken, authorizeRoles(["admin","plan","director","xuongtruong","totruong","worker","khonvl","khotp"]), controller.getPlanById);       
-router.put("/:id", verifyToken, authorizeRoles(["admin","plan","director"]), controller.updateProductionPlan); 
-router.delete("/:id", verifyToken, authorizeRoles(["admin","plan"]), controller.deleteProductionPlan);
+router.put("/:id", verifyToken, authorizeRoles(["admin","plan","director","xuongtruong"]), controller.updateProductionPlan); 
+router.delete("/:id", verifyToken, authorizeRoles(["admin","plan","director","xuongtruong","totruong","worker","khonvl","khotp"]), controller.deleteProductionPlan);
 
 
 module.exports = router;

@@ -8,7 +8,6 @@ export const fetchPlans = async () => {
     const response = await axiosInstance.get('/plan');
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error('❌ Error fetching plans:', error);
     return [];
   }
 };
@@ -21,7 +20,6 @@ export const fetchPlanById = async (planId) => {
     const response = await axiosInstance.get(`/plan/${planId}`);
     return response.data;
   } catch (error) {
-    console.error('❌ Error fetching plan by ID:', error);
     return null;
   }
 };
@@ -32,7 +30,6 @@ export const fetchPlanById = async (planId) => {
 export const fetchTeams = async () => {
   try {
     const response = await axiosInstance.get('/factory/to');
-    console.log('✅ Teams response:', response.data);
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     console.error('❌ Error fetching teams:', error);
@@ -54,7 +51,6 @@ export const updateTeamStatus = async (teamId, trangThai) => {
     const response = await axiosInstance.put(`/factory/to/${teamId}`, { trangThai });
     return response.data;
   } catch (error) {
-    console.error('❌ Error updating team status:', error);
     throw error;
   }
 };
@@ -71,7 +67,6 @@ export const assignTeamLeader = async (teamId, leaderPayload) => {
     );
     return response.data;
   } catch (error) {
-    console.error('❌ Error assigning team leader:', error);
     throw error;
   }
 };
@@ -88,7 +83,6 @@ export const assignTeamMember = async (teamId, memberPayload) => {
     );
     return response.data;
   } catch (error) {
-    console.error('❌ Error assigning team member:', error);
     throw error;
   }
 };
@@ -105,7 +99,6 @@ export const removeTeamMember = async (teamId, memberId) => {
     );
     return response.data;
   } catch (error) {
-    console.error('❌ Error removing team member:', error);
     throw error;
   }
 };
@@ -118,7 +111,6 @@ export const fetchPendingPlans = async () => {
     const response = await axiosInstance.get('/factory/manager/plans/pending');
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error('❌ Error fetching pending plans:', error);
     throw error;
   }
 };
@@ -131,7 +123,6 @@ export const approvePlan = async (planId) => {
     const response = await axiosInstance.put(`/factory/manager/plans/${planId}/approve`);
     return response.data;
   } catch (error) {
-    console.error('❌ Error approving plan:', error);
     throw error;
   }
 };
@@ -144,7 +135,6 @@ export const rejectPlan = async (planId, reason) => {
     const response = await axiosInstance.put(`/factory/manager/plans/${planId}/reject`, { reason });
     return response.data;
   } catch (error) {
-    console.error('❌ Error rejecting plan:', error);
     throw error;
   }
 };
@@ -157,20 +147,20 @@ export const fetchXuongs = async () => {
     const response = await axiosInstance.get('/factory/xuong');
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error('❌ Error fetching xuongs:', error);
     throw error;
   }
 };
 
 /**
- * Tổ trưởng: lấy danh sách phân công ca làm của tổ mình
+ * Lấy danh sách phân công từ manager endpoint (có đầy đủ keHoach)
+ * Tổ trưởng và xưởng trưởng đều dùng endpoint này (backend sẽ lọc theo tổ/role)
+ * Thay thế cho fetchTeamLeaderAssignments (endpoint /teamleader/assignments đã bỏ vì trả về rỗng)
  */
-export const fetchTeamLeaderAssignments = async () => {
+export const fetchManagerAssignments = async () => {
   try {
-    const response = await axiosInstance.get('/factory/teamleader/assignments');
+    const response = await axiosInstance.get('/factory/manager/assignments');
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error('❌ Error fetching teamleader assignments:', error);
     throw error;
   }
 };
@@ -186,7 +176,6 @@ export const createTeamLeaderAssignment = async (payload) => {
     );
     return response.data;
   } catch (error) {
-    console.error('❌ Error creating teamleader assignment:', error);
     throw error;
   }
 };
@@ -200,7 +189,6 @@ export const fetchTeamLeaderShifts = async (params = {}) => {
     const response = await axiosInstance.get('/factory/teamleader/shifts', { params });
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error('❌ Error fetching teamleader shifts:', error);
     throw error;
   }
 };
@@ -216,7 +204,6 @@ export const saveShiftSchedule = async (payload) => {
     );
     return response.data;
   } catch (error) {
-    console.error('❌ Error saving shift schedule:', error);
     throw error;
   }
 };
@@ -232,7 +219,6 @@ export const addShiftMember = async (scheduleId, payload) => {
     );
     return response.data;
   } catch (error) {
-    console.error('❌ Error adding shift member:', error);
     throw error;
   }
 };
@@ -249,7 +235,6 @@ export const saveAttendanceSheet = async (payload) => {
     );
     return response.data;
   } catch (error) {
-    console.error('❌ Error saving attendance sheet:', error);
     throw error;
   }
 };
@@ -266,7 +251,6 @@ export const fetchAttendanceSheets = async (params = {}) => {
     );
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error('❌ Error fetching attendance sheets:', error);
     throw error;
   }
 };
@@ -281,7 +265,6 @@ export const checkStartConditions = async (planId) => {
     );
     return response.data;
   } catch (error) {
-    console.error('❌ Error checking start conditions:', error);
     throw error;
   }
 };
@@ -296,7 +279,21 @@ export const startPlan = async (planId) => {
     );
     return response.data;
   } catch (error) {
-    console.error('❌ Error starting plan:', error);
+    throw error;
+  }
+};
+
+/**
+ * Tổ trưởng xác nhận hoàn thành cho công nhân
+ */
+export const confirmMemberCompletion = async (teamId, memberId) => {
+  try {
+    const response = await axiosInstance.post(
+      `/factory/to/${teamId}/xac-nhan-hoan-thanh`,
+      { memberId }
+    );
+    return response.data;
+  } catch (error) {
     throw error;
   }
 };

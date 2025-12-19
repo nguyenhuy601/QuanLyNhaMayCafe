@@ -49,7 +49,6 @@ export default function ApproveMaterialTransactions() {
       });
       setXuongsCache(xuongsMap);
     } catch (error) {
-      console.error("❌ Lỗi tải dữ liệu tham chiếu:", error);
     }
   }, []);
 
@@ -71,7 +70,6 @@ export default function ApproveMaterialTransactions() {
         return plan;
       }
     } catch (err) {
-      console.error(`❌ Error fetching plan ${planId}:`, err);
     }
     return null;
   }, []);
@@ -81,7 +79,6 @@ export default function ApproveMaterialTransactions() {
     setLoadingReceipts(true);
     try {
       const rawList = await getPendingMaterialReceipts();
-      console.log("📋 Raw material receipts from API:", rawList);
       
       if (!Array.isArray(rawList) || rawList.length === 0) {
         setReceipts([]);
@@ -117,7 +114,6 @@ export default function ApproveMaterialTransactions() {
       
       setReceipts(enrichedReceipts);
     } catch (error) {
-      console.error("❌ Lỗi tải phiếu nhập kho NVL:", error);
       if (error.response?.status !== 401) {
         setReceipts([]);
       }
@@ -131,7 +127,6 @@ export default function ApproveMaterialTransactions() {
     setLoadingIssues(true);
     try {
       const rawList = await getPendingMaterialIssues();
-      console.log("📋 Raw material issues from API:", rawList);
       
       if (!Array.isArray(rawList) || rawList.length === 0) {
         setIssues([]);
@@ -172,7 +167,6 @@ export default function ApproveMaterialTransactions() {
       
       setIssues(enrichedIssues);
     } catch (error) {
-      console.error("❌ Lỗi tải phiếu xuất kho NVL:", error);
       if (error.response?.status !== 401) {
         setIssues([]);
       }
@@ -211,7 +205,6 @@ export default function ApproveMaterialTransactions() {
         loadReceipts();
         // Đợi một chút để đảm bảo backend đã cập nhật xong trước khi phát event
         setTimeout(() => {
-          console.log("📢 Phát event inventory-updated sau khi duyệt phiếu nhập");
           window.dispatchEvent(new CustomEvent("inventory-updated"));
         }, 500);
     } catch (error) {
@@ -229,7 +222,6 @@ export default function ApproveMaterialTransactions() {
         loadIssues();
         // Đợi một chút để đảm bảo backend đã cập nhật xong trước khi phát event
         setTimeout(() => {
-          console.log("📢 Phát event inventory-updated sau khi duyệt phiếu xuất");
           window.dispatchEvent(new CustomEvent("inventory-updated"));
         }, 500);
     } catch (error) {

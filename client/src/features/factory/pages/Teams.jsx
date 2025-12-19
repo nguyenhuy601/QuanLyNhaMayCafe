@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Users, UserCircle2, ClipboardList, Award, X } from "lucide-react";
-import { fetchTeams, assignTeamLeader, assignTeamMember, removeTeamMember } from "../../../services/factoryService";
+import { useNavigate } from "react-router-dom";
+import { Users, UserCircle2, ClipboardList, Award, X, CheckCircle2, Package } from "lucide-react";
+import { 
+  fetchTeams, 
+  assignTeamLeader, 
+  assignTeamMember, 
+  removeTeamMember,
+  fetchManagerAssignments,
+} from "../../../services/factoryService";
 import { getAllUsers, getAllRoles } from "../../../api/adminAPI";
+import { getAllQcResults } from "../../../services/qcService";
+import PhieuNhapThanhPham from "../../warehouseProduct/components/PhieuNhapThanhPham";
 
 export default function FactoryTeams() {
+  const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -19,6 +29,9 @@ export default function FactoryTeams() {
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [memberAssignLoading, setMemberAssignLoading] = useState(false);
   const [memberAssignError, setMemberAssignError] = useState("");
+  const [creatingReceipt, setCreatingReceipt] = useState(false);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [selectedQcResult, setSelectedQcResult] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -34,7 +47,6 @@ export default function FactoryTeams() {
         setUsers(Array.isArray(usersRes) ? usersRes : []);
         setRoles(Array.isArray(rolesRes) ? rolesRes : []);
       } catch (err) {
-        console.error("❌ Lỗi tải dữ liệu Teams:", err);
         setError("Không thể tải danh sách tổ. Kiểm tra quyền/đăng nhập.");
       } finally {
         setLoading(false);
@@ -112,9 +124,18 @@ export default function FactoryTeams() {
     return result;
   }, [teams]);
 
+  // Kiểm tra xem tổ có hoàn thành không (tất cả thành viên đều hoàn thành)
+  const isTeamCompleted = (team) => {
+    if (!team.thanhVien || !Array.isArray(team.thanhVien) || team.thanhVien.length === 0) {
+      return false;
+    }
+    return team.thanhVien.every((tv) => tv.hoanThanh === true);
+  };
+
   const displayTeams = uniqueTeams.map((t, idx) => {
     const leaderName = t.toTruong?.[0]?.hoTen || t.toTruong?.[0]?.email || t.toTruong?.[0]?.maNV || "Chưa gán tổ trưởng";
     const membersCount = Array.isArray(t.thanhVien) ? t.thanhVien.length : 0;
+    const completed = isTeamCompleted(t);
     return {
       id: t.maTo || t._id || `T${idx + 1}`,
       rawId: t._id,
@@ -123,11 +144,94 @@ export default function FactoryTeams() {
       leader: leaderName,
       members: membersCount,
       performance: t.hieuSuat ? `${t.hieuSuat}%` : "—",
-      planProgress: t.tienDoKeHoach ?? 82, // giữ tiến độ như cũ nếu thiếu
-      planDeadline: t.hanKeHoach || "—",
+      completed: completed,
       tasks: normalizeTasks(t),
+      teamData: t, // Lưu toàn bộ dữ liệu team để dùng sau
     };
   });
+
+  // Sắp xếp tổ theo chuẩn quy trình sản xuất cà phê
+  const orderedTeams = React.useMemo(() => {
+    const stepOrder = [
+      "chuẩn bị & phối trộn",
+      "rang",
+      "ủ nghỉ",
+      "xay",
+      "sàng lọc & phân loại",
+      "đóng gói",
+      "dán nhãn",
+    ];
+
+    const getIndex = (name) => {
+      if (!name) return Number.MAX_SAFE_INTEGER;
+      const lower = name.toLowerCase();
+      const idx = stepOrder.findIndex((k) => lower.includes(k));
+      return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+    };
+
+    const clone = [...displayTeams];
+    clone.sort((a, b) => {
+      const ia = getIndex(a.name);
+      const ib = getIndex(b.name);
+      if (ia !== ib) return ia - ib;
+      return a.name.localeCompare(b.name);
+    });
+    return clone;
+  }, [displayTeams]);
+
+  // Kiểm tra xem tất cả các tổ đã hoàn thành chưa (trong cùng xưởng, nhóm SP, nguyên liệu)
+  const allTeamsCompleted = React.useMemo(() => {
+    if (orderedTeams.length === 0) return false;
+    
+    // Lọc các tổ theo cùng xưởng, nhóm SP, nguyên liệu (lấy từ tổ đầu tiên)
+    const firstTeam = orderedTeams[0];
+    if (!firstTeam.teamData) return false;
+    
+    const sameGroupTeams = orderedTeams.filter((t) => {
+      const teamData = t.teamData;
+      return (
+        (teamData.xuongInfo?.id === firstTeam.teamData.xuongInfo?.id ||
+          teamData.xuong?.toString() === firstTeam.teamData.xuong?.toString()) &&
+        teamData.nhomSanPham === firstTeam.teamData.nhomSanPham &&
+        teamData.nguyenLieu === firstTeam.teamData.nguyenLieu
+      );
+    });
+    
+    // Kiểm tra tất cả tổ trong cùng nhóm đã hoàn thành
+    return sameGroupTeams.length > 0 && sameGroupTeams.every((t) => t.completed === true);
+  }, [orderedTeams]);
+
+  const handleCreateFinishedReceipt = async () => {
+    try {
+      setCreatingReceipt(true);
+      
+      // Lấy danh sách QC results đã đạt
+      const qcResults = await getAllQcResults();
+      
+      const passedQcResults = Array.isArray(qcResults) 
+        ? qcResults.filter(qc => qc.ketQuaChung === "Dat" || qc.ketQuaChung === "Dat")
+        : [];
+      
+      if (passedQcResults.length === 0) {
+        alert("Không có phiếu QC nào đạt để tạo đơn nhập thành phẩm.");
+        return;
+      }
+      
+      // Lấy phiếu QC mới nhất đã đạt
+      const latestQcResult = passedQcResults.sort((a, b) => {
+        const dateA = new Date(a.ngayKiemTra || 0);
+        const dateB = new Date(b.ngayKiemTra || 0);
+        return dateB - dateA;
+      })[0];
+      
+      setSelectedQcResult(latestQcResult);
+      setReceiptModalOpen(true);
+    } catch (err) {
+      alert("Không thể lấy thông tin phiếu QC: " + (err?.response?.data?.error || err.message));
+    } finally {
+      setCreatingReceipt(false);
+    }
+  };
 
   const handleOpenAssignModal = (team) => {
     setAssignError("");
@@ -177,7 +281,6 @@ export default function FactoryTeams() {
 
       handleCloseAssignModal();
     } catch (err) {
-      console.error("❌ Lỗi gán tổ trưởng:", err);
       setAssignError("Không thể gán tổ trưởng. Vui lòng thử lại.");
     } finally {
       setAssignLoading(false);
@@ -235,7 +338,6 @@ export default function FactoryTeams() {
 
       handleCloseMemberModal();
     } catch (err) {
-      console.error("❌ Lỗi gán công nhân:", err);
       setMemberAssignError("Không thể gán công nhân. Vui lòng thử lại.");
     } finally {
       setMemberAssignLoading(false);
@@ -282,10 +384,20 @@ export default function FactoryTeams() {
             Thông tin các tổ sản xuất
           </h1>
         </div>
+        {allTeamsCompleted && (
+          <button
+            type="button"
+            onClick={handleCreateFinishedReceipt}
+            className="ml-auto inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-md transition"
+          >
+            <Package size={18} />
+            Tạo đơn nhập thành phẩm
+          </button>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {displayTeams.map((team) => (
+        {orderedTeams.map((team) => (
           <div
             key={team.id}
             className="bg-white border border-amber-100 rounded-3xl shadow p-6 flex flex-col gap-4"
@@ -328,20 +440,18 @@ export default function FactoryTeams() {
                 <p className="text-xs text-gray-500">Hiệu suất</p>
                 <p className="font-semibold text-amber-700">{team.performance}</p>
               </div>
-              <div className="col-span-3 rounded-2xl bg-white border border-amber-100 px-3 py-2">
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>Tiến độ kế hoạch</span>
-                  <span>Hạn: {team.planDeadline}</span>
+              <div className="col-span-2 rounded-2xl bg-white border border-amber-100 px-3 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Trạng thái</span>
+                  {team.completed ? (
+                    <div className="flex items-center gap-1 text-green-700 font-semibold">
+                      <CheckCircle2 size={16} />
+                      <span>Hoàn thành</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-amber-700 font-semibold">Đang thực hiện</span>
+                  )}
                 </div>
-                <div className="w-full bg-amber-100 rounded-full h-3">
-                  <div
-                    className="h-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-700"
-                    style={{ width: `${team.planProgress}%` }}
-                  />
-                </div>
-                <p className="text-right text-xs text-amber-700 font-semibold mt-1">
-                  {team.planProgress}%
-                </p>
               </div>
             </div>
 
@@ -380,11 +490,11 @@ export default function FactoryTeams() {
               <th className="px-4 py-3 text-left font-semibold">Tổ trưởng</th>
               <th className="px-4 py-3 text-left font-semibold">Thành viên</th>
               <th className="px-4 py-3 text-left font-semibold">Hiệu suất</th>
-              <th className="px-4 py-3 text-left font-semibold">Tiến độ kế hoạch</th>
+              <th className="px-4 py-3 text-left font-semibold">Trạng thái</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-amber-50 bg-white">
-            {displayTeams.map((team) => (
+            {orderedTeams.map((team) => (
               <tr key={team.id} className="hover:bg-amber-50/60">
                 <td className="px-4 py-3 font-semibold">{team.name}</td>
                 <td className="px-4 py-3">{team.leader}</td>
@@ -395,17 +505,14 @@ export default function FactoryTeams() {
                   {team.performance}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-amber-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-600 rounded-full"
-                        style={{ width: `${team.planProgress}%` }}
-                      />
+                  {team.completed ? (
+                    <div className="flex items-center gap-1 text-green-700 font-semibold">
+                      <CheckCircle2 size={16} />
+                      <span>Hoàn thành</span>
                     </div>
-                    <span className="text-sm font-semibold text-amber-800">
-                      {team.planProgress}%
-                    </span>
-                  </div>
+                  ) : (
+                    <span className="text-sm text-amber-700 font-semibold">Đang thực hiện</span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -571,10 +678,6 @@ export default function FactoryTeams() {
                                   )
                                 );
                               } catch (err) {
-                                console.error(
-                                  "❌ Lỗi xóa thành viên khỏi tổ:",
-                                  err
-                                );
                               }
                             }}
                             className="inline-flex items-center gap-1 rounded-full border border-red-200 px-2 py-1 text-[11px] font-semibold text-red-600 hover:bg-red-50"
@@ -600,6 +703,30 @@ export default function FactoryTeams() {
                 Đóng
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal tạo phiếu nhập thành phẩm */}
+      {receiptModalOpen && selectedQcResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
+          <div className="relative w-[700px] max-h-[90vh] overflow-y-auto">
+            <PhieuNhapThanhPham 
+              selectedQC={selectedQcResult} 
+              onClose={() => {
+                setReceiptModalOpen(false);
+                setSelectedQcResult(null);
+              }} 
+            />
+            <button
+              onClick={() => {
+                setReceiptModalOpen(false);
+                setSelectedQcResult(null);
+              }}
+              className="absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 z-10"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}

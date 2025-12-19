@@ -112,7 +112,6 @@ const PlanListView = ({
           setPlans(mappedPlans);
         }
       } catch (err) {
-        console.error("❌ Lỗi khi tải kế hoạch sản xuất:", err);
         setPlans([]);
       } finally {
         if (mounted) setLoading(false);
@@ -177,7 +176,6 @@ const PlanListView = ({
         alert(`❌ Lỗi: ${result.message}`);
       }
     } catch (err) {
-      console.error(err);
       alert("❌ Có lỗi xảy ra khi gửi kế hoạch");
     } finally {
       setSendingIds((prev) => {

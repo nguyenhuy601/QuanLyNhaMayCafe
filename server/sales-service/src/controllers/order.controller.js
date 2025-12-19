@@ -118,8 +118,50 @@ exports.createOrder = async (req, res) => {
   try {
     const { khachHang, chiTiet, ngayYeuCauGiao, diaChiGiao, ghiChu } = req.body;
 
-    if (!khachHang || !khachHang.sdt || !Array.isArray(chiTiet) || chiTiet.length === 0) {
-      return res.status(400).json({ message: "Thiếu thông tin khách hàng hoặc sản phẩm." });
+    // ============================================
+    // VALIDATION: Ràng buộc cơ bản
+    // ============================================
+    
+    // 1. Kiểm tra thông tin khách hàng
+    if (!khachHang) {
+      return res.status(400).json({ message: "Thiếu thông tin khách hàng." });
+    }
+    
+    if (!khachHang.tenKH || khachHang.tenKH.trim() === "") {
+      return res.status(400).json({ message: "Tên khách hàng không được để trống." });
+    }
+    
+    if (!khachHang.sdt || khachHang.sdt.trim() === "") {
+      return res.status(400).json({ message: "Số điện thoại khách hàng không được để trống." });
+    }
+    
+    // Kiểm tra định dạng số điện thoại (ít nhất 10 số)
+    const phoneRegex = /^[0-9]{10,11}$/;
+    if (!phoneRegex.test(khachHang.sdt.replace(/\s+/g, ""))) {
+      return res.status(400).json({ message: "Số điện thoại không hợp lệ. Vui lòng nhập 10-11 chữ số." });
+    }
+
+    // 2. Kiểm tra chi tiết đơn hàng
+    if (!Array.isArray(chiTiet) || chiTiet.length === 0) {
+      return res.status(400).json({ message: "Đơn hàng phải có ít nhất một sản phẩm." });
+    }
+
+    // 3. Kiểm tra ngày giao
+    if (!ngayYeuCauGiao) {
+      return res.status(400).json({ message: "Ngày yêu cầu giao hàng không được để trống." });
+    }
+    
+    const ngayDat = new Date();
+    const ngayGiao = new Date(ngayYeuCauGiao);
+    
+    if (isNaN(ngayGiao.getTime())) {
+      return res.status(400).json({ message: "Ngày yêu cầu giao hàng không hợp lệ." });
+    }
+    
+    // Ngày giao phải sau ngày tạo ít nhất 30 ngày
+    const soNgay = Math.floor((ngayGiao - ngayDat) / (1000 * 60 * 60 * 24));
+    if (soNgay < 30) {
+      return res.status(400).json({ message: "Ngày yêu cầu giao hàng phải sau ngày tạo đơn ít nhất 30 ngày." });
     }
 
     const customer = await Customer.findOneAndUpdate(
@@ -136,7 +178,15 @@ exports.createOrder = async (req, res) => {
     let tongTien = 0;
     const chiTietDonHang = [];
 
-    for (const item of chiTiet) {
+    // 4. Kiểm tra từng sản phẩm trong chi tiết
+    for (let i = 0; i < chiTiet.length; i++) {
+      const item = chiTiet[i];
+      
+      // Kiểm tra sản phẩm có tồn tại
+      if (!item.sanPham) {
+        return res.status(400).json({ message: `Sản phẩm thứ ${i + 1}: Thiếu thông tin sản phẩm.` });
+      }
+      
       console.log("📦 Checking item:", item);
       const product = await Product.findById(item.sanPham);
       console.log("🔎 Found product:", product);
@@ -144,11 +194,49 @@ exports.createOrder = async (req, res) => {
         return res.status(404).json({ message: `Không tìm thấy sản phẩm với ID ${item.sanPham}` });
       }
 
+      // Kiểm tra số lượng
       const soLuong = parseInt(item.soLuong, 10);
-      const donVi = item.donVi || null; // Giữ null nếu không có để tương thích với dữ liệu cũ
-      const loaiTui = (donVi === "túi" && item.loaiTui) ? item.loaiTui : null; // Lưu loại túi: "500g", "1kg", hoặc "hop" (hộp) nếu đơn vị là túi
+      if (isNaN(soLuong) || soLuong <= 0) {
+        return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Số lượng phải là số nguyên dương.` });
+      }
+      
+      if (soLuong > 1000000) {
+        return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Số lượng quá lớn (tối đa 1,000,000).` });
+      }
+
+      // Kiểm tra đơn giá
+      if (!product.donGia || product.donGia <= 0) {
+        return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Đơn giá không hợp lệ.` });
+      }
+
+      // Kiểm tra đơn vị
+      const donVi = item.donVi || null;
+      if (donVi !== null && donVi !== undefined && donVi !== "" && !["kg", "túi"].includes(donVi)) {
+        return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Đơn vị không hợp lệ. Chỉ chấp nhận "kg" hoặc "túi".` });
+      }
+
+      // Kiểm tra loại túi (nếu đơn vị là túi)
+      let loaiTui = null;
+      if (donVi === "túi") {
+        if (item.loaiTui) {
+          if (!["500g", "1kg", "hop"].includes(item.loaiTui)) {
+            return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Loại túi không hợp lệ. Chỉ chấp nhận "500g", "1kg" hoặc "hop".` });
+          }
+          loaiTui = item.loaiTui;
+        }
+      } else if (item.loaiTui) {
+        // Nếu đơn vị không phải túi nhưng có loaiTui thì bỏ qua
+        loaiTui = null;
+      }
+
       const donGia = product.donGia;
       const thanhTien = soLuong * donGia;
+      
+      // Kiểm tra tổng tiền không quá lớn
+      if (thanhTien > 1000000000000) { // 1 tỷ tỷ
+        return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Thành tiền quá lớn.` });
+      }
+      
       tongTien += thanhTien;
 
       chiTietDonHang.push({
@@ -159,6 +247,25 @@ exports.createOrder = async (req, res) => {
         donGia,
         thanhTien,
       });
+    }
+
+    // 5. Kiểm tra tổng tiền đơn hàng
+    if (tongTien <= 0) {
+      return res.status(400).json({ message: "Tổng tiền đơn hàng phải lớn hơn 0." });
+    }
+    
+    if (tongTien > 10000000000000) { // 10 tỷ tỷ
+      return res.status(400).json({ message: "Tổng tiền đơn hàng quá lớn." });
+    }
+
+    // 6. Kiểm tra địa chỉ giao (nếu có)
+    if (diaChiGiao && diaChiGiao.trim().length > 500) {
+      return res.status(400).json({ message: "Địa chỉ giao hàng không được vượt quá 500 ký tự." });
+    }
+
+    // 7. Kiểm tra ghi chú (nếu có)
+    if (ghiChu && ghiChu.trim().length > 1000) {
+      return res.status(400).json({ message: "Ghi chú không được vượt quá 1000 ký tự." });
     }
 
     const latestOrder = await Order.findOne().sort({ createdAt: -1 });

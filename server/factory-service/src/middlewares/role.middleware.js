@@ -23,6 +23,7 @@ exports.authorizeRoles = (allowedRoles = []) => {
     const userRoleNormalized = userRoles.map(normalize);
 
     const hasPermission = userRoleNormalized.some((r) => normalizedAllowed.includes(r));
+    
     if (!hasPermission) {
       return res.status(403).json({ 
         message: "Bạn không có quyền truy cập tài nguyên này",

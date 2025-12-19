@@ -4,6 +4,118 @@ const { publishEvent } = require("../utils/eventPublisher");
 const GATEWAY_URL = process.env.GATEWAY_URL || 'http://api-gateway:4000';
 
 /**
+ * Tự động tạo lô sản xuất khi bắt đầu kế hoạch
+ */
+async function createLotForPlan(plan, user) {
+  const LoSanXuat = require("../models/LoSanXuat");
+  const WorkAssignment = require("../models/WorkAssignment");
+  const ToSanXuat = require("../models/ToSanXuat");
+  const XuongSanXuat = require("../models/XuongSanXuat");
+
+  // Lấy thông tin sản phẩm từ kế hoạch
+  const productInfo = plan.sanPham || {};
+  
+  // Tìm WorkAssignment của kế hoạch này để lấy thông tin xưởng và tổ
+  const assignment = await WorkAssignment.findOne({
+    "keHoach.planId": plan._id?.toString() || plan.id?.toString(),
+    trangThai: { $in: ["Dang thuc hien", "Cho xac nhan", "Hoan thanh"] }
+  }).sort({ createdAt: -1 });
+
+  let xuongInfo = null;
+  let toInfo = null;
+  let nhomSanPham = "khac";
+  let nguyenLieu = "";
+
+  if (assignment) {
+    xuongInfo = assignment.xuong || {};
+    
+    // Lấy tổ đầu tiên từ công việc (thường là tổ Chuẩn bị & Phối trộn)
+    if (assignment.congViec && assignment.congViec.length > 0) {
+      const firstCongViec = assignment.congViec[0];
+      const toId = firstCongViec.to?.id;
+      
+      if (toId) {
+        const to = await ToSanXuat.findById(toId);
+        if (to) {
+          toInfo = {
+            id: to._id.toString(),
+            maTo: to.maTo || null,
+            tenTo: to.tenTo || "Chưa xác định",
+          };
+          nhomSanPham = to.nhomSanPham || "khac";
+          nguyenLieu = to.nguyenLieu || "";
+        }
+      }
+    }
+  } else {
+    // Nếu không có assignment, lấy thông tin xưởng từ kế hoạch hoặc user
+    if (plan.xuongPhuTrach) {
+      // Tìm xưởng theo tên từ kế hoạch
+      const xuong = await XuongSanXuat.findOne({ 
+        tenXuong: plan.xuongPhuTrach 
+      });
+      if (xuong) {
+        xuongInfo = {
+          id: xuong._id.toString(),
+          tenXuong: xuong.tenXuong || plan.xuongPhuTrach,
+        };
+      } else {
+        // Nếu không tìm thấy, dùng tên từ kế hoạch
+        xuongInfo = {
+          id: null,
+          tenXuong: plan.xuongPhuTrach,
+        };
+      }
+    } else if (user?.xuongInfo) {
+      xuongInfo = user.xuongInfo;
+    }
+  }
+
+  // Tạo ngày sản xuất (ngày hiện tại)
+  const ngaySanXuat = new Date();
+  
+  // Tạo hạn sử dụng (2 năm sau)
+  const hanSuDung = new Date(ngaySanXuat);
+  hanSuDung.setFullYear(hanSuDung.getFullYear() + 2);
+
+  // Tạo lô sản xuất
+  const lo = new LoSanXuat({
+    sanPham: {
+      productId: productInfo.productId || productInfo._id?.toString() || null,
+      maSP: productInfo.maSP || productInfo.maSanPham || null,
+      tenSanPham: productInfo.tenSanPham || productInfo.tenSP || plan.tenSanPham || "Chưa xác định",
+      loai: productInfo.loai || nhomSanPham,
+    },
+    nhomSanPham: nhomSanPham,
+    nguyenLieu: nguyenLieu,
+    soLuong: plan.soLuongCanSanXuat || 0, // Số lượng ban đầu từ kế hoạch
+    ngaySanXuat: ngaySanXuat,
+    hanSuDung: hanSuDung,
+    xuong: {
+      id: xuongInfo?.id || null,
+      tenXuong: xuongInfo?.tenXuong || "Chưa xác định",
+    },
+    toSanXuat: toInfo || null,
+    keHoach: {
+      planId: plan._id?.toString() || plan.id?.toString() || null,
+      maKeHoach: plan.maKeHoach || plan.maKH || null,
+    },
+    nguoiTao: {
+      id: user?.id || user?._id?.toString() || "system",
+      hoTen: user?.hoTen || user?.username || "Hệ thống",
+      email: user?.email || "system@factory.com",
+    },
+    trangThai: "Da tao",
+    ghiChu: `Tự động tạo khi bắt đầu kế hoạch ${plan.maKeHoach || plan.maKH || planId}`,
+  });
+
+  await lo.save();
+  console.log(`✅ Đã tạo lô sản xuất: ${lo.maLo} - Số lượng: ${lo.soLuong}`);
+  
+  return lo;
+}
+
+/**
  * Xưởng trưởng duyệt kế hoạch sản xuất
  * Chỉ duyệt được kế hoạch có sản phẩm trong danh sách phụ trách
  */
@@ -441,9 +553,9 @@ exports.checkStartConditions = async (req, res) => {
       const startDate = new Date(plan.ngayBatDauDuKien);
       const endDate = new Date(plan.ngayKetThucDuKien);
       
-      // Kiểm tra WorkAssignment - dùng route teamleader vì không có route manager riêng
+      // Kiểm tra WorkAssignment - dùng route manager
       const assignmentsResponse = await axios.get(
-        `${GATEWAY_URL}/factory/teamleader/assignments`,
+        `${GATEWAY_URL}/factory/manager/assignments`,
         { headers }
       );
       const assignments = Array.isArray(assignmentsResponse.data) 
@@ -458,13 +570,26 @@ exports.checkStartConditions = async (req, res) => {
       });
 
       // Kiểm tra ShiftSchedule
-      const shiftsResponse = await axios.get(
-        `${GATEWAY_URL}/factory/teamleader/shifts`,
-        { headers, params: {} }
-      );
-      const shifts = Array.isArray(shiftsResponse.data) 
-        ? shiftsResponse.data 
-        : [];
+      // Lưu ý: Route này yêu cầu role xuongtruong/totruong, nên có thể bị 404
+      // Nếu lỗi, coi như không có ca làm trùng (lịch trống)
+      let shifts = [];
+      try {
+        const shiftsResponse = await axios.get(
+          `${GATEWAY_URL}/factory/teamleader/shifts`,
+          { headers, params: {} }
+        );
+        shifts = Array.isArray(shiftsResponse.data) 
+          ? shiftsResponse.data 
+          : [];
+      } catch (shiftErr) {
+        // Nếu lỗi 404 hoặc 403, coi như không có ca làm (lịch trống)
+        if (shiftErr.response?.status === 404 || shiftErr.response?.status === 403) {
+          console.log("⚠️ Không thể truy cập lịch phân ca (có thể do quyền), coi như lịch trống");
+          shifts = [];
+        } else {
+          throw shiftErr; // Ném lại lỗi khác
+        }
+      }
       
       const conflictingShifts = shifts.filter(s => {
         if (!s.ngay) return false;
@@ -535,6 +660,10 @@ exports.startPlan = async (req, res) => {
       });
     }
 
+    // Lấy thông tin kế hoạch trước khi cập nhật
+    const planResponse = await axios.get(`${GATEWAY_URL}/plan/${planId}`, { headers });
+    const plan = planResponse.data;
+
     // Cập nhật trạng thái kế hoạch
     const updateResponse = await axios.put(
       `${GATEWAY_URL}/plan/${planId}`,
@@ -542,9 +671,21 @@ exports.startPlan = async (req, res) => {
       { headers }
     );
 
+    const updatedPlan = updateResponse.data.plan || updateResponse.data;
+
+    // Tự động tạo lô sản xuất khi bắt đầu kế hoạch
+    try {
+      const user = req.user || {};
+      const lot = await createLotForPlan(updatedPlan || plan, user);
+      console.log(`✅ Đã tạo lô sản xuất ${lot.maLo} cho kế hoạch ${planId}`);
+    } catch (lotError) {
+      console.error("❌ Lỗi khi tạo lô sản xuất:", lotError.message);
+      // Không block response nếu lỗi tạo lô, nhưng log để debug
+    }
+
     res.status(200).json({
       message: "Đã bắt đầu kế hoạch thành công",
-      plan: updateResponse.data.plan || updateResponse.data
+      plan: updatedPlan
     });
   } catch (error) {
     console.error("❌ Error starting plan:", error.message);

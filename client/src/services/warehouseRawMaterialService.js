@@ -12,7 +12,6 @@ export const getApprovedPlans = async () => {
       : [];
     return approvedPlans;
   } catch (error) {
-    console.error('❌ Error fetching approved plans:', error);
     throw error;
   }
 };
@@ -25,7 +24,6 @@ export const getPlanById = async (planId) => {
     const response = await axiosInstance.get(`/plan/${planId}`);
     return response.data;
   } catch (error) {
-    console.error('❌ Error fetching plan details:', error);
     throw error;
   }
 };
@@ -35,12 +33,9 @@ export const getPlanById = async (planId) => {
  */
 export const createMaterialReceipt = async (receiptData) => {
   try {
-    console.log("🔵 [Frontend] Creating material receipt:", receiptData.maPhieu);
-    console.trace("🔵 [Frontend] Stack trace for createMaterialReceipt call:");
     const response = await axiosInstance.post('/warehouse/materials/receipts', receiptData);
     return response.data;
   } catch (error) {
-    console.error('❌ Error creating material receipt:', error);
     throw error;
   }
 };
@@ -53,7 +48,6 @@ export const createMaterialIssue = async (issueData) => {
     const response = await axiosInstance.post('/warehouse/materials/issues', issueData);
     return response.data;
   } catch (error) {
-    console.error('❌ Error creating material issue:', error);
     throw error;
   }
 };
@@ -66,7 +60,6 @@ export const getMaterialReceipts = async () => {
     const response = await axiosInstance.get('/warehouse/materials/receipts');
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error('❌ Error fetching material receipts:', error);
     throw error;
   }
 };
@@ -79,7 +72,6 @@ export const getMaterialIssues = async () => {
     const response = await axiosInstance.get('/warehouse/materials/issues');
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error('❌ Error fetching material issues:', error);
     throw error;
   }
 };

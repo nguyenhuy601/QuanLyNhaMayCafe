@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "../../../api/axiosConfig";
 import { Filter, Edit2, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -12,10 +12,9 @@ const KiemDinhProcessed = () => {
   useEffect(() => {
     const fetchProcessedRequests = async () => {
       try {
-        const res = await axios.get("http://localhost:3006/qc-result");
+        const res = await axiosInstance.get("/qc-result");
         setRequests(res.data);
       } catch (err) {
-        console.error("Lỗi khi tải danh sách QC đã kiểm định:", err);
       }
     };
     fetchProcessedRequests();
@@ -41,10 +40,9 @@ const KiemDinhProcessed = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa kết quả kiểm định này?")) return;
     try {
-      await axios.delete(`http://localhost:3006/qc-result/${id}`);
+      await axiosInstance.delete(`/qc-result/${id}`);
       setRequests(requests.filter((req) => req._id !== id));
     } catch (err) {
-      console.error("Lỗi khi xóa:", err);
     }
   };
 

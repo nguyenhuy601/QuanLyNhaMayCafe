@@ -23,7 +23,6 @@ export default function ThongKe() {
       setIssues(issuesData);
       setError(null);
     } catch (err) {
-      console.error('Lỗi khi tải dữ liệu:', err);
       setError('Không thể tải dữ liệu thống kê');
     } finally {
       setLoading(false);

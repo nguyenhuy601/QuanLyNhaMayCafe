@@ -1,8 +1,9 @@
 import React from 'react';
 import { Search, Bell, Settings, User } from 'lucide-react';
+import useCurrentUser from '../../../hooks/useCurrentUser';
 
 const Header = ({ role = "khotp" }) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const { currentUser, loading } = useCurrentUser();
   const roleLabel = role === "khonvl" ? "Quản lý kho nguyên vật liệu" : "Quản lý kho thành phẩm";
 
   return (
@@ -24,7 +25,11 @@ const Header = ({ role = "khotp" }) => {
             <User size={22} />
           </div>
           <div>
-            <div className="font-semibold">{user.hoTen || 'Your Name'}</div>
+            <div className="font-semibold">
+              {loading
+                ? 'Đang tải...'
+                : currentUser?.hoTen || currentUser?.email || 'Your Name'}
+            </div>
             <div className="text-xs text-amber-200">{roleLabel}</div>
           </div>
         </div>

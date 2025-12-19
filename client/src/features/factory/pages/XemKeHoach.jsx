@@ -21,7 +21,6 @@ export default function XemKeHoach() {
       const data = await fetchPlans();
       setPlans(data);
     } catch (error) {
-      console.error("Lỗi tải kế hoạch:", error);
     } finally {
       setLoading(false);
     }
@@ -184,7 +183,6 @@ export default function XemKeHoach() {
                                 const conditionsData = await checkStartConditions(row._id);
                                 setConditions(conditionsData);
                               } catch (err) {
-                                console.error("Lỗi kiểm tra điều kiện:", err);
                                 setConditions(null);
                               } finally {
                                 setLoadingConditions(false);
@@ -216,7 +214,6 @@ export default function XemKeHoach() {
                                 const conditionsData = await checkStartConditions(row._id);
                                 setConditions(conditionsData);
                               } catch (err) {
-                                console.error("Lỗi kiểm tra điều kiện:", err);
                                 setConditions(null);
                               } finally {
                                 setLoadingConditions(false);
@@ -431,7 +428,6 @@ export default function XemKeHoach() {
                             const conditionsData = await checkStartConditions(selectedPlan._id);
                             setConditions(conditionsData);
                           } catch (err) {
-                            console.error("Lỗi kiểm tra điều kiện:", err);
                             alert(`Lỗi: ${err.response?.data?.message || err.message}`);
                             setConditions(null);
                           } finally {

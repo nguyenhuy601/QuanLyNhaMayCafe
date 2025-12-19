@@ -14,4 +14,7 @@ router.get("/:id", qcRequestController.getRequestById);
 // PATCH /qc-request/:id  cập nhật trạng thái/ghi chú
 router.patch("/:id", qcRequestController.updateRequestStatus);
 
+// POST /qc-request/migrate-kehoach  migration keHoach cho các QCRequest cũ
+router.post("/migrate-kehoach", qcRequestController.migrateKeHoach);
+
 module.exports = router;

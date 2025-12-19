@@ -10,12 +10,25 @@ exports.listenDirectorEvents = async () => {
   channel.bindQueue(queue, "director_events", "");
 
   channel.consume(queue, async (msg) => {
-    if (!msg.content) return;
-    const { event, payload } = JSON.parse(msg.content.toString());
-    console.log("📩 [production-plan-service] Received:", event);
-
-    if (event === "ORDER_APPROVED") {
-      await createPlanFromEvent(payload);
+    if (!msg.content) {
+      channel.ack(msg);
+      return;
     }
-  });
+    
+    try {
+      const { event, payload } = JSON.parse(msg.content.toString());
+      console.log("📩 [production-plan-service] Received:", event);
+
+      if (event === "ORDER_APPROVED") {
+        await createPlanFromEvent(payload);
+      }
+      
+      // Acknowledge message sau khi xử lý thành công
+      channel.ack(msg);
+    } catch (err) {
+      console.error("❌ [production-plan-service] Error processing message:", err.message);
+      // Reject message và không requeue nếu lỗi nghiêm trọng
+      channel.nack(msg, false, false);
+    }
+  }, { noAck: false });
 };

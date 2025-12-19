@@ -15,6 +15,19 @@ const AccountSchema = new mongoose.Schema(
         tenSP: String,
       },
     ],
+    // Danh sách tổ trưởng thuộc xưởng (chỉ dành cho xưởng trưởng)
+    // Tự động lấy khi gán sản phẩm phụ trách
+    toTruongInfo: [
+      {
+        id: String, // ID từ Account/User service
+        hoTen: String,
+        email: String,
+        role: String,
+        maNV: String,
+        tenTo: String, // Tên tổ mà tổ trưởng này phụ trách
+        maTo: String, // Mã tổ
+      },
+    ],
   },
   { timestamps: true }
 );

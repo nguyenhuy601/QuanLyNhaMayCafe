@@ -14,8 +14,8 @@ const KiemDinhDetail = () => {
 
   const [request, setRequest] = useState(null);
   const [ketQua, setKetQua] = useState("Đạt");
-  const [soLuongDat, setSoLuongDat] = useState(0);
-  const [soLuongLoi, setSoLuongLoi] = useState(0);
+  const [soLuongDat, setSoLuongDat] = useState("");
+  const [soLuongLoi, setSoLuongLoi] = useState("");
   const [ghiChu, setGhiChu] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [showNote, setShowNote] = useState(false);
@@ -28,11 +28,14 @@ const KiemDinhDetail = () => {
         setRequest(data);
 
         // Nếu đã có dữ liệu kiểm định trước đó
-        if (data.soLuongDat) setSoLuongDat(data.soLuongDat);
-        if (data.soLuongLoi) setSoLuongLoi(data.soLuongLoi);
+        if (data.soLuongDat !== undefined && data.soLuongDat !== null && data.soLuongDat !== 0) {
+          setSoLuongDat(data.soLuongDat);
+        }
+        if (data.soLuongLoi !== undefined && data.soLuongLoi !== null && data.soLuongLoi !== 0) {
+          setSoLuongLoi(data.soLuongLoi);
+        }
         if (data.ghiChu) setGhiChu(data.ghiChu);
       } catch (err) {
-        console.error("Lỗi khi tải phiếu kiểm định:", err);
       }
     };
 
@@ -44,8 +47,8 @@ const KiemDinhDetail = () => {
       const payload = {
         qcRequest: id,
         ketQuaChung: ketQua === "Đạt" ? "Dat" : "Khong dat",
-        soLuongDat: Number(soLuongDat),
-        soLuongLoi: Number(soLuongLoi),
+        soLuongDat: soLuongDat === "" || soLuongDat === null ? 0 : Number(soLuongDat),
+        soLuongLoi: soLuongLoi === "" || soLuongLoi === null ? 0 : Number(soLuongLoi),
         chiTietTieuChi: [],
         phanLoaiLoi: [],
         nguoiKiemTra: "60f7a7b2c9a1f2a5c4e6b3d9",
@@ -57,7 +60,7 @@ const KiemDinhDetail = () => {
 
       // Cập nhật trạng thái phiếu QC
       updateQcRequest(id, { trangThai: "Đã kiểm định", ghiChu: ghiChu || "" })
-        .catch(err => console.error("Lỗi updateQcRequest:", err));
+        .catch(() => {});
 
       // Hiện modal thành công
       setShowSuccess(true);
@@ -66,7 +69,6 @@ const KiemDinhDetail = () => {
       setTimeout(() => navigate("/qc/danh-sach"), 2000);
 
     } catch (err) {
-      console.error("Lỗi khi xác nhận:", err.response?.data || err.message);
     }
   };
 
@@ -97,7 +99,15 @@ const KiemDinhDetail = () => {
 
         <div>
           <label className="block font-semibold mb-1">Sản phẩm:</label>
-          <input value={request.sanPham?.ProductName || ""} readOnly className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full" />
+          <input
+            value={
+              request.sanPham?.ProductName ||
+              request.sanPhamName ||
+              ""
+            }
+            readOnly
+            className="border border-[#e5d2b2] bg-[#fdf8f4] rounded-md px-3 py-2 w-full"
+          />
         </div>
 
         <div>
@@ -112,12 +122,30 @@ const KiemDinhDetail = () => {
 
         <div>
           <label className="block font-semibold mb-1">Số lượng đạt:</label>
-          <input type="number" value={soLuongDat} onChange={(e) => setSoLuongDat(Number(e.target.value))} className="border border-[#e5d2b2] rounded-md px-3 py-2 w-full" />
+          <input 
+            type="number" 
+            value={soLuongDat === 0 ? "" : soLuongDat} 
+            onChange={(e) => {
+              const val = e.target.value;
+              setSoLuongDat(val === "" ? "" : Number(val));
+            }} 
+            className="border border-[#e5d2b2] rounded-md px-3 py-2 w-full" 
+            placeholder="Nhập số lượng đạt"
+          />
         </div>
 
         <div>
           <label className="block font-semibold mb-1">Số lượng lỗi:</label>
-          <input type="number" value={soLuongLoi} onChange={(e) => setSoLuongLoi(Number(e.target.value))} className="border border-[#e5d2b2] rounded-md px-3 py-2 w-full" />
+          <input 
+            type="number" 
+            value={soLuongLoi === 0 ? "" : soLuongLoi} 
+            onChange={(e) => {
+              const val = e.target.value;
+              setSoLuongLoi(val === "" ? "" : Number(val));
+            }} 
+            className="border border-[#e5d2b2] rounded-md px-3 py-2 w-full" 
+            placeholder="Nhập số lượng lỗi"
+          />
         </div>
 
         <div>

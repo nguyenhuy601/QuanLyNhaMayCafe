@@ -17,7 +17,6 @@ const OrderList = () => {
       const data = await fetchOrders();
       setOrders(data);
     } catch (error) {
-      console.error("Error fetching orders:", error);
     } finally {
       setLoading(false);
     }
@@ -118,18 +117,24 @@ const OrderList = () => {
                         const donVi = chiTiet?.donVi;
                         const loaiTui = chiTiet?.loaiTui;
                         
-                        // Nếu loaiTui = "hop" thì hiển thị "Hộp"
+                        // Xác định đơn vị hiển thị
+                        let displayUnit = "";
                         if (loaiTui === "hop") {
-                          return `${soLuong} Hộp`;
+                          displayUnit = "Hộp";
+                        } else if (donVi === "túi") {
+                          // Hiển thị loại túi nếu có
+                          if (loaiTui === "500g") {
+                            displayUnit = "túi 500g";
+                          } else if (loaiTui === "1kg") {
+                            displayUnit = "túi 1kg";
+                          } else {
+                            displayUnit = "túi";
+                          }
+                        } else {
+                          displayUnit = donVi !== null && donVi !== undefined ? donVi : "null";
                         }
                         
-                        // Nếu có donVi thì hiển thị donVi
-                        if (donVi !== null && donVi !== undefined) {
-                          return `${soLuong} ${donVi}`;
-                        }
-                        
-                        // Mặc định hiển thị "null"
-                        return `${soLuong} null`;
+                        return `${soLuong} ${displayUnit}`;
                       })()}
                     </td>
                     <td className="px-4 py-3 text-sm">{formatDate(order.ngayDat)}</td>

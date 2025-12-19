@@ -86,7 +86,6 @@ export default function ThongKeWP() {
         setData(combined);
         setColumns(COLUMN_SETS.tatca);
       } catch (err) {
-        console.error('Lỗi khi tải sản phẩm/nguyên vật liệu:', err.response?.data || err.message || err);
         // fallback to empty
         setAllData([]);
         setData([]);

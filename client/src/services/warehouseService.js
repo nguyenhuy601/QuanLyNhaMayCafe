@@ -5,10 +5,9 @@ import axiosInstance from "../api/axiosConfig";
  */
 export const getAllFinishedReceipts = async () => {
   try {
-    const res = await axiosInstance.get(`/warehouse/issues/receipts`);
+    const res = await axiosInstance.get(`/warehouse/products/issues/receipts`);
     return res.data;
   } catch (err) {
-    console.error("Lỗi getAllFinishedReceipts:", err.response?.data || err.message);
     throw err;
   }
 };
@@ -18,10 +17,9 @@ export const getAllFinishedReceipts = async () => {
  */
 export const createFinishedReceipt = async (payload) => {
   try {
-    const res = await axiosInstance.post(`/warehouse/issues/receipts`, payload);
+    const res = await axiosInstance.post(`/warehouse/products/issues/receipts`, payload);
     return res.data;
   } catch (err) {
-    console.error("Lỗi createFinishedReceipt:", err.response?.data || err.message);
     throw err;
   }
 };
@@ -31,10 +29,21 @@ export const createFinishedReceipt = async (payload) => {
  */
 export const getFinishedReceiptById = async (id) => {
   try {
-    const res = await axiosInstance.get(`/warehouse/issues/receipts/${id}`);
+    const res = await axiosInstance.get(`/warehouse/products/issues/receipts/${id}`);
     return res.data;
   } catch (err) {
-    console.error("Lỗi getFinishedReceiptById:", err.response?.data || err.message);
+    throw err;
+  }
+};
+
+/**
+ * Xác nhận nhập kho thành phẩm
+ */
+export const confirmReceipt = async (id) => {
+  try {
+    const res = await axiosInstance.put(`/warehouse/products/issues/receipts/${id}/confirm`);
+    return res.data;
+  } catch (err) {
     throw err;
   }
 };

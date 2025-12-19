@@ -35,6 +35,11 @@ const ToSanXuatSchema = new mongoose.Schema(
         email: String,
         role: String,
         maNV: String,
+        hoanThanh: { // Trạng thái hoàn thành do tổ trưởng xác nhận
+          type: Boolean,
+          default: false,
+        },
+        ngayXacNhan: Date, // Ngày tổ trưởng xác nhận hoàn thành
       },
     ],
     moTa: { 

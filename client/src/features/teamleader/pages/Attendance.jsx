@@ -25,7 +25,6 @@ const getCurrentUser = () => {
       hoTen: payload.hoTen || payload.name,
     };
   } catch (err) {
-    console.error("Lỗi khi parse token:", err);
     return null;
   }
 };
@@ -77,7 +76,6 @@ export default function Attendance() {
         setRoles(Array.isArray(r) ? r : []);
         setTeams(Array.isArray(t) ? t : []);
       } catch (err) {
-        console.error("Lỗi tải dữ liệu chấm công:", err);
         setUsers([]);
         setRoles([]);
         setTeams([]);
@@ -143,22 +141,13 @@ export default function Attendance() {
     const byLeader = leader ? matchBy(leader) : null;
     if (byLeader) return byLeader;
 
-    console.warn("[Attendance] Không tìm được tổ cho tổ trưởng.", {
-      currentUser,
-      leader,
-    });
     return null;
   }, [currentUser, leader, teams]);
 
   useEffect(() => {
     if (users.length === 0) {
-      console.log("[Attendance] users rỗng, không thể build danh sách công nhân.");
       return;
     }
-
-    console.log("[Attendance] currentUser:", currentUser);
-    console.log("[Attendance] leader (suy ra từ users):", leader);
-    console.log("[Attendance] currentTeam:", currentTeam);
 
     const leaderDepts = leader?.phongBan || [];
     const workerRoleId = roleIdBySlug["worker"];
@@ -176,8 +165,6 @@ export default function Attendance() {
       }
       return roleNorm.includes("worker");
     };
-
-    console.log("[Attendance] workerRoleId:", workerRoleId);
 
     // Nếu tổ đã có danh sách thành viên thì chỉ lấy các thành viên đó
     const memberIdSet =
@@ -214,12 +201,6 @@ export default function Attendance() {
       // Tổ chưa có thanhVien: không cho chấm công ai (chờ xưởng trưởng gán thành viên)
       list = [];
     }
-
-    console.log("[Attendance] leaderDepts:", leaderDepts);
-    console.log("[Attendance] Tổng users:", users.length);
-    console.log("[Attendance] memberIdSet size:", memberIdSet?.size || 0);
-    console.log("[Attendance] Tổng công nhân sau filter:", list.length);
-    console.log("[Attendance] Mẫu 3 công nhân:", list.slice(0, 3));
 
     // Danh sách công nhân gốc để chọn trong combobox
     setAvailableWorkers(list);
@@ -312,7 +293,6 @@ export default function Attendance() {
       setToast("✅ Đã lưu bảng chấm công hôm nay");
       setTimeout(() => setToast(""), 1500);
     } catch (err) {
-      console.error("❌ Lỗi lưu bảng chấm công:", err);
       setToast("❌ Không thể lưu bảng chấm công");
       setTimeout(() => setToast(""), 2000);
     } finally {

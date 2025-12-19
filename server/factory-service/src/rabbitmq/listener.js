@@ -1,5 +1,4 @@
 const amqp = require("amqplib");
-const WorkAssignment = require("../models/WorkAssignment");
 
 const RABBITMQ_URI = process.env.RABBITMQ_URI || process.env.RABBITMQ_URL || "amqp://rabbitmq:5672";
 
@@ -20,28 +19,10 @@ exports.listenPlanEvents = async () => {
         const { event, payload } = JSON.parse(msg.content.toString());
         console.log(`📩 [factory-service] Received event: ${event}`);
 
+        // Đã xóa logic tự động tạo WorkAssignment khi duyệt kế hoạch
+        // Xưởng trưởng sẽ tự tạo phân công công việc thủ công khi cần
         if (event === "PLAN_READY" || event === "PLAN_APPROVED") {
-          const assignmentPayload = {
-            keHoach: {
-              planId: payload._id || payload.id,
-              maKeHoach: payload.maKeHoach || payload.maKH,
-              soLuongCanSanXuat: payload.soLuongCanSanXuat || payload.soLuong,
-              soLuongNVLUocTinh: payload.soLuongNVLUocTinh || 0,
-              ngayBatDauDuKien: payload.ngayBatDauDuKien || payload.ngayBatDau,
-              ngayKetThucDuKien: payload.ngayKetThucDuKien || payload.ngayKetThuc,
-              sanPham: payload.sanPham || {},
-            },
-            xuong: {
-              id: payload.xuongPhuTrach || payload.xuong?.id,
-              tenXuong: payload.xuongPhuTrach || payload.xuong?.tenXuong || "Chưa xác định",
-            },
-            ngay: new Date(),
-            trangThai: "Cho xac nhan",
-            ghiChu: `Tự động tạo từ kế hoạch ${payload.maKeHoach || payload.maKH || payload._id || payload.id}`,
-          };
-
-          await WorkAssignment.create(assignmentPayload);
-          console.log("🧾 [factory-service] WorkAssignment created for plan:", payload._id || payload.id);
+          console.log("📋 [factory-service] Plan approved/ready:", payload._id || payload.id, "- Không tự động tạo WorkAssignment");
         }
       } catch (err) {
         console.error("❌ [factory-service] Error processing plan event:", err.message);

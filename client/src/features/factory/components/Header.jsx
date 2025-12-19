@@ -32,6 +32,7 @@ const parseProductInfo = (nameRaw = "") => {
 
 export default function Header() {
   const { currentUser, loading } = useCurrentUser();
+  // Ưu tiên sessionStorage để tránh bị ảnh hưởng bởi tab khác
   const role = (
     sessionStorage.getItem("role") ||
     localStorage.getItem("role") ||

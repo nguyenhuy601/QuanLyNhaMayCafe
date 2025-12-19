@@ -1,9 +1,8 @@
 import React from 'react';
 
 export default function OrdersTable({ orders = [], selectedIds = [], onToggleSelect = () => {}, onSelectAll = () => {} }) {
-  // allChecked should consider only selectable orders (exclude status 'Đã duyệt')
-  const selectableOrders = orders.filter((o) => o.status !== 'Đã duyệt');
-  const allChecked = selectableOrders.length > 0 && selectableOrders.every((o) => selectedIds.includes(o.id));
+  // Cho phép chọn tất cả đơn hàng (đơn "Đã duyệt" là đơn sẵn sàng xuất kho)
+  const allChecked = orders.length > 0 && orders.every((o) => selectedIds.includes(o.id));
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
@@ -34,16 +33,9 @@ export default function OrdersTable({ orders = [], selectedIds = [], onToggleSel
                 <input
                   type="checkbox"
                   checked={selectedIds.includes(o.id)}
-                  disabled={o.status === 'Đã duyệt'}
-                  onChange={() => {
-                    if (o.status === 'Đã duyệt') return;
-                    onToggleSelect(o.id);
-                  }}
+                  onChange={() => onToggleSelect(o.id)}
                   style={{ accentColor: '#8B4513' }}
                 />
-                {o.status === 'Đã duyệt' && (
-                  <span className="ml-2 text-sm text-gray-500">(Đã duyệt)</span>
-                )}
               </td>
               <td className="px-4 py-3 text-sm text-gray-700">{o.orderCode}</td>
               <td className="px-4 py-3 text-sm text-gray-700">{o.productCode}</td>

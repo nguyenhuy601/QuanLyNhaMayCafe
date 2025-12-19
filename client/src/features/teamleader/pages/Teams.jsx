@@ -10,7 +10,11 @@ import {
   fetchTeams,
   fetchTeamLeaderShifts,
   fetchAttendanceSheets,
+  fetchManagerAssignments,
+  confirmMemberCompletion,
 } from "../../../services/factoryService";
+import { fetchPlanById } from "../../../services/planService";
+import { createQcRequest, getAllQcResults } from "../../../services/qcService";
 
 // Lấy thông tin user từ JWT token
 const getCurrentUser = () => {
@@ -29,7 +33,6 @@ const getCurrentUser = () => {
       hoTen: payload.hoTen || payload.name,
     };
   } catch (err) {
-    console.error("Lỗi khi parse token:", err);
     return null;
   }
 };
@@ -44,13 +47,21 @@ export default function ToTruongInfo() {
   const [teams, setTeams] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [attendanceSheets, setAttendanceSheets] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [qcPreview, setQcPreview] = useState(null);
+  const [qcModalOpen, setQcModalOpen] = useState(false);
+  const [creatingQc, setCreatingQc] = useState(false);
+  const [confirmingMember, setConfirmingMember] = useState(null);
+  const [qcResults, setQcResults] = useState([]);
+  const [qcResultsModalOpen, setQcResultsModalOpen] = useState(false);
+  const [loadingQcResults, setLoadingQcResults] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       setError("");
       try {
-        const [u, r, d, p, t, s, at] = await Promise.all([
+        const [u, r, d, p, t, s, at, as] = await Promise.all([
           getAllUsers(),
           getAllRoles(),
           getAllDepartments(),
@@ -60,6 +71,7 @@ export default function ToTruongInfo() {
           fetchAttendanceSheets({
             date: new Date().toISOString().substring(0, 10),
           }),
+          fetchManagerAssignments(),
         ]);
         setUsers(Array.isArray(u) ? u : []);
         setRoles(Array.isArray(r) ? r : []);
@@ -68,8 +80,8 @@ export default function ToTruongInfo() {
         setTeams(Array.isArray(t) ? t : []);
         setShifts(Array.isArray(s) ? s : []);
         setAttendanceSheets(Array.isArray(at) ? at : []);
+        setAssignments(Array.isArray(as) ? as : []);
       } catch (err) {
-        console.error("Lỗi tải dữ liệu tổ trưởng:", err);
         setError("Không thể tải danh sách nhân sự. Kiểm tra quyền/đăng nhập.");
         setUsers([]);
         setRoles([]);
@@ -215,10 +227,6 @@ export default function ToTruongInfo() {
     if (byLeader) return byLeader;
 
     // Không fallback sang tổ của người khác; nếu không match được thì coi như chưa gán tổ
-    console.warn("[Teamleader/Teams] Không tìm được tổ cho tổ trưởng.", {
-      currentUser,
-      leader,
-    });
     return null;
   }, [currentUser, leader, teams]);
 
@@ -366,6 +374,296 @@ export default function ToTruongInfo() {
     return map;
   }, [attendanceSheets, shifts, todayStr, members, currentTeam]);
 
+  const handleCreateQcRequest = async () => {
+    if (!currentTeam) {
+      alert("Chưa xác định được tổ hiện tại để tạo phiếu.");
+      return;
+    }
+
+    const name = (currentTeam.tenTo || "").toLowerCase();
+    if (!name.includes("sàng lọc") && !name.includes("phan loai") && !name.includes("phân loại")) {
+      // Chỉ cho phép tổ Sàng lọc & Phân loại
+      alert("Chỉ tổ Sàng lọc & Phân loại mới được tạo phiếu QC.");
+      return;
+    }
+
+    try {
+      // assignments từ API /factory/manager/assignments đã được BE lọc theo tổ,
+      // nên ở FE không cần lọc lại theo congViec/to nữa
+      const relatedAll = Array.isArray(assignments) ? assignments : [];
+
+      // Ưu tiên những phân công có thông tin kế hoạch đầy đủ (soLuongCanSanXuat)
+      let related = relatedAll.filter(
+        (a) =>
+          typeof a.keHoach?.soLuongCanSanXuat === "number" &&
+          a.keHoach.soLuongCanSanXuat > 0
+      );
+
+      // Nếu vì lý do nào đó không có keHoach trên phân công (tổ trưởng tự tạo tay),
+      // fallback dùng toàn bộ relatedAll (khi đó sẽ dùng nhánh fallback phía dưới).
+      if (!related.length) {
+        related = relatedAll;
+      }
+
+      // Ưu tiên phân công mới nhất
+      if (related.length > 1) {
+        related = related.sort((a, b) => {
+          const da = new Date(a.ngay || a.createdAt || 0).getTime();
+          const db = new Date(b.ngay || b.createdAt || 0).getTime();
+          return db - da;
+        });
+      }
+
+      const targetAssignment = related[0];
+      let keHoach = targetAssignment?.keHoach || {};
+
+      // Nếu thiếu thông tin từ cache, thử gọi trực tiếp sang production-plan-service
+      if (
+        (!keHoach.soLuongCanSanXuat ||
+          typeof keHoach.soLuongCanSanXuat !== "number") &&
+        (keHoach.planId || targetAssignment?.keHoach?.planId)
+      ) {
+        try {
+          const planId = keHoach.planId || targetAssignment.keHoach.planId;
+          const plan = await fetchPlanById(planId);
+          if (plan) {
+            keHoach = {
+              ...keHoach,
+              maKeHoach: plan.maKeHoach || keHoach.maKeHoach,
+              soLuongCanSanXuat:
+                plan.soLuongCanSanXuat ?? keHoach.soLuongCanSanXuat,
+              sanPham: plan.sanPham || keHoach.sanPham,
+            };
+          }
+        } catch (e) {
+        }
+      }
+
+      const maPhieuQC = `QC-${Date.now()}`;
+      // Tên sản phẩm ưu tiên lấy từ kế hoạch
+      const sanPhamName =
+        keHoach.sanPham?.tenSanPham ||
+        (currentTeam.nhomSanPham && currentTeam.nguyenLieu
+          ? `${currentTeam.nhomSanPham} - ${currentTeam.nguyenLieu}`
+          : currentTeam.nhomSanPham || currentTeam.tenTo || "Sản phẩm chưa xác định");
+
+      // Số lượng thành phẩm trên phiếu QC:
+      // - Kế hoạch đã tính NVL thô ≈ Số lượng cần sản xuất * 110%
+      // - Ta giả lập thực tế: sau khi rang/xay có hao hụt nhưng vẫn lớn hơn nhu cầu khách
+      //   -> Thành phẩm nằm trong khoảng [soLuongCanSanXuat, soLuongCanSanXuat * 1.1)
+      let soLuongThanhPham = 0;
+      const hasValidSoLuong = typeof keHoach.soLuongCanSanXuat === "number" && keHoach.soLuongCanSanXuat > 0;
+      
+      if (hasValidSoLuong) {
+        const base = keHoach.soLuongCanSanXuat; // ví dụ 2400
+        const max = Math.round(base * 1.1);     // ví dụ ~2640
+        // Random nguyên từ base đến max-1 để luôn < NVL thô nhưng >= nhu cầu khách
+        soLuongThanhPham =
+          base + Math.floor(Math.random() * Math.max(1, max - base));
+      } else {
+        // Fallback nếu chưa có thông tin kế hoạch: chọn số tương đối
+        soLuongThanhPham = Math.floor(500 + Math.random() * 500);
+      }
+
+      // Tạo object keHoach với cấu trúc đúng
+      const planId = targetAssignment?.keHoach?.planId || 
+                     targetAssignment?.keHoach?._id?.toString() || 
+                     keHoach?.planId?.toString() || 
+                     keHoach?._id?.toString() || 
+                     (typeof keHoach === 'string' ? keHoach : null);
+      
+      if (!planId || planId === "") {
+        alert("❌ Lỗi: Không tìm thấy thông tin kế hoạch. Vui lòng đảm bảo tổ đã được phân công công việc từ kế hoạch sản xuất.");
+        return; // Dừng lại, không cho tạo phiếu QC nếu không có planId
+      }
+      
+      const keHoachObject = {
+        planId: planId, // Đảm bảo planId không rỗng
+        maKeHoach: keHoach.maKeHoach || keHoach.maKH || "",
+        sanPham: keHoach.sanPham || {},
+      };
+      
+      // Lưu thông tin preview và mở modal xác nhận
+      setQcPreview({
+        maPhieuQC,
+        loSanXuat: currentTeam.tenTo,
+        xuong: currentTeam.xuongInfo?.tenXuong || "",
+        soLuong: soLuongThanhPham,
+        sanPhamName,
+        keHoach: keHoachObject, // Lưu object keHoach với cấu trúc đúng
+        keHoachInfo: {
+          maKeHoach: keHoach.maKeHoach || keHoach.maKH || "",
+          soLuongCanSanXuat: keHoach.soLuongCanSanXuat,
+        },
+      });
+      setQcModalOpen(true);
+    } catch (err) {
+      alert("Không thể tạo phiếu QC: " + (err?.response?.data?.error || err.message));
+    }
+  };
+
+  const handleConfirmCreateQcRequest = async () => {
+    if (!qcPreview) return;
+    try {
+      setCreatingQc(true);
+      
+      const payload = {
+        maPhieuQC: qcPreview.maPhieuQC,
+        loSanXuat: qcPreview.loSanXuat,
+        xuong: qcPreview.xuong,
+        soLuong: qcPreview.soLuong,
+        sanPhamName: qcPreview.sanPhamName,
+        keHoach: qcPreview.keHoach, // Lấy từ qcPreview đã lưu
+      };
+      
+      await createQcRequest(payload);
+      setQcModalOpen(false);
+      setQcPreview(null);
+      alert("Đã tạo phiếu yêu cầu kiểm tra thành phẩm (chờ xưởng trưởng duyệt).");
+    } catch (err) {
+      alert("Không thể tạo phiếu QC: " + (err?.response?.data?.error || err.message));
+    } finally {
+      setCreatingQc(false);
+    }
+  };
+
+  // Kiểm tra xem tổ có hoàn thành không (tất cả thành viên đều hoàn thành)
+  const isTeamCompleted = (team) => {
+    if (!team.thanhVien || !Array.isArray(team.thanhVien) || team.thanhVien.length === 0) {
+      return false;
+    }
+    return team.thanhVien.every((tv) => tv.hoanThanh === true);
+  };
+
+  // Lấy thứ tự của tổ trong quy trình sản xuất
+  const getTeamOrder = (teamName) => {
+    if (!teamName) return -1;
+    const lower = teamName.toLowerCase();
+    const stepOrder = [
+      "chuẩn bị & phối trộn",
+      "rang",
+      "ủ nghỉ",
+      "xay",
+      "sàng lọc & phân loại",
+      "đóng gói",
+      "dán nhãn",
+    ];
+    return stepOrder.findIndex((step) => lower.includes(step));
+  };
+
+  // Kiểm tra xem tổ trước đã hoàn thành chưa
+  const canConfirmCompletion = (currentTeam) => {
+    if (!currentTeam) return false;
+    
+    const currentOrder = getTeamOrder(currentTeam.tenTo);
+    
+    // Tổ đầu tiên (Chuẩn bị & Phối trộn) luôn được phép
+    if (currentOrder === 0) return true;
+    
+    // Nếu không xác định được thứ tự, cho phép (fallback)
+    if (currentOrder === -1) return true;
+    
+    // Tìm tổ trước đó trong cùng xưởng và cùng nhóm sản phẩm/nguyên liệu
+    const previousStepOrder = [
+      "chuẩn bị & phối trộn",
+      "rang",
+      "ủ nghỉ",
+      "xay",
+      "sàng lọc & phân loại",
+      "đóng gói",
+      "dán nhãn",
+    ];
+    
+    if (currentOrder === 0) return true; // Tổ đầu tiên
+    
+    const previousStepName = previousStepOrder[currentOrder - 1];
+    
+    // Tìm tổ trước đó trong danh sách teams
+    const previousTeam = teams.find((t) => {
+      const name = (t.tenTo || "").toLowerCase();
+      const sameXuong = 
+        (t.xuongInfo?.id === currentTeam.xuongInfo?.id) ||
+        (t.xuong?.toString() === currentTeam.xuong?.toString());
+      const sameNhomSP = t.nhomSanPham === currentTeam.nhomSanPham;
+      const sameNguyenLieu = t.nguyenLieu === currentTeam.nguyenLieu;
+      
+      return (
+        name.includes(previousStepName) &&
+        sameXuong &&
+        sameNhomSP &&
+        sameNguyenLieu
+      );
+    });
+    
+    // Nếu không tìm thấy tổ trước, cho phép (có thể là tổ độc lập)
+    if (!previousTeam) return true;
+    
+    // Kiểm tra tổ trước đã hoàn thành chưa
+    return isTeamCompleted(previousTeam);
+  };
+
+  const handleConfirmMemberCompletion = async (memberId) => {
+    if (!currentTeam) {
+      alert("Chưa xác định được tổ hiện tại.");
+      return;
+    }
+
+    // Kiểm tra ràng buộc: tổ trước phải hoàn thành
+    if (!canConfirmCompletion(currentTeam)) {
+      const currentOrder = getTeamOrder(currentTeam.tenTo);
+      const stepOrder = [
+        "Chuẩn bị & Phối trộn",
+        "Rang",
+        "Ủ nghỉ",
+        "Xay",
+        "Sàng lọc & Phân loại",
+        "Đóng gói",
+        "Dán nhãn",
+      ];
+      
+      if (currentOrder > 0) {
+        const previousStepName = stepOrder[currentOrder - 1];
+        alert(
+          `Không thể xác nhận hoàn thành. Tổ "${previousStepName}" phải hoàn thành trước.`
+        );
+        return;
+      }
+    }
+
+    try {
+      setConfirmingMember(memberId);
+      await confirmMemberCompletion(currentTeam._id || currentTeam.id, memberId);
+      
+      // Cập nhật lại danh sách teams để hiển thị trạng thái mới
+      const updatedTeams = await fetchTeams();
+      setTeams(Array.isArray(updatedTeams) ? updatedTeams : []);
+      
+      alert("Đã xác nhận hoàn thành cho công nhân.");
+    } catch (err) {
+      alert("Không thể xác nhận hoàn thành: " + (err?.response?.data?.error || err.message));
+    } finally {
+      setConfirmingMember(null);
+    }
+  };
+
+  const handleViewQcResults = async () => {
+    if (!currentTeam) {
+      alert("Chưa xác định được tổ hiện tại.");
+      return;
+    }
+
+    try {
+      setLoadingQcResults(true);
+      const results = await getAllQcResults();
+      setQcResults(Array.isArray(results) ? results : []);
+      setQcResultsModalOpen(true);
+    } catch (err) {
+      alert("Không thể tải thông tin kiểm định QC: " + (err?.response?.data?.error || err.message));
+    } finally {
+      setLoadingQcResults(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-6 text-amber-800">Đang tải dữ liệu tổ trưởng...</div>;
   }
@@ -403,6 +701,31 @@ export default function ToTruongInfo() {
             <p className="text-xs text-amber-500">
               Danh sách công nhân đã được gán vào tổ hoặc cùng phòng ban
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {currentTeam?.tenTo &&
+              (currentTeam.tenTo.toLowerCase().includes("sàng lọc") ||
+                currentTeam.tenTo.toLowerCase().includes("phan loai") ||
+                currentTeam.tenTo.toLowerCase().includes("phân loại")) && (
+                <button
+                  type="button"
+                  onClick={handleCreateQcRequest}
+                  className="text-xs font-semibold rounded-full bg-amber-600 text-white px-4 py-2 hover:bg-amber-700"
+                >
+                  Tạo phiếu yêu cầu kiểm tra thành phẩm
+                </button>
+              )}
+            {currentTeam?.tenTo &&
+              (currentTeam.tenTo.toLowerCase().includes("đóng gói") ||
+                currentTeam.tenTo.toLowerCase().includes("dong goi")) && (
+                <button
+                  type="button"
+                  onClick={handleViewQcResults}
+                  className="text-xs font-semibold rounded-full bg-emerald-600 text-white px-4 py-2 hover:bg-emerald-700"
+                >
+                  Thông tin kiểm định QC
+                </button>
+              )}
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
@@ -470,6 +793,48 @@ export default function ToTruongInfo() {
                           {stat?.progressLabel || "Chưa có dữ liệu"}
                         </span>
                       </p>
+                      {(() => {
+                        const memberInTeam = currentTeam?.thanhVien?.find(
+                          (tv) => tv.id === (member._id || member.id)?.toString()
+                        );
+                        const isCompleted = memberInTeam?.hoanThanh === true;
+                        const canConfirm = canConfirmCompletion(currentTeam);
+                        const isDisabled = !canConfirm || confirmingMember === (member._id || member.id);
+                        
+                        return (
+                          <div className="mt-2">
+                            {isCompleted ? (
+                              <p className="text-green-700 font-semibold flex items-center gap-1">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+                                Đã hoàn thành
+                              </p>
+                            ) : (
+                              <div className="space-y-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleConfirmMemberCompletion(member._id || member.id)}
+                                  disabled={isDisabled}
+                                  className="text-xs font-semibold rounded-full bg-amber-600 text-white px-3 py-1.5 hover:bg-amber-700 disabled:opacity-60 disabled:cursor-not-allowed w-full"
+                                  title={
+                                    !canConfirm
+                                      ? "Tổ trước đó chưa hoàn thành. Vui lòng đợi tổ trước hoàn thành trước."
+                                      : ""
+                                  }
+                                >
+                                  {confirmingMember === (member._id || member.id)
+                                    ? "Đang xác nhận..."
+                                    : "Xác nhận hoàn thành"}
+                                </button>
+                                {!canConfirm && (
+                                  <p className="text-xs text-red-600 text-center">
+                                    Tổ trước chưa hoàn thành
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </>
                   );
                 })()}
@@ -478,6 +843,195 @@ export default function ToTruongInfo() {
           ))}
         </div>
       </div>
+
+      {/* Modal thông tin kiểm định QC */}
+      {qcResultsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] p-6 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-amber-900">
+                Thông tin kiểm định QC
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setQcResultsModalOpen(false);
+                  setQcResults([]);
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            
+            {loadingQcResults ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+              </div>
+            ) : qcResults.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Chưa có thông tin kiểm định QC nào
+              </div>
+            ) : (
+              <div className="overflow-y-auto flex-1">
+                <table className="w-full text-sm">
+                  <thead className="bg-amber-700 text-white sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Mã phiếu QC</th>
+                      <th className="px-4 py-3 text-left">Sản phẩm</th>
+                      <th className="px-4 py-3 text-left">Ngày kiểm tra</th>
+                      <th className="px-4 py-3 text-right">Số lượng đạt</th>
+                      <th className="px-4 py-3 text-right">Số lượng lỗi</th>
+                      <th className="px-4 py-3 text-left">Kết quả</th>
+                      <th className="px-4 py-3 text-left">Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {qcResults.map((result) => {
+                      const qcRequest = result.qcRequest || {};
+                      const sanPham = qcRequest.sanPham || {};
+                      const ketQua = result.ketQuaChung === "Dat" ? "Đạt" : 
+                                   result.ketQuaChung === "Khong dat" || result.ketQuaChung === "KhongDat" ? "Không đạt" : 
+                                   result.ketQuaChung || "Chưa kiểm tra";
+                      
+                      return (
+                        <tr key={result._id} className="hover:bg-amber-50">
+                          <td className="px-4 py-3 font-semibold">
+                            {qcRequest.maPhieuQC || "N/A"}
+                          </td>
+                          <td className="px-4 py-3">
+                            {sanPham.tenSanPham || sanPham.ProductName || sanPham.tenSP || "N/A"}
+                          </td>
+                          <td className="px-4 py-3">
+                            {result.ngayKiemTra
+                              ? new Date(result.ngayKiemTra).toLocaleDateString("vi-VN")
+                              : "N/A"}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-green-700">
+                            {result.soLuongDat || 0}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-red-700">
+                            {result.soLuongLoi || 0}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                ketQua === "Đạt" || ketQua === "Dat"
+                                  ? "bg-green-100 text-green-700"
+                                  : ketQua === "Không đạt" || ketQua === "Khong dat" || ketQua === "KhongDat"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {ketQua}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {result.ghiChu || "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setQcResultsModalOpen(false);
+                  setQcResults([]);
+                }}
+                className="px-4 py-2 text-sm rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xem trước phiếu yêu cầu kiểm tra thành phẩm */}
+      {qcModalOpen && qcPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-amber-900">
+              Xác nhận tạo phiếu yêu cầu kiểm tra thành phẩm
+            </h2>
+            <div className="space-y-2 text-sm text-amber-900">
+              <div className="flex justify-between">
+                <span className="font-medium">Mã phiếu QC:</span>
+                <span>{qcPreview.maPhieuQC}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Tổ / Lô:</span>
+                <span>{qcPreview.loSanXuat}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Xưởng:</span>
+                <span>{qcPreview.xuong}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Sản phẩm:</span>
+                <span>{qcPreview.sanPhamName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Số lượng thành phẩm:</span>
+                <span className="font-semibold">{qcPreview.soLuong}</span>
+              </div>
+              {qcPreview.keHoachInfo?.maKeHoach && (
+                <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  <div>
+                    Kế hoạch nguồn:{" "}
+                    <span className="font-semibold">
+                      {qcPreview.keHoachInfo.maKeHoach}
+                    </span>
+                  </div>
+                  {typeof qcPreview.keHoachInfo.soLuongCanSanXuat === "number" && (
+                    <div>
+                      Số lượng cần sản xuất trong kế hoạch:{" "}
+                      <span className="font-semibold">
+                        {qcPreview.keHoachInfo.soLuongCanSanXuat}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!qcPreview.keHoachInfo?.maKeHoach && (
+                <div className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                  Không lấy được thông tin từ phiếu kế hoạch. Số lượng thành phẩm đang
+                  được giả lập ngẫu nhiên.
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (creatingQc) return;
+                  setQcModalOpen(false);
+                  setQcPreview(null);
+                }}
+                className="px-4 py-2 text-sm rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50"
+                disabled={creatingQc}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCreateQcRequest}
+                className="px-4 py-2 text-sm rounded-full bg-amber-600 text-white font-semibold hover:bg-amber-700 disabled:opacity-60"
+                disabled={creatingQc}
+              >
+                {creatingQc ? "Đang tạo phiếu..." : "Xác nhận tạo phiếu"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

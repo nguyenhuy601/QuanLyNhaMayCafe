@@ -21,10 +21,8 @@ export default function ApprovePlans() {
     setLoading(true);
     try {
       const rawList = await getPendingPlans();
-      console.log("📋 Raw plans from API:", rawList);
       
       if (!Array.isArray(rawList) || rawList.length === 0) {
-        console.warn("⚠️ No pending plans found");
         setPlans([]);
         return;
       }
@@ -32,10 +30,8 @@ export default function ApprovePlans() {
       const fullList = await Promise.all(rawList.map(async (plan) => {
           return await enrichPlanData(plan);
       }));
-      console.log("✅ Enriched plans:", fullList);
       setPlans(fullList);
     } catch (error) {
-      console.error("❌ Lỗi tải kế hoạch:", error);
       // Nếu đã xử lý 401, không set plans
       if (error.response?.status !== 401) {
         setPlans([]);

@@ -36,7 +36,6 @@ export const getPendingOrders = async () => {
     if (error.response?.status === 401) {
       return [];
     }
-    console.error("Lỗi lấy đơn hàng:", error);
     return [];
   }
 };
@@ -63,7 +62,6 @@ export const getPendingPlans = async () => {
     if (error.response?.status === 401) {
       return [];
     }
-    console.error("Lỗi lấy kế hoạch:", error);
     return [];
   }
 };
@@ -74,14 +72,11 @@ export const getPendingMaterialRequests = async () => {
     // Encode URL để tránh lỗi với ký tự đặc biệt
     const trangThai = encodeURIComponent("Chờ phê duyệt");
     const response = await api.get(`/warehouse/materials/requests?trangThai=${trangThai}`);
-    console.log("📋 [directorAPI] Response from warehouse-service:", response.data);
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     if (error.response?.status === 401) {
       return [];
     }
-    console.error("❌ [directorAPI] Lỗi lấy phiếu yêu cầu NVL:", error);
-    console.error("❌ [directorAPI] Error details:", error.response?.data);
     return [];
   }
 };
@@ -180,14 +175,11 @@ export const rejectMaterialRequestApi = async (id, reason) => {
 export const getPendingMaterialReceipts = async () => {
   try {
     const response = await api.get(`/warehouse/materials/receipts/pending`);
-    console.log("📋 [directorAPI] Response from warehouse-service (receipts):", response.data);
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     if (error.response?.status === 401) {
       return [];
     }
-    console.error("❌ [directorAPI] Lỗi lấy phiếu nhập kho NVL:", error);
-    console.error("❌ [directorAPI] Error details:", error.response?.data);
     return [];
   }
 };
@@ -209,14 +201,11 @@ export const approveMaterialReceiptApi = async (id) => {
 export const getPendingMaterialIssues = async () => {
   try {
     const response = await api.get(`/warehouse/materials/issues/pending`);
-    console.log("📋 [directorAPI] Response from warehouse-service (issues):", response.data);
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     if (error.response?.status === 401) {
       return [];
     }
-    console.error("❌ [directorAPI] Lỗi lấy phiếu xuất kho NVL:", error);
-    console.error("❌ [directorAPI] Error details:", error.response?.data);
     return [];
   }
 };
@@ -225,6 +214,32 @@ export const getPendingMaterialIssues = async () => {
 export const approveMaterialIssueApi = async (id) => {
   try {
     const response = await api.put(`/warehouse/materials/issues/${id}/approve`);
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      throw error;
+    }
+    throw error;
+  }
+};
+
+// 11. Lấy danh sách phiếu xuất kho thành phẩm chờ duyệt
+export const getPendingFinishedIssues = async () => {
+  try {
+    const response = await api.get("/warehouse/products/issues/pending");
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    if (error.response?.status === 401) {
+      throw error;
+    }
+    return [];
+  }
+};
+
+// 12. Duyệt Phiếu Xuất Kho Thành Phẩm
+export const approveFinishedIssueApi = async (id) => {
+  try {
+    const response = await api.put(`/warehouse/products/issues/${id}/approve`);
     return response.data;
   } catch (error) {
     if (error.response?.status === 401) {

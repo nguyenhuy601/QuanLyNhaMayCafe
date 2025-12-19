@@ -19,6 +19,7 @@ import ApprovePlan from "./features/director/pages/ApprovePlan.jsx";
 import ApproveOrders from "./features/director/pages/ApproveOrders.jsx";
 import ApproveMaterialRequests from "./features/director/pages/ApproveMaterialRequests.jsx";
 import ApproveMaterialTransactions from "./features/director/pages/ApproveMaterialTransactions.jsx";
+import ApproveFinishedIssues from "./features/director/pages/ApproveFinishedIssues.jsx";
 import Reports from "./features/director/pages/Reports.jsx";
 
 // --- Order (Nhân viên bán hàng)
@@ -53,6 +54,7 @@ import NhapKhoThanhPham from "./features/warehouseProduct/pages/NhapKhoThanhPham
 import ThongKeWP from './features/warehouseProduct/pages/ThongKeWP';
 import XuatKhoThanhPham from './features/warehouseProduct/pages/XuatKhoThanhPham';
 import KiemDinhQC from './features/warehouseProduct/pages/KiemDinhQC';
+import XacNhanNhapKho from './features/warehouseProduct/pages/XacNhanNhapKho';
 
 //Quan ly kho nguyen vat lieu
 import WarehouseRawMaterialLayout from "./features/warehouseRawMaterial/layout/WarehouseRawMaterialLayout.jsx";
@@ -119,6 +121,7 @@ export default function App() {
           <Route path="approve-plan" element={<ApprovePlan />} />
           <Route path="approve-orders" element={<ApproveOrders />} />
           <Route path="approve-material-requests" element={<ApproveMaterialTransactions />} />
+          <Route path="approve-finished-issues" element={<ApproveFinishedIssues />} />
           <Route path="reports" element={<Reports />} />
         </Route>
 
@@ -198,10 +201,10 @@ export default function App() {
           }
         >
           <Route index element={<TrangChuWP />} />
-          <Route path="nhap-kho" element={<NhapKhoThanhPham />} />
           <Route path="xuat-kho" element={<XuatKhoThanhPham />} />
           <Route path="thong-ke" element={<ThongKeWP />} />
           <Route path="kiem-dinh-qc" element={<KiemDinhQC />} />
+          <Route path="xac-nhan-nhap-kho" element={<XacNhanNhapKho />} />
         </Route>
 
         {/* Protected Routes - Kho Nguyên Vật Liệu (khonvl) */}
@@ -229,7 +232,6 @@ export default function App() {
           }
         >
           <Route index element={<TrangChuWP />} />
-          <Route path="nhap-kho" element={<NhapKhoThanhPham />} />
           <Route path="xuat-kho" element={<XuatKhoThanhPham />} />
           <Route path="thong-ke" element={<ThongKeWP />} />
           <Route path="kiem-dinh-qc" element={<KiemDinhQC />} />

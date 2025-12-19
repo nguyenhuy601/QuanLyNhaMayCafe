@@ -25,7 +25,6 @@ export const fetchMaterials = async () => {
     if (!res.ok) return [];
     return await safeJson(res, []);
   } catch (err) {
-    console.error("❌ fetchMaterials error:", err.message);
     return [];
   }
 };
@@ -38,7 +37,6 @@ export const fetchAllProducts = async () => {
     if (!res.ok) return [];
     return await safeJson(res, []);
   } catch (err) {
-    console.error("❌ fetchAllProducts error:", err.message);
     return [];
   }
 };
@@ -51,7 +49,6 @@ export const fetchFinishedProducts = async () => {
     if (!res.ok) return [];
     return await safeJson(res, []);
   } catch (err) {
-    console.error("❌ fetchFinishedProducts error:", err.message);
     return [];
   }
 };

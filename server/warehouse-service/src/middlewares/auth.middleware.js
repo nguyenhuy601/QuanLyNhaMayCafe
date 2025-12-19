@@ -16,7 +16,25 @@ exports.verifyToken = async (req, res, next) => {
     if (!token) return res.status(401).json({ message: "Thiếu token" });
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    
+    // Normalize role từ nhiều nguồn có thể
+    const normalizeRole = (payload) => {
+      if (!payload) return null;
+      // Thử nhiều trường có thể chứa role
+      return payload.role?.tenQuyen || 
+             payload.role?.name || 
+             payload.role?.maQuyen ||
+             payload.tenQuyen || 
+             payload.userRole ||
+             payload.role ||
+             null;
+    };
+
+    req.user = {
+      ...decoded,
+      role: normalizeRole(decoded),
+      roles: decoded.roles || (decoded.role ? [decoded.role] : []),
+    };
 
     next();
   } catch (err) {

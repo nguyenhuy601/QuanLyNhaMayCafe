@@ -88,5 +88,29 @@ router.delete(
   controller.removeThanhVien
 );
 
+// Xác nhận hoàn thành cho công nhân (chỉ tổ trưởng)
+router.post(
+  "/:id/xac-nhan-hoan-thanh",
+  verifyToken,
+  authorizeRoles(TEAMLEADER_ROLES),
+  controller.confirmMemberCompletion
+);
+
+// Reset trạng thái công nhân trong một tổ cụ thể
+router.post(
+  "/:id/reset-members",
+  verifyToken,
+  authorizeRoles([...MANAGER_ROLES, ...TEAMLEADER_ROLES]),
+  controller.resetTeamMemberStatus
+);
+
+// Reset trạng thái tất cả tổ về "Active" (mặc định)
+router.post(
+  "/reset-status",
+  verifyToken,
+  authorizeRoles(MANAGER_ROLES),
+  controller.resetAllTeamsStatus
+);
+
 module.exports = router;
 

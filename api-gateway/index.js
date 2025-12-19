@@ -119,10 +119,34 @@ app.use("/plan", (req, res) => {
 });
 
 app.use("/qc-request", (req, res) => {
+  if (!QC_SERVICE_URL) {
+    console.error("❌ QC_SERVICE_URL is not defined");
+    return res.status(503).json({
+      error: "Service configuration error",
+      message: "QC service URL is not configured",
+    });
+  }
+  // Express tự động strip prefix /qc-request khỏi req.url
+  // Nên cần thêm lại prefix khi forward đến qc-service
+  const originalUrl = req.url;
+  req.url = `/qc-request${req.url === "/" ? "" : req.url}`;
+  console.log(`📡 Proxying /qc-request${originalUrl} to ${QC_SERVICE_URL}${req.url}`);
   proxy.web(req, res, { target: QC_SERVICE_URL });
 });
 
 app.use("/qc-result", (req, res) => {
+  if (!QC_SERVICE_URL) {
+    console.error("❌ QC_SERVICE_URL is not defined");
+    return res.status(503).json({
+      error: "Service configuration error",
+      message: "QC service URL is not configured",
+    });
+  }
+  // Express tự động strip prefix /qc-result khỏi req.url
+  // Nên cần thêm lại prefix khi forward đến qc-service
+  const originalUrl = req.url;
+  req.url = `/qc-result${req.url === "/" ? "" : req.url}`;
+  console.log(`📡 Proxying /qc-result${originalUrl} to ${QC_SERVICE_URL}${req.url}`);
   proxy.web(req, res, { target: QC_SERVICE_URL });
 });
 

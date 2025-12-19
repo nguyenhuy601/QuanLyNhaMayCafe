@@ -15,7 +15,6 @@ const OrderEdit = () => {
         const data = await fetchOrderById(id);
         setOrder(data);
       } catch (error) {
-        console.error("Lỗi tải đơn hàng:", error);
       } finally {
         setLoading(false);
       }
@@ -42,7 +41,6 @@ const OrderEdit = () => {
     alert("✅ Cập nhật đơn hàng thành công!");
     navigate("/orders");
   } catch (error) {
-    console.error("Lỗi cập nhật đơn hàng:", error);
     alert("❌ Không thể cập nhật đơn hàng!");
   } finally {
     setLoading(false);

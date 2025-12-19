@@ -1,5 +1,9 @@
 const User = require("../models/User");
+const Department = require("../models/Department");
 const amqp = require("amqplib");
+const axios = require("axios");
+
+const GATEWAY_URL = process.env.GATEWAY_URL || "http://api-gateway:4000";
 
 /** Publish event to RabbitMQ */
 async function publishEvent(event, payload) {
@@ -25,6 +29,76 @@ exports.getAllUsers = async (req, res) => {
 exports.createUser = async (req, res) => {
   try {
     const user = await User.create(req.body);
+    
+    // Nếu là xưởng trưởng và có phòng ban, tự động gán vào xưởng
+    if (user.role && Array.isArray(user.role) && user.role.length > 0) {
+      // Lấy role name để kiểm tra
+      const Role = require("../models/Role");
+      const roles = await Role.find({ _id: { $in: user.role } });
+      const roleNames = roles.map(r => (r.tenRole || "").toLowerCase());
+      const isXuongTruong = roleNames.some(r => 
+        r.includes("xuongtruong") || 
+        r.includes("xưởng trưởng") ||
+        r === "xuongtruong"
+      );
+      
+      if (isXuongTruong && user.phongBan && user.phongBan.length > 0) {
+        try {
+          // Lấy tên phòng ban
+          const departments = await Department.find({ _id: { $in: user.phongBan } });
+          const departmentNames = departments.map(d => d.tenPhong);
+          
+          // Tìm xưởng có tên trùng với phòng ban
+          const token = req.headers.authorization || req.headers.Authorization;
+          if (token) {
+            const headers = { Authorization: token };
+            const xuongsResponse = await axios.get(
+              `${GATEWAY_URL}/factory/xuong`,
+              { headers }
+            );
+            const xuongs = Array.isArray(xuongsResponse.data) ? xuongsResponse.data : [];
+            
+            for (const deptName of departmentNames) {
+              const xuong = xuongs.find(x => 
+                x.tenXuong && deptName && 
+                (x.tenXuong.toLowerCase().includes(deptName.toLowerCase()) ||
+                 deptName.toLowerCase().includes(x.tenXuong.toLowerCase()))
+              );
+              
+              if (xuong) {
+                // Kiểm tra xưởng trưởng chưa có trong xưởng
+                const existingXT = xuong.xuongTruong?.find(xt => 
+                  xt.id === user._id.toString() || xt.email === user.email
+                );
+                
+                if (!existingXT) {
+                  // Thêm xưởng trưởng vào xưởng
+                  const xuongTruongData = {
+                    id: user._id.toString(),
+                    hoTen: user.hoTen,
+                    email: user.email,
+                    role: "xuongtruong"
+                  };
+                  
+                  // Lấy danh sách xưởng trưởng hiện tại và thêm mới
+                  const currentXT = Array.isArray(xuong.xuongTruong) ? xuong.xuongTruong : [];
+                  await axios.put(
+                    `${GATEWAY_URL}/factory/xuong/${xuong._id}`,
+                    { xuongTruong: [...currentXT, xuongTruongData] },
+                    { headers }
+                  );
+                  console.log(`✅ Đã tự động gán xưởng trưởng ${user.hoTen} vào xưởng ${xuong.tenXuong}`);
+                }
+              }
+            }
+          }
+        } catch (xuongErr) {
+          console.warn("⚠️ Không thể tự động gán xưởng trưởng vào xưởng:", xuongErr.message);
+          // Không block response nếu lỗi
+        }
+      }
+    }
+    
     res.status(201).json({ message: "Tạo người dùng thành công", user });
 
     // Gửi event sang auth-service (không block response nếu lỗi)
@@ -52,6 +126,68 @@ exports.createUsersBulk = async (req, res) => {
       try {
         const user = await User.create(usersData[i]);
         createdUsers.push(user);
+        
+        // Nếu là xưởng trưởng và có phòng ban, tự động gán vào xưởng
+        if (user.role && Array.isArray(user.role) && user.role.length > 0) {
+          const Role = require("../models/Role");
+          const roles = await Role.find({ _id: { $in: user.role } });
+          const roleNames = roles.map(r => (r.tenRole || "").toLowerCase());
+          const isXuongTruong = roleNames.some(r => 
+            r.includes("xuongtruong") || 
+            r.includes("xưởng trưởng") ||
+            r === "xuongtruong"
+          );
+          
+          if (isXuongTruong && user.phongBan && user.phongBan.length > 0) {
+            try {
+              const departments = await Department.find({ _id: { $in: user.phongBan } });
+              const departmentNames = departments.map(d => d.tenPhong);
+              
+              const token = req.headers.authorization || req.headers.Authorization;
+              if (token) {
+                const headers = { Authorization: token };
+                const xuongsResponse = await axios.get(
+                  `${GATEWAY_URL}/factory/xuong`,
+                  { headers }
+                );
+                const xuongs = Array.isArray(xuongsResponse.data) ? xuongsResponse.data : [];
+                
+                for (const deptName of departmentNames) {
+                  const xuong = xuongs.find(x => 
+                    x.tenXuong && deptName && 
+                    (x.tenXuong.toLowerCase().includes(deptName.toLowerCase()) ||
+                     deptName.toLowerCase().includes(x.tenXuong.toLowerCase()))
+                  );
+                  
+                  if (xuong) {
+                    const existingXT = xuong.xuongTruong?.find(xt => 
+                      xt.id === user._id.toString() || xt.email === user.email
+                    );
+                    
+                    if (!existingXT) {
+                      const xuongTruongData = {
+                        id: user._id.toString(),
+                        hoTen: user.hoTen,
+                        email: user.email,
+                        role: "xuongtruong"
+                      };
+                      
+                      const currentXT = Array.isArray(xuong.xuongTruong) ? xuong.xuongTruong : [];
+                      await axios.put(
+                        `${GATEWAY_URL}/factory/xuong/${xuong._id}`,
+                        { xuongTruong: [...currentXT, xuongTruongData] },
+                        { headers }
+                      );
+                      console.log(`✅ Đã tự động gán xưởng trưởng ${user.hoTen} vào xưởng ${xuong.tenXuong}`);
+                    }
+                  }
+                }
+              }
+            } catch (xuongErr) {
+              console.warn(`⚠️ Không thể tự động gán xưởng trưởng cho user ${i + 1}:`, xuongErr.message);
+            }
+          }
+        }
         
         // Gửi event cho từng user (không block)
         publishEvent("USER_CREATED", user).catch((err) => {

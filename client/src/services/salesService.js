@@ -42,7 +42,6 @@ export const searchCustomerByPhone = async (phone) => {
       if (response.status === 404) return null;
     }
   } catch (err) {
-    console.error("❌ Error fetching customer:", err);
   }
 };
 
@@ -53,7 +52,6 @@ export const getFinishedProducts = async () => {
     const token = getToken();
 
     if (!API_URL) {
-      console.warn("⚠️ API_URL not configured, using fallback data");
       return getFallbackProducts();
     }
 
@@ -72,20 +70,15 @@ export const getFinishedProducts = async () => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ API returned ${response.status} for /products/finished:`, errorText);
-      
       if (response.status === 503) {
-        console.warn("⚠️ Service unavailable (503), using fallback data");
         return getFallbackProducts();
       }
-      
       throw new Error(`Failed to fetch finished products: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
 
     if (!Array.isArray(data)) {
-      console.warn("⚠️ Invalid response format, using fallback data");
       return getFallbackProducts();
     }
 
@@ -97,8 +90,6 @@ export const getFinishedProducts = async () => {
       loai: p.loai,
     }));
   } catch (err) {
-    console.error("❌ Error fetching finished products:", err);
-    console.warn("⚠️ Using fallback data due to error");
     return getFallbackProducts();
   }
 };
@@ -137,12 +128,11 @@ export const salesAPI = {
         // Xử lý lỗi 401
         if (response.status === 401) {
           handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
-          return []; // Return empty array để không crash UI
+          return [];
         }
 
         if (response.ok) {
           const data = await response.json();
-          // Chuyển đổi format từ backend sang format UI
           return data.map(order => ({
             id: order.maDH || order._id,
             product: order.chiTiet?.[0]?.sanPham?.tenSP || '',
@@ -166,7 +156,6 @@ export const salesAPI = {
         trangThai: toVietnameseStatus(order.trangThai || order.status),
       }));
     } catch (error) {
-      console.error('Error fetching orders:', error);
       // Fallback to localStorage
       const orders = JSON.parse(localStorage.getItem('salesOrders') || '[]');
       return orders.map((order) => ({
@@ -181,7 +170,6 @@ export const salesAPI = {
   createOrder: async (orderData) => {
     try {
       const token = getToken();
-      console.log("Creating order with data:", orderData);
       
       // Nếu có API backend
       if (API_URL) {
@@ -193,8 +181,6 @@ export const salesAPI = {
           },
           body: JSON.stringify(orderData)
         });
-
-        console.log("Response status:", response.status);
         
         // Xử lý lỗi 401 (token expired) - phải xử lý trước khi đọc response body
         if (response.status === 401) {
@@ -204,16 +190,13 @@ export const salesAPI = {
           } catch {
             errorData = { message: "Token không hợp lệ hoặc đã hết hạn", error: "jwt expired" };
           }
-          console.error("❌ 401 Unauthorized:", errorData);
           handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tạo đơn hàng.");
-          // Tạo error đặc biệt để các component biết đã xử lý redirect
           const expiredError = new Error("Token đã hết hạn");
-          expiredError.isHandled = true; // Đánh dấu đã xử lý
+          expiredError.isHandled = true;
           throw expiredError;
         }
         
         if (!response.ok) {
-          // Parse error message nếu có
           let errorMessage = "Có lỗi xảy ra khi tạo đơn hàng";
           try {
             const errorText = await response.text();
@@ -225,12 +208,9 @@ export const salesAPI = {
           throw new Error(errorMessage);
         }
 
-        // Response OK - parse data
         const data = await response.json().catch(async () => {
-          // Nếu không parse được JSON, thử text
           return await response.text();
         });
-        console.log("✅ Order created successfully:", data);
         return data;
       }
       
@@ -247,7 +227,6 @@ export const salesAPI = {
       localStorage.setItem('salesOrders', JSON.stringify(orders));
       return newOrder;
     } catch (error) {
-      console.error('Error creating order:', error);
       // Nếu đã xử lý 401 và redirect, không throw lại để tránh error log thừa
       if (error.isHandled || error.message === "Token đã hết hạn") {
         // Đã redirect về login, không cần throw nữa
@@ -312,7 +291,6 @@ export const salesAPI = {
       }
       return null;
     } catch (error) {
-      console.error('Error updating order:', error);
       throw error;
     }
   },
@@ -361,7 +339,6 @@ export const salesAPI = {
       }
       return false;
     } catch (error) {
-      console.error('Error completing order:', error);
       throw error;
     }
   }

@@ -36,7 +36,7 @@ export default function SidebarXuongTruong() {
     },
     {
       path: `${basePath}/duyet-nvl`,
-      label: "Duyệt NVL đến xưởng",
+      label: "Duyệt phiếu",
       icon: <ClipboardList size={18} />,
     },
   ];

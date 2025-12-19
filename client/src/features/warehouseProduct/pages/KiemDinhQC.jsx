@@ -22,7 +22,6 @@ export default function KiemDinhQC() {
         setQcRequests(Array.isArray(res.data) ? res.data : []);
         setError(null);
       } catch (err) {
-        console.error('Lỗi khi lấy danh sách kết quả QC:', err.response?.data || err.message || err);
         setError('Không thể tải danh sách kết quả QC');
       } finally {
         setLoading(false);

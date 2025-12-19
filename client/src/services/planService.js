@@ -20,7 +20,6 @@ function getHeaders() {
  */
 export const createProductionPlan = async (planData) => {
   try {
-    console.log("📤 Sending plan data:", planData);
     const response = await fetch(`${API_URL}/plan`, {
       method: "POST",
       headers: getHeaders(),
@@ -34,11 +33,8 @@ export const createProductionPlan = async (planData) => {
       result = { error: "Invalid JSON response" };
     }
 
-    console.log(`📥 Response status: ${response.status}`, result);
-
     // Xử lý lỗi 401 (token expired)
     if (response.status === 401) {
-      console.error("❌ 401 Unauthorized when creating plan");
       handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tạo kế hoạch.");
       return { success: false, message: "Token đã hết hạn", isHandled: true };
     }
@@ -58,10 +54,8 @@ export const createProductionPlan = async (planData) => {
       };
     }
 
-    console.log("✅ Kế hoạch sản xuất được tạo:", result);
     return { success: true, plan: result.plan || result };
   } catch (error) {
-    console.error("❌ Lỗi khi gọi createProductionPlan:", error);
     return { success: false, message: error.message || "Network error" };
   }
 };
@@ -74,8 +68,6 @@ export const fetchProductionPlans = async () => {
   try {
     const headers = getHeaders();
     const token = getToken();
-    console.log('📡 Fetching plans from:', `${API_URL}/plan`);
-    console.log('🔑 Token present:', !!token, token ? `${token.substring(0, 20)}...` : 'none');
     
     const response = await fetch(`${API_URL}/plan`, {
       method: "GET",
@@ -90,22 +82,18 @@ export const fetchProductionPlans = async () => {
       } catch {
         errorData = { message: "Token không hợp lệ hoặc đã hết hạn", error: "jwt expired" };
       }
-      console.error(`❌ Plan API returned 401:`, errorData);
       handle401Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
       return []; // Return empty array để không crash UI
     }
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
-      console.error(`❌ Plan API returned ${response.status}:`, errorText);
       throw new Error("Không thể tải danh sách kế hoạch sản xuất.");
     }
 
     const data = await response.json();
-    console.log("📦 Danh sách kế hoạch sản xuất:", data);
     return data;
   } catch (error) {
-    console.error("❌ Lỗi khi tải danh sách kế hoạch:", error);
     return [];
   }
 };
@@ -130,10 +118,8 @@ export const fetchPlanById = async (id) => {
     if (!response.ok) throw new Error("Không thể lấy chi tiết kế hoạch.");
 
     const data = await response.json();
-    console.log("📄 Chi tiết kế hoạch:", data);
     return data;
   } catch (error) {
-    console.error("❌ Lỗi khi lấy chi tiết kế hoạch:", error);
     return null;
   }
 };
@@ -162,10 +148,8 @@ export const updateProductionPlan = async (id, updateData) => {
       throw new Error(result.message || "Không thể cập nhật kế hoạch.");
     }
 
-    console.log("✅ Kế hoạch đã được cập nhật:", result);
     return result;
   } catch (error) {
-    console.error("❌ Lỗi khi cập nhật kế hoạch:", error);
     return { success: false, message: error.message };
   }
 };
@@ -193,10 +177,8 @@ export const deleteProductionPlan = async (id) => {
       throw new Error(result.message || "Không thể xóa kế hoạch.");
     }
 
-    console.log("🗑️ Đã xóa kế hoạch:", id);
     return { success: true, message: "Đã xóa kế hoạch thành công." };
   } catch (error) {
-    console.error("❌ Lỗi khi xóa kế hoạch:", error);
     return { success: false, message: error.message };
   }
 };
@@ -207,7 +189,6 @@ export const deleteProductionPlan = async (id) => {
  */
 export const sendPlanToDirector = async (id, planData) => {
   try {
-    console.log("📤 Sending plan to director:", id, planData);
     const response = await fetch(`${API_URL}/plan/${id}`, {
       method: "PUT",
       headers: getHeaders(),
@@ -227,17 +208,14 @@ export const sendPlanToDirector = async (id, planData) => {
 
     if (!response.ok) {
       const errorMsg = result?.message || result?.error || `Server error: ${response.status}`;
-      console.error("❌ Lỗi khi gửi kế hoạch cho giám đốc:", errorMsg);
       return {
         success: false,
         message: errorMsg,
       };
     }
 
-    console.log("✅ Kế hoạch đã gửi cho ban giám đốc:", result);
     return { success: true, message: "Đã gửi kế hoạch cho ban giám đốc", plan: result };
   } catch (error) {
-    console.error("❌ Lỗi khi gửi kế hoạch:", error);
     return { success: false, message: error.message || "Network error" };
   }
 };

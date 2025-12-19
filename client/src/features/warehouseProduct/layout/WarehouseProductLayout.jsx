@@ -31,7 +31,10 @@ export default function WarehouseProductLayout() {
       setActiveMenu("ThongKe");
     } else if (path.includes("kiem-dinh-qc")) {
       setActiveMenu("KiemDinhQC");
-    } else if (path.includes("nhap-kho")) {
+    } else if (path.includes("xac-nhan-nhap-kho")) {
+      setActiveMenu("XacNhanNhapKho");
+    } else if (path.includes("nhap-kho") && currentRole === "khonvl") {
+      // Chỉ set activeMenu cho khonvl, không cho khotp
       setActiveMenu("NhapKho");
     } else if (path.includes("xuat-kho")) {
       setActiveMenu("XuatKho");

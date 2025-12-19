@@ -25,7 +25,6 @@ const getCurrentUser = () => {
       maNV: payload.maNV,
     };
   } catch (err) {
-    console.error("Lỗi khi parse token:", err);
     return null;
   }
 };
@@ -119,7 +118,6 @@ export default function ShiftAssignment() {
           });
         setAssignments(Array.isArray(mapped) ? mapped : []);
       } catch (err) {
-        console.error("Lỗi tải dữ liệu phân ca:", err);
         setUsers([]);
         setRoles([]);
         setTeams([]);
@@ -192,22 +190,8 @@ export default function ShiftAssignment() {
       (t) => Array.isArray(t.toTruong) && t.toTruong.length > 0
     );
     if (teamsWithLeader.length === 1) {
-      console.warn(
-        "⚠️ currentTeam fallback: dùng tổ duy nhất có toTruong:",
-        teamsWithLeader[0]?.tenTo
-      );
       return teamsWithLeader[0];
     }
-
-    console.warn("⚠️ Không tìm được tổ cho tổ trưởng từ danh sách teams.", {
-      currentUser,
-      leaderId: leader?._id,
-      teamsWithLeader: teamsWithLeader.map((t) => ({
-        id: t._id,
-        tenTo: t.tenTo,
-        toTruong: t.toTruong,
-      })),
-    });
 
     return null;
   }, [currentUser, leader, teams]);
@@ -272,13 +256,11 @@ export default function ShiftAssignment() {
     if (!formData.workerId) return;
 
     if (!currentTeam) {
-      console.warn("⚠️ Không xác định được tổ của tổ trưởng khi phân ca.");
       return;
     }
 
     const user = users.find((u) => u._id === formData.workerId);
     if (!user) {
-      console.warn("⚠️ Không tìm thấy thông tin công nhân để gán vào tổ.");
       return;
     }
 
@@ -374,11 +356,6 @@ export default function ShiftAssignment() {
 
       // 5) Đồng thời gán công nhân vào danh sách thành viên tổ (ToSanXuat.thanhVien)
       //    (logic đã được thực hiện trong addShiftMember ở backend)
-      console.log(
-        "✅ Đã phân công ca & đồng bộ thành viên tổ:",
-        currentTeam.tenTo,
-        user.hoTen
-      );
 
       // Reset form
       setFormData({
@@ -434,7 +411,6 @@ export default function ShiftAssignment() {
         setAssignments(remapped);
       }
     } catch (err) {
-      console.error("❌ Lỗi khi phân công ca làm:", err);
     }
   };
 

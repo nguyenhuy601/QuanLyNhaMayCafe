@@ -90,23 +90,38 @@ const Login = () => {
       // Gọi API login từ authAPI.js
       const data = await authAPI.login(email, password);
 
+      // XÓA user cũ trong sessionStorage trước khi lưu user mới
+      // Để đảm bảo không bị lẫn lộn user giữa các lần đăng nhập
+      sessionStorage.removeItem("user");
+      
       // Lưu token và role theo phiên (per-tab) để có thể đăng nhập nhiều tài khoản ở nhiều tab
+      // Ưu tiên sessionStorage (per-tab), chỉ lưu vào localStorage nếu cần cho backward compatibility
       if (data.token) {
         sessionStorage.setItem("token", data.token);
-        localStorage.setItem("token", data.token); // fallback cho các chỗ cũ nếu cần
+        // Chỉ lưu vào localStorage nếu chưa có token trong sessionStorage của tab khác
+        // Để tránh ghi đè token của tab khác
+        if (!localStorage.getItem("token")) {
+          localStorage.setItem("token", data.token); // fallback cho các chỗ cũ nếu cần
+        }
         window.userToken = data.token;
       }
 
       if (data.role) {
         sessionStorage.setItem("role", data.role);
-        localStorage.setItem("role", data.role); // fallback
+        // Chỉ lưu vào localStorage nếu chưa có role trong localStorage
+        if (!localStorage.getItem("role")) {
+          localStorage.setItem("role", data.role); // fallback
+        }
         window.userRole = data.role;
       }
 
       // Lưu email để dùng sau (để tìm user trong Danh sách nhân sự)
       if (email) {
         sessionStorage.setItem("userEmail", email);
-        localStorage.setItem("userEmail", email); // fallback
+        // Chỉ lưu vào localStorage nếu chưa có userEmail trong localStorage
+        if (!localStorage.getItem("userEmail")) {
+          localStorage.setItem("userEmail", email); // fallback
+        }
       }
 
       // Lưu vào Redux store
@@ -115,8 +130,13 @@ const Login = () => {
         token: data.token 
       }));
 
-      console.log("✅ Login successful, token saved:", !!data.token);
-      console.log("🔑 Token stored in:", sessionStorage.getItem("token") ? "sessionStorage" : "localStorage");
+      // Trigger custom event để các component đang dùng useCurrentUser reload lại
+      window.dispatchEvent(new Event("tokenChanged"));
+      window.dispatchEvent(new StorageEvent("storage", {
+        key: "token",
+        newValue: data.token,
+        storageArea: sessionStorage
+      }));
 
       // Redirect theo role
       redirectByRole(data.role);

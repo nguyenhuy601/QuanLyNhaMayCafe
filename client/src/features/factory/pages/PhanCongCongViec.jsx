@@ -34,7 +34,6 @@ export default function PhanCongCongViec() {
       setTeams(teamsData);
       setAssignments(assignmentsData);
     } catch (error) {
-      console.error("Lỗi tải dữ liệu:", error);
     } finally {
       setLoading(false);
     }
@@ -45,7 +44,6 @@ export default function PhanCongCongViec() {
       const response = await axiosInstance.get("/factory/manager/assignments");
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
-      console.error("Lỗi tải phân công:", error);
       return [];
     }
   };
@@ -125,7 +123,6 @@ export default function PhanCongCongViec() {
       setShowModal(false);
       loadData();
     } catch (error) {
-      console.error("Lỗi phân công:", error);
       alert(`❌ Lỗi: ${error.response?.data?.error || error.message}`);
     }
   };

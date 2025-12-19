@@ -15,12 +15,8 @@ export const fetchOrders = async () => {
     
     // If no token or no API_URL, use mock data
     if (!token || !API_URL) {
-      console.log('⚠️ No token or API_URL found, using mock data');
       return applyStatusLabel(filterVisibleOrders(getMockOrdersWithPending()));
     }
-
-    console.log('📡 Fetching orders from:', `${API_URL}/orders`);
-    console.log('🔑 Token present:', !!token, token ? `${token.substring(0, 20)}...` : 'none');
     
     const response = await fetch(`${API_URL}/orders`, {
       method: 'GET',
@@ -31,23 +27,16 @@ export const fetchOrders = async () => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      console.warn(`⚠️ API returned ${response.status}, using mock data`);
-      console.warn(`❌ Error details:`, errorText);
       if (response.status === 401) {
-        console.error('🔴 401 Unauthorized - Token may be invalid or expired. Please login again.');
+        console.error('401 Unauthorized - Token may be invalid or expired. Please login again.');
       }
       return applyStatusLabel(filterVisibleOrders(getMockOrdersWithPending()));
     }
 
     const data = await response.json();
-    console.log('✅ Fetched orders from API:', data);
     return applyStatusLabel(filterVisibleOrders(data));
     
   } catch (error) {
-    console.error('❌ Fetch orders error:', error);
-    console.log('📦 Using mock data as fallback');
-    
     // Fallback to mock data
     return applyStatusLabel(filterVisibleOrders(getMockOrdersWithPending()));
   }
@@ -150,7 +139,6 @@ const getMockOrdersWithPending = () => {
     return dateB - dateA;
   });
 
-  console.log("📊 Total fallback orders:", merged.length);
   return merged;
 };
 
@@ -168,13 +156,11 @@ export const fetchOrderById = async (id) => {
     if (!response.ok) throw new Error("Failed to fetch order");
 
     const data = await response.json();
-    console.log("✅ Order fetched by ID:", data);
     return {
       ...data,
       trangThai: toVietnameseStatus(data.trangThai),
     };
   } catch (error) {
-    console.error("❌ Fetch order by ID error:", error);
     return null;
   }
 };
@@ -185,7 +171,6 @@ export const updateOrder = async (id, updatedData) => {
     const token = getToken();
 
     if (!token) {
-      console.log("⚠️ No token — fallback mock update:", id, updatedData);
       return { success: true };
     }
 
@@ -204,10 +189,8 @@ export const updateOrder = async (id, updatedData) => {
     }
 
     const result = await response.json();
-    console.log("✅ Updated order via API:", result);
     return result;
   } catch (error) {
-    console.error("❌ Update order error:", error);
     return { success: false, message: error.message };
   }
 };
@@ -218,7 +201,6 @@ export const approveOrders = async (orderIds) => {
     const token = getToken();
     
     if (!token) {
-      console.log('⚠️ No token, using localStorage for approval');
       return updateLocalStorageApproval(orderIds);
     }
 
@@ -233,13 +215,9 @@ export const approveOrders = async (orderIds) => {
       })
     ));
     
-    console.log('✅ Orders approved via API');
     return results;
     
   } catch (error) {
-    console.error('❌ Error approving orders:', error);
-    console.log('📦 Using localStorage fallback for approval');
-    
     return updateLocalStorageApproval(orderIds);
   }
 };
@@ -266,6 +244,5 @@ const updateLocalStorageApproval = (orderIds) => {
   localStorage.setItem('pendingOrders', JSON.stringify(pendingOrders));
   localStorage.setItem('approvedOrders', JSON.stringify(approvedOrders));
   
-  console.log('✅ Orders approved in localStorage');
   return orderIds.map(id => ({ ok: true }));
 };

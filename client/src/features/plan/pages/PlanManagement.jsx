@@ -31,7 +31,6 @@ const PlanManagement = () => {
       const data = await fetchProductionPlans();
       setPlanList(data);
     } catch (err) {
-      console.error("Lỗi tải kế hoạch:", err);
     }
   }, []);
 
@@ -41,7 +40,6 @@ const PlanManagement = () => {
       const data = await fetchOrders();
       setOrders(data);
     } catch (error) {
-      console.error('Error fetching orders:', error);
       alert('Có lỗi khi tải dữ liệu');
     } finally {
       setLoading(false);
@@ -75,7 +73,6 @@ const PlanManagement = () => {
     const token = authStore?.token || getToken();
     
     if (!token) {
-      console.warn("⚠️ No token available for WebSocket connection");
       // Nếu không có token nhưng đã có socket, cleanup
       if (socketRef.current) {
         socketRef.current.removeAllListeners();
@@ -87,19 +84,15 @@ const PlanManagement = () => {
 
     // Nếu đã có socket và đang connected với cùng token, không tạo mới
     if (socketRef.current?.connected) {
-      console.log("ℹ️ Socket already connected, skipping...");
       return;
     }
 
     // Nếu đã có socket nhưng chưa connected hoặc token thay đổi, cleanup trước
     if (socketRef.current) {
-      console.log("🔄 Cleaning up existing socket connection...");
       socketRef.current.removeAllListeners();
       socketRef.current.disconnect();
       socketRef.current = null;
     }
-
-    console.log("🔌 Connecting to realtime service with token...");
     
     // Thử kết nối với polling trước, sau đó upgrade lên websocket nếu có thể
     // Điều này tránh lỗi "WebSocket is closed before connection established"
@@ -135,7 +128,6 @@ const PlanManagement = () => {
 
     // Sử dụng functions trực tiếp để luôn dùng version mới nhất
     socket.on("connect", () => {
-      console.log("✅ Connected to realtime service");
       setIsSocketConnected(true);
     });
 
@@ -148,60 +140,48 @@ const PlanManagement = () => {
     socket.on("connect_error", (err) => {
       // Chỉ log error nghiêm trọng, bỏ qua websocket connection errors vì đã có polling fallback
       if (err.message.includes("token") || err.message.includes("Invalid")) {
-        console.error("❌ Realtime socket authentication error:", err.message);
-        console.error("⚠️ Authentication failed. Please login again.");
       } else if (err.message.includes("websocket error") || err.message.includes("WebSocket is closed")) {
         // Suppress websocket errors vì đã có polling fallback
-        console.log("ℹ️ WebSocket unavailable, using polling transport...");
       } else {
-        console.warn("⚠️ Realtime service connection issue:", err.message);
-        console.warn("⚠️ Continuing with polling refresh...");
+        // Silent fail - đã có polling fallback
       }
     });
 
     socket.on("disconnect", (reason) => {
-      console.warn(`⚠️ Disconnected from realtime service: ${reason}`);
       setIsSocketConnected(false);
       
       // Tự động reconnect cho các lý do có thể recover được
       if (reason === "io server disconnect") {
         // Server force disconnect - cần reconnect manually
-        console.log("🔄 Server disconnected. Reconnecting...");
         socket.connect();
-      } else if (reason === "transport close" || reason === "ping timeout" || reason === "transport error") {
-        // Transport issues - sẽ tự động reconnect nhờ reconnection config
-        console.log("🔄 Connection lost due to transport issue. Will auto-reconnect...");
-      } else {
-        // Các lý do khác - vẫn thử reconnect
-        console.log("🔄 Will attempt to reconnect...");
       }
+      // Transport issues và các lý do khác sẽ tự động reconnect nhờ reconnection config
     });
 
-    socket.on("reconnect_attempt", (attemptNumber) => {
-      console.log(`🔄 Reconnecting to realtime service (attempt ${attemptNumber})...`);
+    socket.on("reconnect_attempt", () => {
+      // Silent reconnect
     });
 
-    socket.on("reconnect", (attemptNumber) => {
-      console.log(`✅ Reconnected to realtime service after ${attemptNumber} attempts`);
+    socket.on("reconnect", () => {
+      // Silent reconnect
     });
 
     socket.on("reconnect_failed", () => {
-      console.warn("⚠️ Failed to reconnect to realtime service. Using polling fallback.");
+      // Silent fail - đã có polling fallback
     });
 
     // Track transport changes
     socket.on("upgrade", () => {
-      console.log("⬆️ Transport upgraded to websocket");
+      // Silent upgrade
     });
 
-    socket.on("upgradeError", (err) => {
-      console.warn("⚠️ Transport upgrade failed, staying on polling:", err.message);
+    socket.on("upgradeError", () => {
+      // Silent fail - đã có polling fallback
     });
 
     return () => {
       // Cleanup chỉ khi component unmount hoặc token thay đổi
       if (socketRef.current === socket) {
-        console.log("🧹 Cleaning up socket connection...");
         // Clear debounce timeouts
         if (ordersRefreshTimeoutRef.current) clearTimeout(ordersRefreshTimeoutRef.current);
         if (plansRefreshTimeoutRef.current) clearTimeout(plansRefreshTimeoutRef.current);
@@ -237,7 +217,6 @@ const PlanManagement = () => {
       setSelectedOrders([]);
       alert('Đã duyệt kế hoạch thành công!');
     } catch (error) {
-      console.error('Error approving orders:', error);
       alert('Có lỗi xảy ra khi duyệt kế hoạch');
     }
   };
@@ -280,15 +259,16 @@ const PlanManagement = () => {
               onApprove={handleApproveOrders}
               activeMenu={activeMenu}
               onModalStateChange={setPlanModalOpen}
+              plans={planList}
             />
           )}
 
           {/* Hiển thị PlanListView cho menu 'list' */}
           {activeMenu === 'list' && (
             <PlanListView
-              onView={(plan) => console.log('View:', plan)}
-              onEdit={(plan) => console.log('Edit:', plan)}
-              onDelete={(id) => console.log('Delete:', id)}
+              onView={(plan) => {}}
+              onEdit={(plan) => {}}
+              onDelete={(id) => {}}
             />
           )}
 

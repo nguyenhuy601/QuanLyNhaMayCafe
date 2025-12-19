@@ -17,14 +17,12 @@ const XuongSanXuatSchema = new mongoose.Schema(
       required: true, 
       trim: true 
     },
-    // Sản phẩm phụ trách (lưu dạng cache object, không reference)
-    sanPhamPhuTrach: [
-      {
-        productId: String, // ID từ Product service
-        maSP: String,
-        tenSP: String,
-      },
-    ],
+    // Sản phẩm phụ trách (mỗi xưởng chỉ phụ trách 1 sản phẩm)
+    sanPhamPhuTrach: {
+      productId: String, // ID từ Product service
+      maSP: String,
+      tenSP: String,
+    },
     // Xưởng trưởng (lưu dạng cache object, không reference)
     xuongTruong: [
       {
@@ -41,6 +39,26 @@ const XuongSanXuatSchema = new mongoose.Schema(
         ref: "ToSanXuat",
       },
     ],
+    // Danh sách thành viên (công nhân) trong xưởng (tổng hợp từ các tổ)
+    thanhVien: [
+      {
+        id: String, // ID từ User service
+        hoTen: String,
+        email: String,
+        role: String,
+        maNV: String,
+      },
+    ],
+    // Tổ trưởng chính của xưởng (mỗi xưởng chỉ có 1 tổ trưởng)
+    toTruong: {
+      id: String, // ID từ Account/User service
+      hoTen: String,
+      email: String,
+      role: String,
+      maNV: String,
+      tenTo: String, // Tên tổ mà tổ trưởng này phụ trách
+      maTo: String, // Mã tổ
+    },
     moTa: { 
       type: String, 
       default: "" 

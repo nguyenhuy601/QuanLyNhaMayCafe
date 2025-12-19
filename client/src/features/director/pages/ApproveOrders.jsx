@@ -24,10 +24,8 @@ export default function ApproveOrders() {
     setLoading(true);
     try {
       const rawList = await getPendingOrders();
-      console.log("📦 Raw orders from API:", rawList);
       
       if (!Array.isArray(rawList) || rawList.length === 0) {
-        console.warn("⚠️ No pending orders found");
         setOrders([]);
         return;
       }
@@ -35,10 +33,8 @@ export default function ApproveOrders() {
       const fullList = await Promise.all(rawList.map(async (order) => {
           return await enrichOrderData(order);
       }));
-      console.log("✅ Enriched orders:", fullList);
       setOrders(fullList);
     } catch (error) {
-      console.error("❌ Lỗi tải đơn hàng:", error);
       // Nếu đã xử lý 401, không set orders
       if (error.response?.status !== 401) {
         setOrders([]);
@@ -132,8 +128,22 @@ export default function ApproveOrders() {
                         const soLuong = i.soLuong || 0;
                         const donVi = i.donVi;
                         const loaiTui = i.loaiTui;
-                        // Nếu loaiTui = "hop" thì hiển thị "Hộp"
-                        const displayUnit = loaiTui === "hop" ? "Hộp" : (donVi !== null && donVi !== undefined ? donVi : "null");
+                        // Xác định đơn vị hiển thị
+                        let displayUnit = "";
+                        if (loaiTui === "hop") {
+                          displayUnit = "Hộp";
+                        } else if (donVi === "túi") {
+                          // Hiển thị loại túi nếu có
+                          if (loaiTui === "500g") {
+                            displayUnit = "túi 500g";
+                          } else if (loaiTui === "1kg") {
+                            displayUnit = "túi 1kg";
+                          } else {
+                            displayUnit = "túi";
+                          }
+                        } else {
+                          displayUnit = donVi !== null && donVi !== undefined ? donVi : "null";
+                        }
                         return (
                           <span key={idx}>
                             {soLuong} {displayUnit}

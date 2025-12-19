@@ -19,7 +19,6 @@ const Order = () => {
       const data = await salesAPI.getOrders();
       setOrders(data);
     } catch (error) {
-      console.error("Error loading orders:", error);
     } finally {
       setLoading(false);
     }
@@ -41,7 +40,6 @@ const Order = () => {
       if (error.isHandled || error.message === "Token đã hết hạn") {
         return false;
       }
-      console.error("Error creating order:", error);
       return false;
     }
   };
@@ -55,7 +53,6 @@ const Order = () => {
       navigate("/orders/list"); // ✅ Quay lại danh sách sau khi cập nhật
       return true;
     } catch (error) {
-      console.error("Error updating order:", error);
       return false;
     }
   };
@@ -67,7 +64,6 @@ const Order = () => {
       await loadOrders();
       return true;
     } catch (error) {
-      console.error("Error completing order:", error);
       return false;
     }
   };

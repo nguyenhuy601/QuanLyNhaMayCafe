@@ -1,8 +1,8 @@
 import { Bell, Settings, User } from 'lucide-react';
+import useCurrentUser from '../../../hooks/useCurrentUser';
 
 export default function Topbar() {
-  // Lấy user info từ localStorage (giống file mẫu)
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const { currentUser, loading } = useCurrentUser();
 
   return (
     // Áp dụng style gradient và shadow của file mẫu
@@ -26,8 +26,11 @@ export default function Topbar() {
             <User size={22} />
           </div>
           <div>
-            {/* Lấy tên từ localStorage, fallback là 'Your Name' */}
-            <div className="font-semibold">{user.hoTen || 'Your Name'}</div>
+            <div className="font-semibold">
+              {loading
+                ? 'Đang tải...'
+                : currentUser?.hoTen || currentUser?.email || 'Your Name'}
+            </div>
             {/* Set role "Ban giám đốc" của bạn */}
             <div className="text-xs text-amber-200">Ban giám đốc</div>
           </div>

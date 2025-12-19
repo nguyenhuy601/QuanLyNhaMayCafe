@@ -10,11 +10,12 @@ const TEAMLEADER_ROLES = ["totruong", "teamleader"]; // Tổ trưởng
 
 // ============================================
 // Xưởng trưởng quản lý phân công công việc
+// Cho phép tổ trưởng cũng truy cập để lấy đầy đủ keHoach (backend sẽ lọc theo tổ)
 // ============================================
 router.get(
   "/manager/assignments",
   verifyToken,
-  authorizeRoles(MANAGER_ROLES),
+  authorizeRoles([...MANAGER_ROLES, ...TEAMLEADER_ROLES]),
   controller.getAssignments
 );
 
@@ -32,9 +33,23 @@ router.put(
   controller.updateAssignment
 );
 
+router.delete(
+  "/manager/assignments/plan/:planId",
+  verifyToken,
+  authorizeRoles(MANAGER_ROLES),
+  controller.deleteAssignmentsByPlanId
+);
+
+router.delete(
+  "/manager/assignments/:id",
+  verifyToken,
+  authorizeRoles(MANAGER_ROLES),
+  controller.deleteAssignment
+);
+
 // ============================================
-// Tổ trưởng xem / tạo phân công của tổ mình
-// (tạm thời chỉ cần xác thực token, không check role quá chặt để tránh 403 do lệch role)
+// Tổ trưởng tạo phân công của tổ mình
+// (GET /teamleader/assignments đã bỏ, dùng GET /manager/assignments thay thế)
 // ============================================
 router.post(
   "/teamleader/assignments",
@@ -42,11 +57,8 @@ router.post(
   controller.createAssignmentByTeamLeader
 );
 
-router.get(
-  "/teamleader/assignments",
-  verifyToken,
-  controller.getAssignmentsByTeam
-);
+// GET /teamleader/assignments đã bỏ - dùng GET /manager/assignments thay thế
+// (endpoint này trả về rỗng, trong khi /manager/assignments có đầy đủ keHoach)
 
 // ============================================
 // Tổ trưởng ghi nhận sản lượng

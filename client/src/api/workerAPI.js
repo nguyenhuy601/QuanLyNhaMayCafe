@@ -29,7 +29,6 @@ export const getWorkerTasks = async () => {
     const allPlans = Array.isArray(response.data) ? response.data : [];
     return allPlans.filter(p => ["Da duyet", "Dang thuc hien", "Hoan thanh"].includes(p.trangThai));
   } catch (error) {
-    console.error("Lỗi lấy nhiệm vụ:", error);
     return [];
   }
 };

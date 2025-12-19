@@ -23,7 +23,6 @@ const XuatKhoNVL = () => {
       setPlans(data);
       setError(null);
     } catch (err) {
-      console.error('Lỗi khi lấy danh sách kế hoạch:', err);
       setError('Không thể tải danh sách kế hoạch đã duyệt');
     } finally {
       setLoading(false);
@@ -72,7 +71,6 @@ const XuatKhoNVL = () => {
         ghiChu: '',
       });
     } catch (err) {
-      console.error('Lỗi khi tạo phiếu xuất:', err);
       alert("Lỗi khi tạo phiếu xuất: " + (err.response?.data?.message || err.message));
     }
   };

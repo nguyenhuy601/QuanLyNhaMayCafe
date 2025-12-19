@@ -1,5 +1,9 @@
 const ProductionPlan = require("../models/ProductionPlan");
 const { publishEvent } = require("../utils/eventPublisher");
+const axios = require("axios");
+
+const GATEWAY_URL = process.env.GATEWAY_URL || "http://api-gateway:4000";
+const FACTORY_SERVICE_URL = process.env.FACTORY_SERVICE_URL || "http://factory-service:3003";
 
 /**
  * Kiểm tra tồn kho NVL (giả lập — sau này gọi warehouse-service)
@@ -57,22 +61,35 @@ const buildOrderData = (source) => {
     ];
   }
 
+  // Xử lý ngayBatDauDuKien
   if (!payload.ngayBatDauDuKien) {
-    const ngayDat = payload.ngayDat ? new Date(payload.ngayDat) : new Date();
-    payload.ngayBatDauDuKien = ngayDat.toISOString();
+    if (payload.ngayDat) {
+      payload.ngayBatDauDuKien = new Date(payload.ngayDat);
+    } else {
+      payload.ngayBatDauDuKien = new Date();
+    }
   } else if (typeof payload.ngayBatDauDuKien === 'string') {
-    // Đảm bảo là Date object nếu là string
     payload.ngayBatDauDuKien = new Date(payload.ngayBatDauDuKien);
   }
   
+  // Xử lý ngayKetThucDuKien
   if (!payload.ngayKetThucDuKien) {
-    const ngayGiao = payload.ngayYeuCauGiao ? new Date(payload.ngayYeuCauGiao) : payload.ngayBatDauDuKien;
-    payload.ngayKetThucDuKien = ngayGiao instanceof Date ? ngayGiao : new Date(ngayGiao);
+    if (payload.ngayYeuCauGiao) {
+      payload.ngayKetThucDuKien = new Date(payload.ngayYeuCauGiao);
+    } else if (payload.ngayBatDauDuKien) {
+      // Nếu không có ngayYeuCauGiao, dùng ngayBatDauDuKien + 30 ngày
+      const ngayBatDau = payload.ngayBatDauDuKien instanceof Date 
+        ? payload.ngayBatDauDuKien 
+        : new Date(payload.ngayBatDauDuKien);
+      payload.ngayKetThucDuKien = new Date(ngayBatDau.getTime() + 30 * 24 * 60 * 60 * 1000);
+    } else {
+      payload.ngayKetThucDuKien = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    }
   } else if (typeof payload.ngayKetThucDuKien === 'string') {
-    // Đảm bảo là Date object nếu là string
     payload.ngayKetThucDuKien = new Date(payload.ngayKetThucDuKien);
   }
 
+  // Xử lý xuongPhuTrach - mặc định nếu chưa có
   if (!payload.xuongPhuTrach) {
     payload.xuongPhuTrach = "Xưởng chính";
   }
@@ -89,7 +106,7 @@ const buildOrderData = (source) => {
   return payload;
 };
 
-const createPlanInternal = async (orderData) => {
+const createPlanInternal = async (orderData, token = null) => {
   if (!orderData) {
     throw new Error("Thiếu payload tạo kế hoạch");
   }
@@ -119,6 +136,132 @@ const createPlanInternal = async (orderData) => {
     });
     throw new Error("Thiếu thông tin cần thiết để tạo kế hoạch.");
   }
+
+  // ============================================
+  // VALIDATION: Ràng buộc thời gian khi tạo kế hoạch
+  // ============================================
+  
+  // 1. Lấy thông tin đầy đủ của các đơn hàng từ sales-service
+  const orderIds = orderData.donHangLienQuan?.map(o => o.orderId).filter(Boolean) || [];
+  if (orderIds.length === 0) {
+    throw new Error("Không có đơn hàng nào trong kế hoạch");
+  }
+
+  // Lấy thông tin đơn hàng từ sales-service để validate
+  let orders = [];
+  if (token && orderIds.length > 0) {
+    try {
+      const headers = { Authorization: token };
+      const orderPromises = orderIds.map(orderId => 
+        axios.get(`${GATEWAY_URL}/orders/${orderId}`, { headers }).catch(err => {
+          console.warn(`⚠️ Không thể lấy đơn hàng ${orderId}:`, err.message);
+          return null;
+        })
+      );
+      const orderResponses = await Promise.all(orderPromises);
+      orders = orderResponses
+        .filter(res => res && res.data)
+        .map(res => res.data);
+    } catch (err) {
+      console.warn("⚠️ Lỗi khi lấy thông tin đơn hàng:", err.message);
+    }
+  }
+
+  // Validation: Kiểm tra các đơn hàng có ngày tạo và ngày giao không cách quá 3 ngày
+  if (orders.length > 1) {
+    const ngayTaoList = orders.map(o => new Date(o.ngayDat || o.createdAt)).filter(d => !isNaN(d.getTime()));
+    const ngayGiaoList = orders.map(o => new Date(o.ngayYeuCauGiao)).filter(d => !isNaN(d.getTime()));
+
+    if (ngayTaoList.length > 0) {
+      const minNgayTao = new Date(Math.min(...ngayTaoList));
+      const maxNgayTao = new Date(Math.max(...ngayTaoList));
+      const soNgayChenhLechTao = Math.floor((maxNgayTao - minNgayTao) / (1000 * 60 * 60 * 24));
+      
+      if (soNgayChenhLechTao > 3) {
+        throw new Error(`Các đơn hàng có ngày tạo cách nhau quá 3 ngày (${soNgayChenhLechTao} ngày)`);
+      }
+    }
+
+    if (ngayGiaoList.length > 0) {
+      const minNgayGiao = new Date(Math.min(...ngayGiaoList));
+      const maxNgayGiao = new Date(Math.max(...ngayGiaoList));
+      const soNgayChenhLechGiao = Math.floor((maxNgayGiao - minNgayGiao) / (1000 * 60 * 60 * 24));
+      
+      if (soNgayChenhLechGiao > 3) {
+        throw new Error(`Các đơn hàng có ngày giao cách nhau quá 3 ngày (${soNgayChenhLechGiao} ngày)`);
+      }
+    }
+
+    // Validation: Thời gian từ ngày tạo đến ngày giao phải hơn 90 ngày
+    if (ngayTaoList.length > 0 && ngayGiaoList.length > 0) {
+      const minNgayTao = new Date(Math.min(...ngayTaoList));
+      const maxNgayGiao = new Date(Math.max(...ngayGiaoList));
+      const soNgayTuTaoDenGiao = Math.floor((maxNgayGiao - minNgayTao) / (1000 * 60 * 60 * 24));
+      
+      if (soNgayTuTaoDenGiao < 90) {
+        throw new Error(`Thời gian từ ngày tạo đến ngày giao phải ít nhất 90 ngày. Hiện tại: ${soNgayTuTaoDenGiao} ngày`);
+      }
+    }
+
+  }
+
+  // 2. Validation: Ngày bắt đầu kế hoạch phải hơn 5 ngày so với ngày hiện tại
+  const ngayBatDau = new Date(orderData.ngayBatDauDuKien);
+  const ngayKetThuc = new Date(orderData.ngayKetThucDuKien);
+  
+  // Validation: Ngày kết thúc kế hoạch phải trước 5 ngày so với ngày giao
+  if (orders.length > 0) {
+    const ngayGiaoList = orders.map(o => new Date(o.ngayYeuCauGiao)).filter(d => !isNaN(d.getTime()));
+    if (ngayGiaoList.length > 0) {
+      const maxNgayGiao = new Date(Math.max(...ngayGiaoList));
+      const soNgayTuKetThucDenGiao = Math.floor((maxNgayGiao - ngayKetThuc) / (1000 * 60 * 60 * 24));
+      
+      if (soNgayTuKetThucDenGiao < 5) {
+        throw new Error(`Ngày kết thúc kế hoạch phải trước ngày giao ít nhất 5 ngày. Hiện tại: ${soNgayTuKetThucDenGiao} ngày`);
+      }
+    }
+  }
+  const ngayHienTai = new Date();
+  ngayHienTai.setHours(0, 0, 0, 0);
+  
+  const soNgayTuHienTai = Math.floor((ngayBatDau - ngayHienTai) / (1000 * 60 * 60 * 24));
+  if (soNgayTuHienTai < 5) {
+    throw new Error(`Ngày bắt đầu kế hoạch phải cách ngày hiện tại ít nhất 5 ngày. Hiện tại: ${soNgayTuHienTai} ngày`);
+  }
+
+  // 3. Validation: Kiểm tra thời gian kế hoạch hợp lệ
+  if (ngayKetThuc <= ngayBatDau) {
+    throw new Error("Ngày kết thúc phải sau ngày bắt đầu");
+  }
+
+  // 4. Validation: Kiểm tra chồng lấp với kế hoạch khác
+  const existingPlans = await ProductionPlan.find({
+    $or: [
+      // Kế hoạch bắt đầu trong khoảng thời gian của kế hoạch mới
+      {
+        ngayBatDauDuKien: { $gte: ngayBatDau, $lte: ngayKetThuc }
+      },
+      // Kế hoạch kết thúc trong khoảng thời gian của kế hoạch mới
+      {
+        ngayKetThucDuKien: { $gte: ngayBatDau, $lte: ngayKetThuc }
+      },
+      // Kế hoạch bao trùm kế hoạch mới
+      {
+        ngayBatDauDuKien: { $lte: ngayBatDau },
+        ngayKetThucDuKien: { $gte: ngayKetThuc }
+      }
+    ],
+    trangThai: { $nin: ["Từ chối", "Đã hủy"] } // Bỏ qua các kế hoạch đã hủy
+  });
+
+  if (existingPlans.length > 0) {
+    const planCodes = existingPlans.map(p => p.maKeHoach || p._id).join(", ");
+    throw new Error(`Thời gian kế hoạch bị chồng lấp với kế hoạch khác: ${planCodes}`);
+  }
+
+  // 5. Validation: Nếu có thông tin đơn hàng đầy đủ, kiểm tra thêm
+  // (Cần lấy từ sales-service hoặc truyền từ frontend)
+  // Tạm thời bỏ qua nếu không có thông tin đầy đủ
 
   // Tính số lượng NVL thực tế từ nvlCanThiet
   const soLuongNVLThucTe = orderData.nvlCanThiet?.reduce((sum, nvl) => sum + (nvl.soLuong || 0), 0) || 0;
@@ -151,7 +294,8 @@ const createPlanInternal = async (orderData) => {
  */
 exports.createProductionPlan = async (req, res) => {
   try {
-    const result = await createPlanInternal(buildOrderData(req));
+    const token = req.headers.authorization || req.headers.Authorization;
+    const result = await createPlanInternal(buildOrderData(req), token);
 
     return res.status(201).json({
       message: "Tạo kế hoạch sản xuất thành công.",
@@ -159,7 +303,8 @@ exports.createProductionPlan = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Error creating Production Plan:", err.message);
-    res.status(500).json({ error: err.message });
+    const statusCode = err.message.includes("phải") || err.message.includes("không") || err.message.includes("bị chồng") ? 400 : 500;
+    res.status(statusCode).json({ error: err.message });
   }
 };
 
@@ -168,9 +313,18 @@ exports.createProductionPlan = async (req, res) => {
  */
 exports.createPlanFromEvent = async (payload) => {
   try {
-    await createPlanInternal(payload);
+    // Xử lý payload có thể là { message, order } hoặc order object trực tiếp
+    const orderData = buildOrderData(payload);
+    
+    if (!orderData) {
+      console.error("❌ Error creating plan from event: Không thể parse payload");
+      return;
+    }
+    
+    await createPlanInternal(orderData);
   } catch (err) {
     console.error("❌ Error creating plan from event:", err.message);
+    console.error("❌ Payload received:", JSON.stringify(payload, null, 2));
   }
 };
 
@@ -287,14 +441,60 @@ exports.deleteProductionPlan = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy kế hoạch." });
     }
 
-    await plan.deleteOne();
-    console.log("🗑️ Production plan deleted:", planId);
+    const token = req.headers.authorization || req.headers.Authorization;
+    const headers = token ? { Authorization: token } : {};
 
+    console.log(`🗑️ [deleteProductionPlan] Bắt đầu xóa kế hoạch ${planId} và các dữ liệu liên quan...`);
+
+    // 1. Xóa tất cả phân công công việc (WorkAssignment) liên quan
+    try {
+      await axios.delete(
+        `${GATEWAY_URL}/factory/manager/assignments/plan/${planId}`,
+        { headers }
+      );
+      console.log(`✅ [deleteProductionPlan] Đã xóa phân công công việc cho kế hoạch ${planId}`);
+    } catch (assignmentErr) {
+      console.warn("⚠️ [deleteProductionPlan] Lỗi khi xóa phân công công việc:", assignmentErr.message);
+      // Tiếp tục xóa các dữ liệu khác
+    }
+
+    // 2. Xóa tất cả lô sản xuất (LoSanXuat) liên quan
+    try {
+      await axios.delete(
+        `${FACTORY_SERVICE_URL}/api/lot/plan/${planId}`,
+        { headers }
+      );
+      console.log(`✅ [deleteProductionPlan] Đã xóa lô sản xuất cho kế hoạch ${planId}`);
+    } catch (lotErr) {
+      console.warn("⚠️ [deleteProductionPlan] Lỗi khi xóa lô sản xuất:", lotErr.message);
+      // Tiếp tục xóa các dữ liệu khác
+    }
+
+    // 3. Xóa tất cả nhật ký sản xuất (ProductionLog) liên quan
+    try {
+      await axios.delete(
+        `${GATEWAY_URL}/factory/manager/production-logs/plan/${planId}`,
+        { headers }
+      );
+      console.log(`✅ [deleteProductionPlan] Đã xóa nhật ký sản xuất cho kế hoạch ${planId}`);
+    } catch (logErr) {
+      console.warn("⚠️ [deleteProductionPlan] Lỗi khi xóa nhật ký sản xuất:", logErr.message);
+      // Tiếp tục xóa kế hoạch
+    }
+
+    // 4. Xóa kế hoạch
+    await plan.deleteOne();
+    console.log("🗑️ [deleteProductionPlan] Đã xóa kế hoạch:", planId);
+
+    // 5. Publish event
     await publishEvent("PLAN_DELETED", { _id: planId });
 
-    res.status(200).json({ message: "Đã xóa kế hoạch sản xuất." });
+    res.status(200).json({ 
+      message: "Đã xóa kế hoạch sản xuất và tất cả dữ liệu liên quan.",
+      deletedPlanId: planId
+    });
   } catch (err) {
-    console.error("❌ Error deleting plan:", err.message);
+    console.error("❌ [deleteProductionPlan] Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };

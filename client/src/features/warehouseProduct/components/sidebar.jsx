@@ -1,6 +1,6 @@
 // ...existing code...
 import React from 'react';
-import { Home, BarChart2, ClipboardCheck, Archive, Truck, LogOut } from 'lucide-react';
+import { Home, BarChart2, ClipboardCheck, Archive, Truck, LogOut, CheckCircle2 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 
 const Sidebar = ({ activeMenu, setActiveMenu, orderCount, approvedCount, role = "khotp" }) => {
@@ -65,37 +65,54 @@ const Sidebar = ({ activeMenu, setActiveMenu, orderCount, approvedCount, role = 
           </NavLink>
 
           {role === "khotp" && (
+            <>
+              <NavLink
+                to="/khotp/kiem-dinh-qc"
+                onClick={() => handleSetActive('KiemDinhQC')}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+                    isActive || activeMenu === 'KiemDinhQC' ? 'bg-amber-600' : 'hover:bg-amber-700'
+                  }`
+                }
+              >
+                <ClipboardCheck size={16} />
+                <span className="flex-1">Kiểm định QC</span>
+                {approvedCount > 0 && (
+                  <span className="ml-auto bg-amber-700 px-2 py-0.5 rounded text-xs">
+                    {approvedCount}
+                  </span>
+                )}
+              </NavLink>
+
+              <NavLink
+                to="/khotp/xac-nhan-nhap-kho"
+                onClick={() => handleSetActive('XacNhanNhapKho')}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+                    isActive || activeMenu === 'XacNhanNhapKho' ? 'bg-amber-600' : 'hover:bg-amber-700'
+                  }`
+                }
+              >
+                <CheckCircle2 size={16} />
+                <span className="flex-1">Xác nhận nhập kho</span>
+              </NavLink>
+            </>
+          )}
+
+          {role === "khonvl" && (
             <NavLink
-              to="/khotp/kiem-dinh-qc"
-              onClick={() => handleSetActive('KiemDinhQC')}
+              to="/khonvl/nhap-kho"
+              onClick={() => handleSetActive('NhapKho')}
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
-                  isActive || activeMenu === 'KiemDinhQC' ? 'bg-amber-600' : 'hover:bg-amber-700'
+                  isActive || activeMenu === 'NhapKho' ? 'bg-amber-600' : 'hover:bg-amber-700'
                 }`
               }
             >
-              <ClipboardCheck size={16} />
-              <span className="flex-1">Kiểm định QC</span>
-              {approvedCount > 0 && (
-                <span className="ml-auto bg-amber-700 px-2 py-0.5 rounded text-xs">
-                  {approvedCount}
-                </span>
-              )}
+              <Archive size={16} />
+              <span>Nhập kho NVL</span>
             </NavLink>
           )}
-
-          <NavLink
-            to={role === "khonvl" ? "/khonvl/nhap-kho" : "/khotp/nhap-kho"}
-            onClick={() => handleSetActive('NhapKho')}
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
-                isActive || activeMenu === 'NhapKho' ? 'bg-amber-600' : 'hover:bg-amber-700'
-              }`
-            }
-          >
-            <Archive size={16} />
-            <span>{role === "khonvl" ? "Nhập kho NVL" : "Nhập kho TP"}</span>
-          </NavLink>
 
           <NavLink
             to={role === "khonvl" ? "/khonvl/xuat-kho" : "/khotp/xuat-kho"}

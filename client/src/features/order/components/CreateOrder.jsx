@@ -33,7 +33,6 @@ const CreateOrder = () => {
         const list = await getFinishedProducts();
         if (mounted && Array.isArray(list)) setProducts(list);
       } catch (err) {
-        console.error("❌ Error loading finished products:", err);
         if (mounted) setProducts([]);
       }
     })();
@@ -138,7 +137,6 @@ const CreateOrder = () => {
         }));
       }
     } catch (error) {
-      console.error("Error searching customer:", error);
       alert("Không thể tìm kiếm khách hàng. Vui lòng thử lại.");
     } finally {
       setLoading(false);
@@ -274,7 +272,6 @@ const CreateOrder = () => {
     };
 
     try {
-      console.log("📦 Sending order data:", orderData);
       let success;
       if (editingOrder) {
         success = await handleUpdateOrder(editingOrder.id, orderData);
@@ -295,7 +292,6 @@ const CreateOrder = () => {
         // Đã redirect về login, không cần làm gì thêm
         return;
       }
-      console.error("Error creating order:", error);
       alert("Có lỗi xảy ra: " + error.message);
     } finally {
       setLoading(false);

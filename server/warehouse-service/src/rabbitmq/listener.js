@@ -25,13 +25,11 @@ exports.listenEvents = async () => {
     console.log("📩 [warehouse-service] Received:", event);
 
     if (event === "QC_PASSED") {
-      await FinishedReceipt.create({
-        ngayNhap: new Date(),
-        noiDung: `Nhập thành phẩm đạt QC`,
-        trangThai: "Đã nhập kho",
-        logQC: payload._id,
-      });
-      console.log("📦 Thành phẩm nhập kho:", payload._id);
+      // Lưu ý: Tạo FinishedReceipt từ RabbitMQ event không đầy đủ thông tin
+      // Nên chỉ log, không tạo phiếu nhập. Phiếu nhập sẽ được tạo từ frontend
+      console.log("📦 [warehouse-service] QC_PASSED event received:", payload);
+      console.log("ℹ️ [warehouse-service] FinishedReceipt sẽ được tạo từ frontend khi xưởng trưởng tạo phiếu nhập");
+      // Không tạo FinishedReceipt từ event vì thiếu thông tin (maPhieuNhapTP, sanPhamName, soLuong, etc.)
     }
   });
 

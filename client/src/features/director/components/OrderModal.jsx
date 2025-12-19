@@ -20,7 +20,7 @@ const OrderModal = ({ orderId, onClose }) => {
                 // B3: Lưu lại
                 setOrderData(full);
             } catch (e) {
-                console.log(e);
+                // Silent fail
             } finally {
                 setLoading(false);
             }
@@ -49,8 +49,22 @@ const OrderModal = ({ orderId, onClose }) => {
                             const soLuong = sp.soLuong || 0;
                             const donVi = sp.donVi;
                             const loaiTui = sp.loaiTui;
-                            // Nếu loaiTui = "hop" thì hiển thị "Hộp"
-                            const displayUnit = loaiTui === "hop" ? "Hộp" : (donVi !== null && donVi !== undefined ? donVi : "null");
+                            // Xác định đơn vị hiển thị
+                            let displayUnit = "";
+                            if (loaiTui === "hop") {
+                              displayUnit = "Hộp";
+                            } else if (donVi === "túi") {
+                              // Hiển thị loại túi nếu có
+                              if (loaiTui === "500g") {
+                                displayUnit = "túi 500g";
+                              } else if (loaiTui === "1kg") {
+                                displayUnit = "túi 1kg";
+                              } else {
+                                displayUnit = "túi";
+                              }
+                            } else {
+                              displayUnit = donVi !== null && donVi !== undefined ? donVi : "null";
+                            }
                             return (
                                 <li key={i}>
                                     {sp.productName} - SL: {soLuong} {displayUnit} - {sp.donGia}đ

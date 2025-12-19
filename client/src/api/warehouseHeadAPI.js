@@ -7,8 +7,6 @@ export const getIssuesWaitingWarehouseHead = async () => {
     return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
     if (error.response?.status === 401) return [];
-    console.error("❌ [warehouseHeadAPI] Lỗi lấy phiếu chờ xưởng trưởng:", error);
-    console.error("❌ [warehouseHeadAPI] Chi tiết:", error.response?.data);
     throw error;
   }
 };
@@ -23,6 +21,11 @@ export const confirmIssueReceivedApi = async (id) => {
     throw error;
   }
 };
+
+
+
+
+
 
 
 

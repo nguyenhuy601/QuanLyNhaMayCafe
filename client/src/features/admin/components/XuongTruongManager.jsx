@@ -36,7 +36,6 @@ const XuongTruongManager = () => {
       const list = await fetchFinishedProducts();
       setAvailableProducts(Array.isArray(list) ? list : []);
     } catch (err) {
-      console.error("Không thể tải danh sách sản phẩm:", err);
     }
   };
 
