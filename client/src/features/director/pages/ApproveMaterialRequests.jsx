@@ -3,7 +3,7 @@ import {
   getPendingMaterialIssues,
   approveMaterialIssueApi,
 } from "../../../api/directorAPI";
-import useAutoRefresh from "../../../hooks/useAutoRefresh";
+import useRealtime from "../../../hooks/useRealtime";
 
 export default function ApproveMaterialRequests() {
   const [issues, setIssues] = useState([]);
@@ -31,7 +31,16 @@ export default function ApproveMaterialRequests() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-  useAutoRefresh(loadData, { interval: 12000 });
+  
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      MATERIAL_ISSUE_CREATED: loadData,
+      MATERIAL_ISSUE_APPROVED: loadData,
+      MATERIAL_ISSUE_REJECTED: loadData,
+      warehouse_events: loadData,
+    },
+  });
 
   // Xử lý Duyệt
   const handleApprove = async (id) => {

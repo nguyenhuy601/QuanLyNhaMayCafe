@@ -7,7 +7,7 @@ import {
 } from "../../../api/directorAPI";
 import { enrichOrderData } from "../utils/dataMapper";
 import { toVietnameseStatus } from "../../../utils/statusMapper";
-import useAutoRefresh from "../../../hooks/useAutoRefresh";
+import useRealtime from "../../../hooks/useRealtime";
 
 export default function ApproveOrders() {
   const [orders, setOrders] = useState([]);
@@ -45,7 +45,18 @@ export default function ApproveOrders() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-  useAutoRefresh(loadData, { interval: 12000 });
+  
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      ORDER_APPROVED: loadData,
+      ORDER_UPDATED: loadData,
+      ORDER_REJECTED: loadData,
+      ORDER_CREATED: loadData,
+      director_events: loadData, // Generic director events
+      order_events: loadData,
+    },
+  });
 
   // XỬ LÝ DUYỆT
   const handleApprove = async (id) => { 

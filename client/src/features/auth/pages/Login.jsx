@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Globe, Mail, Lock, AlertCircle } from "lucide-react";
+import { Globe, Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { loginUser } from "../../../services/UserSlice";
 import authAPI from "../../../api/authAPI";
@@ -14,6 +14,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [language, setLanguage] = useState("vi");
+  const [showPassword, setShowPassword] = useState(false);
 
   const isVi = language === "vi";
 
@@ -291,7 +292,7 @@ const Login = () => {
                 <div className="flex items-center rounded-xl border border-amber-100 bg-[#FFF8F1] px-3 py-2.5 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-100 transition">
                   <Lock size={18} className="text-amber-500" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Nhập mật khẩu"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -299,6 +300,19 @@ const Login = () => {
                     required
                     className="ml-2 w-full border-none bg-transparent text-sm text-[#3B2413] placeholder:text-amber-300 outline-none"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                    className="ml-2 text-amber-500 hover:text-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
                 </div>
               </div>
 

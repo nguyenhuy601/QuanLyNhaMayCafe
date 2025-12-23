@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Plus, Edit2, Trash2, X, Save } from "lucide-react";
 import authAPI from "../../../api/authAPI";
+import { fetchAdminUsers, updateAdminUser } from "../../../services/adminService";
+import useRealtime from "../../../hooks/useRealtime";
 
 const AccountManager = () => {
   const { roles: roleEntities = [] } = useOutletContext();
@@ -27,11 +29,7 @@ const AccountManager = () => {
     )
   ).sort((a, b) => a.localeCompare(b, "vi", { sensitivity: "base" }));
 
-  useEffect(() => {
-    loadAccounts(roleFilter === "all" ? null : roleFilter);
-  }, [roleFilter]);
-
-  const loadAccounts = async (role = null) => {
+  const loadAccounts = useCallback(async (role = null) => {
     try {
       setLoading(true);
       setError("");
@@ -42,7 +40,33 @@ const AccountManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load accounts khi component mount và khi roleFilter thay đổi
+  useEffect(() => {
+    loadAccounts(roleFilter === "all" ? null : roleFilter);
+  }, [roleFilter, loadAccounts]);
+
+  // Realtime updates qua socket và custom events
+  useRealtime({
+    eventHandlers: {
+      USER_UPDATED: () => loadAccounts(roleFilter === "all" ? null : roleFilter),
+      ACCOUNT_UPDATED: () => loadAccounts(roleFilter === "all" ? null : roleFilter),
+      admin_events: () => loadAccounts(roleFilter === "all" ? null : roleFilter),
+    },
+  });
+
+  // Lắng nghe custom events từ UserList/UserForm
+  useEffect(() => {
+    const handleUserUpdated = () => {
+      loadAccounts(roleFilter === "all" ? null : roleFilter);
+    };
+
+    window.addEventListener("admin:user-updated", handleUserUpdated);
+    return () => {
+      window.removeEventListener("admin:user-updated", handleUserUpdated);
+    };
+  }, [loadAccounts, roleFilter]);
 
   const handleOpenModal = (account = null) => {
     if (account) {
@@ -81,6 +105,7 @@ const AccountManager = () => {
     try {
       if (editingAccount) {
         // Update
+        const oldEmail = editingAccount.email;
         const updateData = {
           email: formData.email,
           role: formData.role,
@@ -91,7 +116,43 @@ const AccountManager = () => {
           updateData.password = formData.password;
         }
         await authAPI.updateAccount(editingAccount._id, updateData);
+        
+        // Đồng bộ với User (nhân sự) nếu email hoặc role thay đổi
+        try {
+          const users = await fetchAdminUsers();
+          const user = users.find((u) => u.email && u.email.toLowerCase() === oldEmail.toLowerCase());
+          
+          if (user) {
+            // Tìm role ID từ role name
+            const roleEntity = roleEntities.find((r) => 
+              (r.tenRole && r.tenRole.toLowerCase() === formData.role.toLowerCase()) ||
+              (r.maRole && r.maRole.toLowerCase() === formData.role.toLowerCase())
+            );
+            
+            const syncData = {};
+            if (formData.email !== oldEmail) {
+              syncData.email = formData.email;
+            }
+            if (roleEntity) {
+              // Cập nhật role: thêm role mới vào mảng nếu chưa có
+              const currentRoles = Array.isArray(user.role) ? user.role : (user.role ? [user.role] : []);
+              if (!currentRoles.includes(roleEntity._id)) {
+                syncData.role = [...currentRoles, roleEntity._id];
+              }
+            }
+            
+            if (Object.keys(syncData).length > 0) {
+              await updateAdminUser(user._id, syncData);
+            }
+          }
+        } catch (syncErr) {
+          console.warn("Không thể đồng bộ với danh sách nhân sự:", syncErr.message);
+          // Không block việc cập nhật account nếu đồng bộ lỗi
+        }
+        
         alert("Cập nhật tài khoản thành công");
+        // Trigger event để UserList reload
+        window.dispatchEvent(new CustomEvent("admin:account-updated"));
       } else {
         // Create
         if (!formData.password) {
@@ -100,6 +161,8 @@ const AccountManager = () => {
         }
         await authAPI.createAccount(formData);
         alert("Tạo tài khoản thành công");
+        // Trigger event để UserList reload
+        window.dispatchEvent(new CustomEvent("admin:account-updated"));
       }
       handleCloseModal();
       loadAccounts();
@@ -120,6 +183,8 @@ const AccountManager = () => {
       await authAPI.deleteAccount(account._id);
       alert("Đã xóa tài khoản thành công");
       loadAccounts();
+      // Trigger event để UserList reload
+      window.dispatchEvent(new CustomEvent("admin:account-updated"));
     } catch (err) {
       alert(err.response?.data?.message || err.message || "Không thể xóa tài khoản");
     }
@@ -161,13 +226,6 @@ const AccountManager = () => {
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
           >
             Làm mới
-          </button>
-          <button
-            onClick={() => handleOpenModal()}
-            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-500 transition flex items-center gap-2"
-          >
-            <Plus size={18} />
-            Thêm tài khoản
           </button>
         </div>
       </div>

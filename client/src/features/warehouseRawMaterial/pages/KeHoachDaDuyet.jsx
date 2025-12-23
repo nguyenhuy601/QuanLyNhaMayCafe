@@ -1,16 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { getApprovedPlans } from '../../../services/warehouseRawMaterialService';
+import useRealtime from '../../../hooks/useRealtime';
 
 export default function KeHoachDaDuyet() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const fetchPlans = async () => {
+  const fetchPlans = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getApprovedPlans();
@@ -21,7 +18,22 @@ export default function KeHoachDaDuyet() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPlans();
+  }, [fetchPlans]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      PLAN_APPROVED: fetchPlans,
+      PLAN_UPDATED: fetchPlans,
+      PLAN_READY: fetchPlans,
+      PLAN_DELETED: fetchPlans,
+      plan_events: fetchPlans, // Generic plan events
+    },
+  });
 
   return (
     <div className="p-6">

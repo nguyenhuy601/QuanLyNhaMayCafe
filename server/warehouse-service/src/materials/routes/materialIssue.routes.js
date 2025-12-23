@@ -10,6 +10,7 @@ router.get("/pending", verifyToken, authorizeRoles(["khonvl", "khotp", "admin", 
 router.get("/waiting-warehouse-head", verifyToken, authorizeRoles(["xuongtruong", "admin"]), issueCtrl.getIssuesWaitingWarehouseHead);
 router.post("/", verifyToken, authorizeRoles(["khonvl", "khotp", "admin"]), issueCtrl.createIssue);
 router.put("/:id/approve", verifyToken, authorizeRoles(["khonvl", "khotp", "admin", "director"]), issueCtrl.approveIssue);
+router.put("/:id/reject", verifyToken, authorizeRoles(["director", "admin"]), issueCtrl.rejectIssue);
 router.put("/:id/confirm", verifyToken, authorizeRoles(["xuongtruong", "admin"]), issueCtrl.confirmIssueReceived);
 
 module.exports = router;

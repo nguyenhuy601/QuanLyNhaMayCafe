@@ -27,7 +27,7 @@ const Header = () => {
             <div className="font-semibold">
               {loading
                 ? 'Đang tải...'
-                : currentUser?.hoTen || currentUser?.email || 'Your Name'}
+                : currentUser?.hoTen || currentUser?.name || currentUser?.fullName || currentUser?.email || 'Your Name'}
             </div>
             <div className="text-xs text-amber-200">Kiểm định</div>
           </div>

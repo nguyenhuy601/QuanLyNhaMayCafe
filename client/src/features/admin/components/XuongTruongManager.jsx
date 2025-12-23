@@ -72,7 +72,9 @@ const XuongTruongManager = () => {
       return;
     }
     setSelectedAccount(account);
-    setProducts(account.sanPhamPhuTrach || []);
+    // Lưu sản phẩm hiện tại từ database để kiểm tra
+    const existingProducts = account.sanPhamPhuTrach || [];
+    setProducts(existingProducts);
     setShowProductModal(true);
   };
 
@@ -351,7 +353,8 @@ const XuongTruongManager = () => {
                     ))}
                   </div>
                 )}
-                {products.length > 0 && (
+                {/* Chỉ hiển thị cảnh báo khi xưởng trưởng đã được gán sản phẩm (từ database) */}
+                {selectedAccount?.sanPhamPhuTrach && selectedAccount.sanPhamPhuTrach.length > 0 && (
                   <p className="text-xs text-amber-600 mt-2">
                     ⚠️ Một xưởng trưởng chỉ có thể phụ trách 1 sản phẩm duy nhất
                   </p>

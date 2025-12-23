@@ -14,7 +14,7 @@ const FinishedIssueSchema = new mongoose.Schema({
  ],
  tongTien: Number,
  ghiChu: String,
- trangThai: { type: String, enum: ["Cho duyet","Cho xuat","Da xuat","Da giao"], default: "Cho duyet" }
+ trangThai: { type: String, enum: ["Cho duyet","Cho xuat","Da xuat","Da giao","Tu choi"], default: "Cho duyet" }
 }, { timestamps: true });
 
 module.exports = mongoose.model("FinishedIssue", FinishedIssueSchema);

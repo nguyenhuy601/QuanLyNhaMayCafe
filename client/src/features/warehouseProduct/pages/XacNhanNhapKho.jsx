@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axiosInstance from '../../../api/axiosConfig';
 import { CheckCircle2, XCircle, Clock, Package } from 'lucide-react';
+import useRealtime from '../../../hooks/useRealtime';
 
 export default function XacNhanNhapKho() {
   const [receipts, setReceipts] = useState([]);
@@ -8,11 +9,7 @@ export default function XacNhanNhapKho() {
   const [error, setError] = useState(null);
   const [confirmingId, setConfirmingId] = useState(null);
 
-  useEffect(() => {
-    fetchReceipts();
-  }, []);
-
-  const fetchReceipts = async () => {
+  const fetchReceipts = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axiosInstance.get('/warehouse/products/issues/receipts');
@@ -26,7 +23,21 @@ export default function XacNhanNhapKho() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchReceipts();
+  }, [fetchReceipts]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      FINISHED_RECEIPT_CREATED: fetchReceipts,
+      FINISHED_RECEIPT_UPDATED: fetchReceipts,
+      FINISHED_RECEIPT_APPROVED: fetchReceipts,
+      warehouse_events: fetchReceipts, // Generic warehouse events
+    },
+  });
 
   const handleConfirm = async (receiptId) => {
     try {

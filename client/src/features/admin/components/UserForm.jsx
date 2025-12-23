@@ -107,7 +107,41 @@ const UserForm = () => {
       };
       
       if (isEdit) {
+        const oldUser = currentUser;
         await handleUpdateUser(id, payload);
+        
+        // Đồng bộ với Account (tài khoản) nếu email hoặc role thay đổi
+        try {
+          const accounts = await authAPI.getAccounts();
+          const account = accounts.find((a) => 
+            a.email && a.email.toLowerCase() === (oldUser?.email || "").toLowerCase()
+          );
+          
+          if (account) {
+            // Tìm role name từ role ID đầu tiên
+            const userRoleIds = Array.isArray(formData.role) ? formData.role : (formData.role ? [formData.role] : []);
+            const firstRoleId = userRoleIds[0];
+            const selectedRole = roles.find((r) => r._id === firstRoleId);
+            const roleName = selectedRole?.tenRole || selectedRole?.maRole || account.role;
+            
+            const syncData = {};
+            if (formData.email !== oldUser?.email) {
+              syncData.email = formData.email;
+            }
+            if (roleName && roleName !== account.role) {
+              syncData.role = roleName;
+            }
+            
+            if (Object.keys(syncData).length > 0) {
+              await authAPI.updateAccount(account._id, syncData);
+            }
+          }
+        } catch (syncErr) {
+          console.warn("Không thể đồng bộ với tài khoản:", syncErr.message);
+          // Không block việc cập nhật user nếu đồng bộ lỗi
+        }
+        // Trigger event để AccountManager reload
+        window.dispatchEvent(new CustomEvent("admin:user-updated"));
       } else {
         // Tạo user
         await handleCreateUser(payload);
@@ -135,6 +169,8 @@ const UserForm = () => {
             // Silent fail - có thể hiển thị warning nhưng vẫn tiếp tục
           }
         }
+        // Trigger event để AccountManager reload
+        window.dispatchEvent(new CustomEvent("admin:user-updated"));
       }
       navigate("/admin/users");
     } catch (err) {

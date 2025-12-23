@@ -14,8 +14,19 @@ export const getUserEmail = () => {
   return sessionStorage.getItem("userEmail") || localStorage.getItem("userEmail") || null;
 };
 
+// Flag để tránh xử lý 401 nhiều lần
+let isHandling401 = false;
+
 // Helper function để xử lý lỗi 401 (token expired)
 export const handle401Error = (errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.") => {
+  // Nếu đang xử lý 401 rồi, bỏ qua
+  if (isHandling401) {
+    return;
+  }
+  
+  // Đánh dấu đang xử lý
+  isHandling401 = true;
+  
   // Clear tất cả auth data
   localStorage.removeItem("token");
   localStorage.removeItem("role");
@@ -29,6 +40,11 @@ export const handle401Error = (errorMessage = "Phiên đăng nhập đã hết h
   
   // Redirect về login
   window.location.href = "/login";
+  
+  // Reset flag sau 2 giây (phòng trường hợp redirect không thành công)
+  setTimeout(() => {
+    isHandling401 = false;
+  }, 2000);
 };
 
 export const authUtils = {

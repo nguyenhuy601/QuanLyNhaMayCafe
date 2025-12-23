@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { salesAPI } from "../../../services/salesService";
+import useRealtime from "../../../hooks/useRealtime";
 
 const Order = () => {
   const [orders, setOrders] = useState([]);
@@ -8,12 +9,8 @@ const Order = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadOrders();
-  }, []);
-
   // 🔄 Tải danh sách đơn hàng
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
       const data = await salesAPI.getOrders();
@@ -22,7 +19,23 @@ const Order = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      ORDER_CREATED: loadOrders,
+      ORDER_UPDATED: loadOrders,
+      ORDER_APPROVED: loadOrders,
+      ORDER_REJECTED: loadOrders,
+      director_events: loadOrders, // Generic director events
+      order_events: loadOrders,
+    },
+  });
 
   // 🟢 Tạo đơn hàng
   const handleCreateOrder = async (orderData) => {

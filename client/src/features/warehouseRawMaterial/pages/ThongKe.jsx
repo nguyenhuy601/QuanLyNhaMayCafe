@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { getMaterialReceipts, getMaterialIssues } from '../../../services/warehouseRawMaterialService';
+import useRealtime from '../../../hooks/useRealtime';
 
 export default function ThongKe() {
   const [receipts, setReceipts] = useState([]);
@@ -8,11 +9,7 @@ export default function ThongKe() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('receipts'); // 'receipts' or 'issues'
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [receiptsData, issuesData] = await Promise.all([
@@ -27,7 +24,24 @@ export default function ThongKe() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      MATERIAL_RECEIPT_CREATED: fetchData,
+      MATERIAL_RECEIPT_APPROVED: fetchData,
+      MATERIAL_RECEIPT_REJECTED: fetchData,
+      MATERIAL_ISSUE_CREATED: fetchData,
+      MATERIAL_ISSUE_APPROVED: fetchData,
+      MATERIAL_ISSUE_REJECTED: fetchData,
+      warehouse_events: fetchData, // Generic warehouse events
+    },
+  });
 
   return (
     <div className="p-6">

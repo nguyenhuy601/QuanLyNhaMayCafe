@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import QCResultTable from '../components/QCResultTable.jsx';
 import axiosInstance from '../../../api/axiosConfig';
+import useRealtime from '../../../hooks/useRealtime';
 
 export default function KiemDinhQC() {
   // Filters
@@ -13,23 +14,34 @@ export default function KiemDinhQC() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchQcResults = async () => {
-      try {
-        setLoading(true);
-        // Gọi qua API gateway với axiosInstance để có token
-        const res = await axiosInstance.get('/qc-result');
-        setQcRequests(Array.isArray(res.data) ? res.data : []);
-        setError(null);
-      } catch (err) {
-        setError('Không thể tải danh sách kết quả QC');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchQcResults();
+  const fetchQcResults = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Gọi qua API gateway với axiosInstance để có token
+      const res = await axiosInstance.get('/qc-result');
+      setQcRequests(Array.isArray(res.data) ? res.data : []);
+      setError(null);
+    } catch (err) {
+      setError('Không thể tải danh sách kết quả QC');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchQcResults();
+  }, [fetchQcResults]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      QC_RESULT_CREATED: fetchQcResults,
+      QC_RESULT_UPDATED: fetchQcResults,
+      QC_PASSED: fetchQcResults,
+      QC_REQUEST_CREATED: fetchQcResults,
+      qc_events: fetchQcResults, // Generic QC events
+    },
+  });
 
   // Cột hiển thị
   const columns = [

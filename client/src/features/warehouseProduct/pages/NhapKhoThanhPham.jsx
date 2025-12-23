@@ -1,7 +1,8 @@
 // src/pages/NhapKhoThanhPham.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import PhieuNhapThanhPham from "../components/PhieuNhapThanhPham.jsx";
 import axiosInstance from '../../../api/axiosConfig';
+import useRealtime from '../../../hooks/useRealtime';
 
 const NhapKhoThanhPham = () => {
   const [selectedQC, setSelectedQC] = useState(null);
@@ -10,28 +11,37 @@ const NhapKhoThanhPham = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-
-    const fetchQCData = async () => {
-      try {
-        setLoading(true);
-        // Gọi qua API gateway với axiosInstance để có token
-        const res = await axiosInstance.get('/qc-result');
-        // Lọc chỉ những QC có kết quả đạt
-        const passedQC = (Array.isArray(res.data) ? res.data : []).filter(
-          item => item.ketQuaChung === 'Dat'
-        );
-        setQcList(passedQC);
-        setError(null);
-      } catch (err) {
-        setError('Không thể lấy dữ liệu phiếu QC');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchQCData();
+  const fetchQCData = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Gọi qua API gateway với axiosInstance để có token
+      const res = await axiosInstance.get('/qc-result');
+      // Lọc chỉ những QC có kết quả đạt
+      const passedQC = (Array.isArray(res.data) ? res.data : []).filter(
+        item => item.ketQuaChung === 'Dat'
+      );
+      setQcList(passedQC);
+      setError(null);
+    } catch (err) {
+      setError('Không thể lấy dữ liệu phiếu QC');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchQCData();
+  }, [fetchQCData]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      QC_RESULT_CREATED: fetchQCData,
+      QC_RESULT_UPDATED: fetchQCData,
+      QC_PASSED: fetchQCData,
+      qc_events: fetchQCData, // Generic QC events
+    },
+  });
 
   const handleSelect = (qc) => {
     setSelectedQC(qc);

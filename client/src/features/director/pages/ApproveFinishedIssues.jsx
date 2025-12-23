@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import {
   getPendingFinishedIssues,
   approveFinishedIssueApi,
+  rejectFinishedIssueApi,
 } from "../../../api/directorAPI";
-import useAutoRefresh from "../../../hooks/useAutoRefresh";
+import useRealtime from "../../../hooks/useRealtime";
 
 export default function ApproveFinishedIssues() {
   const [issues, setIssues] = useState([]);
@@ -31,7 +32,16 @@ export default function ApproveFinishedIssues() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-  useAutoRefresh(loadData, { interval: 12000 });
+  
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      FINISHED_ISSUE_CREATED: loadData,
+      FINISHED_ISSUE_APPROVED: loadData,
+      FINISHED_ISSUE_REJECTED: loadData,
+      warehouse_events: loadData, // Generic warehouse events
+    },
+  });
 
   // Xử lý Duyệt
   const handleApprove = async (id) => {
@@ -46,12 +56,26 @@ export default function ApproveFinishedIssues() {
     }
   };
 
+  // Xử lý Từ chối
+  const handleReject = async (id) => {
+    if(!window.confirm("Xác nhận từ chối phiếu xuất kho thành phẩm này?")) return;
+    try {
+        await rejectFinishedIssueApi(id);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 1500);
+        loadData();
+    } catch (error) {
+        alert("Lỗi: " + (error.response?.data?.message || error.message));
+    }
+  };
+
   const StatusChip = ({ status }) => {
     const map = {
       "Cho duyet": { bg: "#FEF3C7", fg: "#92400E" },
       "Cho xuat": { bg: "#FEF3C7", fg: "#92400E" },
       "Da xuat": { bg: "#D1FAE5", fg: "#065F46" },
       "Da giao": { bg: "#DBEAFE", fg: "#1E40AF" },
+      "Tu choi": { bg: "#FEE2E2", fg: "#991B1B" },
     }[status] || { bg: "#E5E7EB", fg: "#374151" };
     
     return (
@@ -82,7 +106,6 @@ export default function ApproveFinishedIssues() {
               <th className="p-2">Ngày xuất</th>
               <th className="p-2">Loại xuất</th>
               <th className="p-2">Chi tiết sản phẩm</th>
-              <th className="p-2">Tổng tiền</th>
               <th className="p-2">Trạng thái</th>
               <th className="p-2">Hành động</th>
             </tr>
@@ -90,11 +113,11 @@ export default function ApproveFinishedIssues() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="8" className="p-4 text-center">Đang tải...</td>
+                <td colSpan="7" className="p-4 text-center">Đang tải...</td>
               </tr>
             ) : issues.length === 0 ? (
               <tr>
-                <td colSpan="8" className="p-4 text-center">
+                <td colSpan="7" className="p-4 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <p className="text-gray-500">Chưa có phiếu xuất kho thành phẩm nào đang chờ duyệt</p>
                     <p className="text-xs text-gray-400">
@@ -130,19 +153,24 @@ export default function ApproveFinishedIssues() {
                     )}
                   </td>
                   <td className="p-2">
-                    {issue.tongTien ? issue.tongTien.toLocaleString('vi-VN') + ' đ' : 'N/A'}
-                  </td>
-                  <td className="p-2">
                     <StatusChip status={issue.trangThai} />
                   </td>
                   <td className="p-2 space-x-2">
                     {issue.trangThai === 'Cho duyet' && (
-                      <button 
-                        onClick={() => handleApprove(issue._id)} 
-                        className="bg-green-100 text-green-800 px-3 py-1 rounded border border-green-200 hover:bg-green-200"
-                      >
-                        Duyệt
-                      </button>
+                      <>
+                        <button 
+                          onClick={() => handleApprove(issue._id)} 
+                          className="bg-green-100 text-green-800 px-3 py-1 rounded border border-green-200 hover:bg-green-200 mr-2"
+                        >
+                          Duyệt
+                        </button>
+                        <button 
+                          onClick={() => handleReject(issue._id)} 
+                          className="bg-red-100 text-red-800 px-3 py-1 rounded border border-red-200 hover:bg-red-200"
+                        >
+                          Từ chối
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>

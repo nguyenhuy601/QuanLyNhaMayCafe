@@ -223,7 +223,33 @@ export const approveMaterialIssueApi = async (id) => {
   }
 };
 
-// 11. Lấy danh sách phiếu xuất kho thành phẩm chờ duyệt
+// 11. Từ Chối Phiếu Nhập Kho NVL
+export const rejectMaterialReceiptApi = async (id) => {
+  try {
+    const response = await api.put(`/warehouse/materials/receipts/${id}/reject`);
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      throw error;
+    }
+    throw error;
+  }
+};
+
+// 12. Từ Chối Phiếu Xuất Kho NVL
+export const rejectMaterialIssueApi = async (id) => {
+  try {
+    const response = await api.put(`/warehouse/materials/issues/${id}/reject`);
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      throw error;
+    }
+    throw error;
+  }
+};
+
+// 13. Lấy danh sách phiếu xuất kho thành phẩm chờ duyệt
 export const getPendingFinishedIssues = async () => {
   try {
     const response = await api.get("/warehouse/products/issues/pending");
@@ -236,10 +262,23 @@ export const getPendingFinishedIssues = async () => {
   }
 };
 
-// 12. Duyệt Phiếu Xuất Kho Thành Phẩm
+// 14. Duyệt Phiếu Xuất Kho Thành Phẩm
 export const approveFinishedIssueApi = async (id) => {
   try {
     const response = await api.put(`/warehouse/products/issues/${id}/approve`);
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      throw error;
+    }
+    throw error;
+  }
+};
+
+// 15. Từ Chối Phiếu Xuất Kho Thành Phẩm
+export const rejectFinishedIssueApi = async (id) => {
+  try {
+    const response = await api.put(`/warehouse/products/issues/${id}/reject`);
     return response.data;
   } catch (error) {
     if (error.response?.status === 401) {

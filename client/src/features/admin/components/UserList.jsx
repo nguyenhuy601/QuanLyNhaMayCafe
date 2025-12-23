@@ -1,6 +1,7 @@
 import { useOutletContext, useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Edit2, Trash2, Users, ChevronDown, Filter } from "lucide-react";
+import useRealtime from "../../../hooks/useRealtime";
 
 const UserList = () => {
   const {
@@ -10,6 +11,7 @@ const UserList = () => {
     positions = [],
     loading,
     handleDeleteUser,
+    reloadUsers,
   } = useOutletContext();
   const navigate = useNavigate();
   const [selectedPosition, setSelectedPosition] = useState("all");
@@ -91,10 +93,47 @@ const UserList = () => {
     return names.length ? names.join(", ") : "-";
   };
 
+  // Realtime updates qua socket và custom events
+  useRealtime({
+    eventHandlers: {
+      USER_UPDATED: () => {
+        if (reloadUsers) {
+          reloadUsers();
+        }
+      },
+      ACCOUNT_UPDATED: () => {
+        if (reloadUsers) {
+          reloadUsers();
+        }
+      },
+      admin_events: () => {
+        if (reloadUsers) {
+          reloadUsers();
+        }
+      },
+    },
+  });
+
+  // Lắng nghe custom events từ AccountManager
+  useEffect(() => {
+    const handleAccountUpdated = () => {
+      if (reloadUsers) {
+        reloadUsers();
+      }
+    };
+
+    window.addEventListener("admin:account-updated", handleAccountUpdated);
+    return () => {
+      window.removeEventListener("admin:account-updated", handleAccountUpdated);
+    };
+  }, [reloadUsers]);
+
   const onDelete = async (id, name) => {
     if (!window.confirm(`Xóa tài khoản ${name}?`)) return;
     try {
       await handleDeleteUser(id);
+      // Trigger event để AccountManager reload
+      window.dispatchEvent(new CustomEvent("admin:user-updated"));
     } catch (error) {
       alert(error.message || "Không thể xóa người dùng");
     }

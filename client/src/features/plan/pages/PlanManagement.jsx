@@ -5,7 +5,6 @@ import PlanTable from '../components/PlanTable.jsx';
 import PlanListView from '../components/PlanListView.jsx';
 import { fetchOrders, approveOrders } from '../../../services/orderService';
 import { fetchProductionPlans } from "../../../services/planService";
-import useAutoRefresh from "../../../hooks/useAutoRefresh";
 import { io } from "socket.io-client";
 import { useSelector } from "react-redux";
 import { getToken } from "../../../utils/auth";
@@ -50,23 +49,6 @@ const PlanManagement = () => {
     loadOrders();
     loadPlans();
   }, [loadOrders, loadPlans]);
-
-  // Khi socket connected, tăng interval lên (vì đã có realtime updates)
-  // Khi socket disconnected, dùng interval ngắn hơn (fallback polling)
-  const ordersInterval = isSocketConnected ? 60000 : 15000; // 60s nếu có socket, 15s nếu không
-  const plansInterval = isSocketConnected ? 60000 : 20000; // 60s nếu có socket, 20s nếu không
-  
-  // Tắt autoRefresh khi modal mở
-  useAutoRefresh(loadOrders, { 
-    interval: ordersInterval, 
-    runOnFocus: !isPlanModalOpen,
-    enabled: !isPlanModalOpen // Tắt hoàn toàn khi modal mở
-  });
-  useAutoRefresh(loadPlans, { 
-    interval: plansInterval, 
-    runOnFocus: !isPlanModalOpen,
-    enabled: !isPlanModalOpen // Tắt hoàn toàn khi modal mở
-  });
 
   useEffect(() => {
     // Lấy token bằng helper function (từ sessionStorage/localStorage/window)

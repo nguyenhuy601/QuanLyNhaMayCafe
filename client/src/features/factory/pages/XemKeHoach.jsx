@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { CalendarDays, Search, ClipboardList, Info, CheckCircle2, XCircle, Play } from "lucide-react";
 import { fetchPlans, fetchPlanById, checkStartConditions, startPlan } from "../../../services/factoryService";
+import useRealtime from "../../../hooks/useRealtime";
 
 export default function XemKeHoach() {
   const [filter, setFilter] = useState({ tuNgay: "", denNgay: "", maKeHoach: "", trangThai: "all" });
@@ -11,11 +12,7 @@ export default function XemKeHoach() {
   const [loadingConditions, setLoadingConditions] = useState(false);
   const [startingPlan, setStartingPlan] = useState(false);
 
-  useEffect(() => {
-    loadPlans();
-  }, []);
-
-  const loadPlans = async () => {
+  const loadPlans = useCallback(async () => {
     try {
       setLoading(true);
       const data = await fetchPlans();
@@ -24,7 +21,22 @@ export default function XemKeHoach() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPlans();
+  }, [loadPlans]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      PLAN_READY: loadPlans,
+      PLAN_UPDATED: loadPlans,
+      PLAN_APPROVED: loadPlans,
+      PLAN_DELETED: loadPlans,
+      plan_events: loadPlans, // Generic plan events
+    },
+  });
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "Chưa có";

@@ -16,7 +16,7 @@ const MaterialIssueSchema = new mongoose.Schema({
   // - Cho xuat: chờ BGĐ duyệt
   // - Da xuat: BGĐ đã duyệt, đang gửi đến xưởng
   // - Da nhan: Xưởng trưởng đã xác nhận đã nhận NVL
-  trangThai: { type: String, enum: ["Da xuat","Cho xuat","Da nhan"], default: "Cho xuat" }
+  trangThai: { type: String, enum: ["Da xuat","Cho xuat","Da nhan","Tu choi"], default: "Cho xuat" }
 }, { timestamps: true });
 
 module.exports = mongoose.model("MaterialIssue", MaterialIssueSchema);

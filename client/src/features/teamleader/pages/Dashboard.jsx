@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { ClipboardCheck, Users, Calendar, CheckCircle2 } from "lucide-react";
 import { getAllUsers, getAllRoles, getAllDepartments } from "../../../api/adminAPI";
+import useRealtime from "../../../hooks/useRealtime";
 
 const getCurrentUser = () => {
   try {
@@ -24,24 +25,34 @@ export default function Dashboard() {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [u, r, d] = await Promise.all([getAllUsers(), getAllRoles(), getAllDepartments()]);
-        setUsers(Array.isArray(u) ? u : []);
-        setRoles(Array.isArray(r) ? r : []);
-        setDepartments(Array.isArray(d) ? d : []);
-      } catch (err) {
-        setUsers([]);
-        setRoles([]);
-        setDepartments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [u, r, d] = await Promise.all([getAllUsers(), getAllRoles(), getAllDepartments()]);
+      setUsers(Array.isArray(u) ? u : []);
+      setRoles(Array.isArray(r) ? r : []);
+      setDepartments(Array.isArray(d) ? d : []);
+    } catch (err) {
+      setUsers([]);
+      setRoles([]);
+      setDepartments([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      ASSIGNMENT_UPDATED: loadData,
+      ASSIGNMENT_CREATED: loadData,
+      factory_events: loadData, // Generic factory events
+    },
+  });
 
   const currentUser = useMemo(() => getCurrentUser(), []);
   const roleIdBySlug = useMemo(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CheckCircle, XCircle } from "lucide-react";
 
@@ -7,6 +7,7 @@ import ConfirmExitModal from "../components/ConfirmExitModal.jsx";
 import NoteModal from "../components/noteModal.jsx";
 
 import { getQcRequestById, postQcResult, updateQcRequest } from "../../../services/qcService";
+import useRealtime from "../../../hooks/useRealtime";
 
 const KiemDinhDetail = () => {
   const { id } = useParams();
@@ -21,26 +22,35 @@ const KiemDinhDetail = () => {
   const [showNote, setShowNote] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  useEffect(() => {
-    const fetchRequest = async () => {
-      try {
-        const data = await getQcRequestById(id);
-        setRequest(data);
+  const fetchRequest = useCallback(async () => {
+    try {
+      const data = await getQcRequestById(id);
+      setRequest(data);
 
-        // Nếu đã có dữ liệu kiểm định trước đó
-        if (data.soLuongDat !== undefined && data.soLuongDat !== null && data.soLuongDat !== 0) {
-          setSoLuongDat(data.soLuongDat);
-        }
-        if (data.soLuongLoi !== undefined && data.soLuongLoi !== null && data.soLuongLoi !== 0) {
-          setSoLuongLoi(data.soLuongLoi);
-        }
-        if (data.ghiChu) setGhiChu(data.ghiChu);
-      } catch (err) {
+      // Nếu đã có dữ liệu kiểm định trước đó
+      if (data.soLuongDat !== undefined && data.soLuongDat !== null && data.soLuongDat !== 0) {
+        setSoLuongDat(data.soLuongDat);
       }
-    };
-
-    fetchRequest();
+      if (data.soLuongLoi !== undefined && data.soLuongLoi !== null && data.soLuongLoi !== 0) {
+        setSoLuongLoi(data.soLuongLoi);
+      }
+      if (data.ghiChu) setGhiChu(data.ghiChu);
+    } catch (err) {
+    }
   }, [id]);
+
+  useEffect(() => {
+    fetchRequest();
+  }, [fetchRequest]);
+
+  // Realtime updates - chỉ refresh khi có thay đổi từ bên ngoài
+  useRealtime({
+    eventHandlers: {
+      QC_REQUEST_UPDATED: fetchRequest,
+      QC_RESULT_CREATED: fetchRequest,
+      qc_events: fetchRequest, // Generic QC events
+    },
+  });
 
   const handleConfirm = async () => {
     try {

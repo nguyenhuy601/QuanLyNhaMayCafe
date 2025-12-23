@@ -512,6 +512,8 @@ exports.checkStartConditions = async (req, res) => {
             
             const conflictingPlans = otherPlans.filter(p => {
               if (p._id === planId || p._id?.toString() === planId?.toString()) return false;
+              // Chỉ kiểm tra chồng lấp với các kế hoạch cùng xưởng phụ trách
+              if (p.xuongPhuTrach !== plan.xuongPhuTrach) return false;
               const pStart = new Date(p.ngayBatDauDuKien);
               const pEnd = new Date(p.ngayKetThucDuKien);
               return (

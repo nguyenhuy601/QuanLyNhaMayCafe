@@ -3,7 +3,7 @@ import { Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchOrders } from "../../../services/orderService";
 import formatDate from "../../../utils/formatDate";
-import useAutoRefresh from "../../../hooks/useAutoRefresh";
+import useRealtime from "../../../hooks/useRealtime";
 import { normalizeStatusKey } from "../../../utils/statusMapper";
 
 const OrderList = () => {
@@ -26,7 +26,16 @@ const OrderList = () => {
     loadOrders();
   }, [loadOrders]);
 
-  useAutoRefresh(loadOrders, { interval: 15000 });
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      ORDER_CREATED: loadOrders,
+      ORDER_UPDATED: loadOrders,
+      ORDER_APPROVED: loadOrders,
+      ORDER_REJECTED: loadOrders,
+      order_events: loadOrders,
+    },
+  });
 
   const filteredOrders = useMemo(() => {
     const allowed = new Set([
@@ -43,12 +52,6 @@ const OrderList = () => {
       allowed.has(normalizeStatusKey(order.trangThai))
     );
   }, [orders]);
-
-  const handleComplete = async (orderId) => {
-    if (window.confirm("Xác nhận hoàn thành đơn hàng này? Đơn hàng sẽ được chuyển cho Ban giám đốc.")) {
-      alert(`Đơn hàng ${orderId} đã được chuyển cho Ban giám đốc!`);
-    }
-  };
 
   const handleEdit = (orderId) => {
     navigate(`/orders/${orderId}`);
@@ -148,12 +151,6 @@ const OrderList = () => {
                       >
                         <Edit size={16} className="inline mr-1" />
                         Chỉnh sửa
-                      </button>
-                      <button
-                        onClick={() => handleComplete(order._id)}
-                        className="px-4 py-1.5 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition"
-                      >
-                        Xong
                       </button>
                     </td>
                   </tr>

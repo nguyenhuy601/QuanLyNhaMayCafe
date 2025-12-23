@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import {
   getPendingMaterialReceipts,
   approveMaterialReceiptApi,
+  rejectMaterialReceiptApi,
   getPendingMaterialIssues,
   approveMaterialIssueApi,
+  rejectMaterialIssueApi,
 } from "../../../api/directorAPI";
-import useAutoRefresh from "../../../hooks/useAutoRefresh";
+import useRealtime from "../../../hooks/useRealtime";
 import { fetchPlanById } from "../../../services/factoryService";
 import { fetchAllProducts } from "../../../services/productService";
 import { fetchXuongs } from "../../../services/factoryService";
@@ -189,11 +191,33 @@ export default function ApproveMaterialTransactions() {
     }
   }, [activeTab, loadReceipts, loadIssues]);
 
-  // Auto refresh cho tab hiện tại
-  useAutoRefresh(
-    activeTab === "nhap" ? loadReceipts : loadIssues,
-    { interval: 12000 }
-  );
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      MATERIAL_RECEIPT_CREATED: () => {
+        if (activeTab === "nhap") loadReceipts();
+      },
+      MATERIAL_RECEIPT_APPROVED: () => {
+        if (activeTab === "nhap") loadReceipts();
+      },
+      MATERIAL_RECEIPT_REJECTED: () => {
+        if (activeTab === "nhap") loadReceipts();
+      },
+      MATERIAL_ISSUE_CREATED: () => {
+        if (activeTab === "xuat") loadIssues();
+      },
+      MATERIAL_ISSUE_APPROVED: () => {
+        if (activeTab === "xuat") loadIssues();
+      },
+      MATERIAL_ISSUE_REJECTED: () => {
+        if (activeTab === "xuat") loadIssues();
+      },
+      warehouse_events: () => {
+        if (activeTab === "nhap") loadReceipts();
+        else loadIssues();
+      },
+    },
+  });
 
   // Xử lý Duyệt phiếu nhập
   const handleApproveReceipt = async (id) => {
@@ -229,15 +253,43 @@ export default function ApproveMaterialTransactions() {
     }
   };
 
+  // Xử lý Từ chối phiếu nhập
+  const handleRejectReceipt = async (id) => {
+    if(!window.confirm("Xác nhận từ chối phiếu nhập kho NVL này?")) return;
+    try {
+        await rejectMaterialReceiptApi(id);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 1500);
+        loadReceipts();
+    } catch (error) {
+        alert("Lỗi: " + (error.response?.data?.message || error.message));
+    }
+  };
+
+  // Xử lý Từ chối phiếu xuất
+  const handleRejectIssue = async (id) => {
+    if(!window.confirm("Xác nhận từ chối phiếu xuất kho NVL này?")) return;
+    try {
+        await rejectMaterialIssueApi(id);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 1500);
+        loadIssues();
+    } catch (error) {
+        alert("Lỗi: " + (error.response?.data?.message || error.message));
+    }
+  };
+
   const StatusChip = ({ status, type }) => {
     const map = type === "nhap" 
       ? {
           "Cho nhap": { bg: "#FEF3C7", fg: "#92400E" },
           "Da nhap": { bg: "#D1FAE5", fg: "#065F46" },
+          "Tu choi": { bg: "#FEE2E2", fg: "#991B1B" },
         }
       : {
           "Cho xuat": { bg: "#FEF3C7", fg: "#92400E" },
           "Da xuat": { bg: "#D1FAE5", fg: "#065F46" },
+          "Tu choi": { bg: "#FEE2E2", fg: "#991B1B" },
         };
     
     const style = map[status] || { bg: "#E5E7EB", fg: "#374151" };
@@ -357,12 +409,20 @@ export default function ApproveMaterialTransactions() {
                     </td>
                     <td className="p-2 space-x-2">
                       {receipt.trangThai === 'Cho nhap' && (
-                        <button 
-                          onClick={() => handleApproveReceipt(receipt._id)} 
-                          className="bg-green-100 text-green-800 px-3 py-1 rounded border border-green-200 hover:bg-green-200"
-                        >
-                          Duyệt
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => handleApproveReceipt(receipt._id)} 
+                            className="bg-green-100 text-green-800 px-3 py-1 rounded border border-green-200 hover:bg-green-200 mr-2"
+                          >
+                            Duyệt
+                          </button>
+                          <button 
+                            onClick={() => handleRejectReceipt(receipt._id)} 
+                            className="bg-red-100 text-red-800 px-3 py-1 rounded border border-red-200 hover:bg-red-200"
+                          >
+                            Từ chối
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -434,12 +494,20 @@ export default function ApproveMaterialTransactions() {
                     </td>
                     <td className="p-2 space-x-2">
                       {issue.trangThai === 'Cho xuat' && (
-                        <button 
-                          onClick={() => handleApproveIssue(issue._id)} 
-                          className="bg-green-100 text-green-800 px-3 py-1 rounded border border-green-200 hover:bg-green-200"
-                        >
-                          Duyệt
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => handleApproveIssue(issue._id)} 
+                            className="bg-green-100 text-green-800 px-3 py-1 rounded border border-green-200 hover:bg-green-200 mr-2"
+                          >
+                            Duyệt
+                          </button>
+                          <button 
+                            onClick={() => handleRejectIssue(issue._id)} 
+                            className="bg-red-100 text-red-800 px-3 py-1 rounded border border-red-200 hover:bg-red-200"
+                          >
+                            Từ chối
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>

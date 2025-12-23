@@ -79,6 +79,37 @@ exports.approveIssue = async (req, res) => {
 };
 
 /**
+ * Từ chối phiếu xuất NVL (chuyển từ "Cho xuat" sang "Tu choi")
+ */
+exports.rejectIssue = async (req, res) => {
+  try {
+    const issue = await MaterialIssue.findById(req.params.id);
+    
+    if (!issue) {
+      return res.status(404).json({ message: "Không tìm thấy phiếu xuất NVL" });
+    }
+    
+    if (issue.trangThai !== "Cho xuat") {
+      return res.status(400).json({ 
+        message: `Không thể từ chối phiếu. Trạng thái hiện tại: ${issue.trangThai}. Chỉ có thể từ chối phiếu có trạng thái "Cho xuat".` 
+      });
+    }
+    
+    // Cập nhật trạng thái
+    issue.trangThai = "Tu choi";
+    await issue.save();
+    
+    res.status(200).json({
+      message: "Đã từ chối phiếu xuất NVL",
+      issue: await MaterialIssue.findById(req.params.id)
+    });
+  } catch (err) {
+    console.error("❌ Error rejecting issue:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
  * Danh sách phiếu đã xuất (BGĐ duyệt) cần xưởng trưởng xác nhận (trangThai: "Da xuat")
  */
 exports.getIssuesWaitingWarehouseHead = async (req, res) => {

@@ -163,6 +163,7 @@ const connectRabbit = async () => {
 
     await subscribeToExchange(channel, "director_events");
     await subscribeToExchange(channel, "plan_events");
+    await subscribeToExchange(channel, "user_events"); // Admin events: USER_UPDATED, USER_CREATED, USER_DELETED
 
     console.log("✅ Realtime service connected to RabbitMQ");
   } catch (error) {

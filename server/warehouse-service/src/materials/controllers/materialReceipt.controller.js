@@ -239,3 +239,34 @@ exports.approveReceipt = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+/**
+ * Từ chối phiếu nhập NVL (chuyển từ "Cho nhap" sang "Tu choi")
+ */
+exports.rejectReceipt = async (req, res) => {
+  try {
+    const receipt = await MaterialReceipt.findById(req.params.id);
+    
+    if (!receipt) {
+      return res.status(404).json({ message: "Không tìm thấy phiếu nhập NVL" });
+    }
+    
+    if (receipt.trangThai !== "Cho nhap") {
+      return res.status(400).json({ 
+        message: `Không thể từ chối phiếu. Trạng thái hiện tại: ${receipt.trangThai}. Chỉ có thể từ chối phiếu có trạng thái "Cho nhap".` 
+      });
+    }
+    
+    // Cập nhật trạng thái
+    receipt.trangThai = "Tu choi";
+    await receipt.save();
+    
+    res.status(200).json({
+      message: "Đã từ chối phiếu nhập NVL",
+      receipt: await MaterialReceipt.findById(req.params.id)
+    });
+  } catch (err) {
+    console.error("❌ Error rejecting receipt:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};

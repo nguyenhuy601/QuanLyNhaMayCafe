@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ClipboardList, Plus, Calendar, Users, Package } from "lucide-react";
 import { fetchPlans, fetchPlanById } from "../../../services/factoryService";
 import { fetchTeams } from "../../../services/factoryService";
 import axiosInstance from "../../../api/axiosConfig";
+import useRealtime from "../../../hooks/useRealtime";
 
 export default function PhanCongCongViec() {
   const [plans, setPlans] = useState([]);
@@ -18,11 +19,7 @@ export default function PhanCongCongViec() {
     ghiChu: "",
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [plansData, teamsData, assignmentsData] = await Promise.all([
@@ -37,7 +34,23 @@ export default function PhanCongCongViec() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      PLAN_UPDATED: loadData,
+      PLAN_APPROVED: loadData,
+      PLAN_READY: loadData,
+      ASSIGNMENT_CREATED: loadData,
+      ASSIGNMENT_UPDATED: loadData,
+      factory_events: loadData, // Generic factory events
+    },
+  });
 
   const fetchAssignments = async () => {
     try {

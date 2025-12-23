@@ -11,6 +11,7 @@ import {
 import { getAllUsers, getAllRoles } from "../../../api/adminAPI";
 import { getAllQcResults } from "../../../services/qcService";
 import PhieuNhapThanhPham from "../../warehouseProduct/components/PhieuNhapThanhPham";
+import useRealtime from "../../../hooks/useRealtime";
 
 export default function FactoryTeams() {
   const navigate = useNavigate();
@@ -33,27 +34,38 @@ export default function FactoryTeams() {
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [selectedQcResult, setSelectedQcResult] = useState(null);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const [teamRes, usersRes, rolesRes] = await Promise.all([
-          fetchTeams(),
-          getAllUsers(),
-          getAllRoles(),
-        ]);
-        setTeams(Array.isArray(teamRes) ? teamRes : []);
-        setUsers(Array.isArray(usersRes) ? usersRes : []);
-        setRoles(Array.isArray(rolesRes) ? rolesRes : []);
-      } catch (err) {
-        setError("Không thể tải danh sách tổ. Kiểm tra quyền/đăng nhập.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [teamRes, usersRes, rolesRes] = await Promise.all([
+        fetchTeams(),
+        getAllUsers(),
+        getAllRoles(),
+      ]);
+      setTeams(Array.isArray(teamRes) ? teamRes : []);
+      setUsers(Array.isArray(usersRes) ? usersRes : []);
+      setRoles(Array.isArray(rolesRes) ? rolesRes : []);
+    } catch (err) {
+      setError("Không thể tải danh sách tổ. Kiểm tra quyền/đăng nhập.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      TEAM_UPDATED: loadData,
+      TEAM_CREATED: loadData,
+      TEAM_DELETED: loadData,
+      factory_events: loadData, // Generic factory events
+    },
+  });
 
   const roleIdBySlug = React.useMemo(() => {
     const map = {};

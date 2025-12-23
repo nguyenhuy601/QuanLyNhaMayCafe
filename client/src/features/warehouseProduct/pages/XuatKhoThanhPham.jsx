@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import axiosInstance from '../../../api/axiosConfig';
 import OrdersList from '../components/OrdersList.jsx';
 import ExportSlip from '../components/ExportSlip.jsx';
 import { fetchProductionPlans, fetchPlanById } from '../../../services/planService';
 import { fetchOrders } from '../../../services/orderService';
+import useRealtime from '../../../hooks/useRealtime';
 
 export default function XuatKhoThanhPham() {
 
@@ -17,11 +18,7 @@ export default function XuatKhoThanhPham() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const fetchPlans = async () => {
+  const fetchPlans = useCallback(async () => {
     try {
       setLoading(true);
       const data = await fetchProductionPlans();
@@ -38,7 +35,24 @@ export default function XuatKhoThanhPham() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPlans();
+  }, [fetchPlans]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      PLAN_UPDATED: fetchPlans,
+      PLAN_APPROVED: fetchPlans,
+      PLAN_READY: fetchPlans,
+      PLAN_DELETED: fetchPlans,
+      ORDER_UPDATED: fetchPlans,
+      ORDER_APPROVED: fetchPlans,
+      plan_events: fetchPlans, // Generic plan events
+    },
+  });
 
   const handlePlanSelect = async (planId) => {
     try {

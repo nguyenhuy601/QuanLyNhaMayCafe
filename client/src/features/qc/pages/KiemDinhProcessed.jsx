@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axiosInstance from "../../../api/axiosConfig";
 import { Filter, Edit2, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import useRealtime from "../../../hooks/useRealtime";
 
 const KiemDinhProcessed = () => {
   const [requests, setRequests] = useState([]);
@@ -9,16 +10,28 @@ const KiemDinhProcessed = () => {
   const [filterXuong, setFilterXuong] = useState("Tất cả");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchProcessedRequests = async () => {
-      try {
-        const res = await axiosInstance.get("/qc-result");
-        setRequests(res.data);
-      } catch (err) {
-      }
-    };
-    fetchProcessedRequests();
+  const fetchProcessedRequests = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get("/qc-result");
+      setRequests(res.data);
+    } catch (err) {
+    }
   }, []);
+
+  useEffect(() => {
+    fetchProcessedRequests();
+  }, [fetchProcessedRequests]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      QC_RESULT_CREATED: fetchProcessedRequests,
+      QC_RESULT_UPDATED: fetchProcessedRequests,
+      QC_PASSED: fetchProcessedRequests,
+      QC_FAILED: fetchProcessedRequests,
+      qc_events: fetchProcessedRequests, // Generic QC events
+    },
+  });
 
   // Lấy danh sách xưởng & kết quả (unique)
   const xuongOptions = ["Tất cả", ...new Set(requests.map((r) => r.qcRequest?.xuong))];

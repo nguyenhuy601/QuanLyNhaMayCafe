@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { getApprovedPlans, createMaterialReceipt } from '../../../services/warehouseRawMaterialService';
+import React, { useEffect, useState, useCallback } from "react";
+import { getApprovedPlans, createMaterialReceipt, getMaterialReceipts } from '../../../services/warehouseRawMaterialService';
 import axiosInstance from '../../../api/axiosConfig';
+import useRealtime from '../../../hooks/useRealtime';
 
 const NhapKhoNVL = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [plans, setPlans] = useState([]);
+  const [usedPlanIds, setUsedPlanIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -13,11 +15,23 @@ const NhapKhoNVL = () => {
     ghiChu: '',
   });
 
-  useEffect(() => {
-    fetchPlans();
+  // Lấy danh sách phiếu nhập đã tạo để kiểm tra kế hoạch đã dùng cho nhập
+  const fetchUsedPlans = useCallback(async () => {
+    try {
+      const receipts = await getMaterialReceipts();
+      // Lấy danh sách ID kế hoạch đã có phiếu nhập (mỗi kế hoạch chỉ được nhập 1 lần)
+      const usedIds = new Set(
+        receipts
+          .filter(receipt => receipt.keHoach)
+          .map(receipt => receipt.keHoach.toString())
+      );
+      setUsedPlanIds(usedIds);
+    } catch (err) {
+      console.error('Lỗi khi lấy danh sách phiếu nhập:', err);
+    }
   }, []);
 
-  const fetchPlans = async () => {
+  const fetchPlans = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getApprovedPlans();
@@ -28,10 +42,47 @@ const NhapKhoNVL = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPlans();
+    fetchUsedPlans();
+  }, [fetchPlans, fetchUsedPlans]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      PLAN_APPROVED: () => {
+        fetchPlans();
+        fetchUsedPlans();
+      },
+      PLAN_UPDATED: () => {
+        fetchPlans();
+        fetchUsedPlans();
+      },
+      PLAN_READY: () => {
+        fetchPlans();
+        fetchUsedPlans();
+      },
+      PLAN_DELETED: () => {
+        fetchPlans();
+        fetchUsedPlans();
+      },
+      MATERIAL_RECEIPT_CREATED: fetchUsedPlans,
+      MATERIAL_RECEIPT_APPROVED: fetchUsedPlans,
+      plan_events: () => {
+        fetchPlans();
+        fetchUsedPlans();
+      },
+      warehouse_events: fetchUsedPlans,
+    },
+  });
 
   const handleSelectPlan = (plan) => {
-    setSelectedPlan(plan);
+    // Chỉ cho phép chọn kế hoạch chưa được dùng
+    if (!usedPlanIds.has(plan._id.toString())) {
+      setSelectedPlan(plan);
+    }
   };
 
   const handleCreatePhieuNhap = async () => {
@@ -71,6 +122,8 @@ const NhapKhoNVL = () => {
         ngayNhap: new Date().toISOString().split('T')[0],
         ghiChu: '',
       });
+      // Refresh danh sách kế hoạch đã dùng
+      fetchUsedPlans();
     } catch (err) {
       alert("Lỗi khi tạo phiếu nhập: " + (err.response?.data?.message || err.message));
     }
@@ -109,39 +162,52 @@ const NhapKhoNVL = () => {
               </thead>
               <tbody>
                 {plans.length > 0 ? (
-                  plans.map((plan) => (
-                    <tr
-                      key={plan._id}
-                      className={`border-b hover:bg-[#f9f4ef] transition ${
-                        selectedPlan?._id === plan._id ? "bg-[#f1dfc6]" : ""
-                      }`}
-                    >
-                      <td className="py-2 px-4 text-center">
-                        <input
-                          type="radio"
-                          name="plan"
-                          checked={selectedPlan?._id === plan._id}
-                          onChange={() => handleSelectPlan(plan)}
-                          className="cursor-pointer"
-                        />
-                      </td>
-                      <td className="py-2 px-4">{plan.maKeHoach || plan._id}</td>
-                      <td className="py-2 px-4">
-                        {plan.sanPham?.tenSanPham || plan.maKeHoach || 'Kế hoạch sản xuất'}
-                      </td>
-                      <td className="py-2 px-4">
-                        {plan.ngayBatDauDuKien
-                          ? new Date(plan.ngayBatDauDuKien).toLocaleDateString('vi-VN')
-                          : 'N/A'}
-                      </td>
-                      <td className="py-2 px-4">
-                        {plan.ngayKetThucDuKien
-                          ? new Date(plan.ngayKetThucDuKien).toLocaleDateString('vi-VN')
-                          : 'N/A'}
-                      </td>
-                      <td className="py-2 px-4">{plan.xuongPhuTrach || 'N/A'}</td>
-                    </tr>
-                  ))
+                  plans.map((plan) => {
+                    const isUsed = usedPlanIds.has(plan._id.toString());
+                    return (
+                      <tr
+                        key={plan._id}
+                        className={`border-b transition ${
+                          isUsed 
+                            ? "bg-gray-100 opacity-60" 
+                            : selectedPlan?._id === plan._id 
+                              ? "bg-[#f1dfc6]" 
+                              : "hover:bg-[#f9f4ef]"
+                        }`}
+                      >
+                        <td className="py-2 px-4 text-center">
+                          <input
+                            type="radio"
+                            name="plan"
+                            checked={selectedPlan?._id === plan._id}
+                            onChange={() => handleSelectPlan(plan)}
+                            disabled={isUsed}
+                            className={`${isUsed ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                          />
+                        </td>
+                        <td className={`py-2 px-4 ${isUsed ? "text-gray-500" : ""}`}>
+                          {plan.maKeHoach || plan._id}
+                          {isUsed && <span className="ml-2 text-xs text-red-600">(Đã nhập)</span>}
+                        </td>
+                        <td className={`py-2 px-4 ${isUsed ? "text-gray-500" : ""}`}>
+                          {plan.sanPham?.tenSanPham || plan.maKeHoach || 'Kế hoạch sản xuất'}
+                        </td>
+                        <td className={`py-2 px-4 ${isUsed ? "text-gray-500" : ""}`}>
+                          {plan.ngayBatDauDuKien
+                            ? new Date(plan.ngayBatDauDuKien).toLocaleDateString('vi-VN')
+                            : 'N/A'}
+                        </td>
+                        <td className={`py-2 px-4 ${isUsed ? "text-gray-500" : ""}`}>
+                          {plan.ngayKetThucDuKien
+                            ? new Date(plan.ngayKetThucDuKien).toLocaleDateString('vi-VN')
+                            : 'N/A'}
+                        </td>
+                        <td className={`py-2 px-4 ${isUsed ? "text-gray-500" : ""}`}>
+                          {plan.xuongPhuTrach || 'N/A'}
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan="6" className="py-4 px-4 text-center text-gray-500">

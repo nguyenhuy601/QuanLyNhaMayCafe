@@ -235,23 +235,36 @@ const createPlanInternal = async (orderData, token = null) => {
   }
 
   // 4. Validation: Kiểm tra chồng lấp với kế hoạch khác
+  // Chỉ kiểm tra chồng lấp với các kế hoạch cùng xưởng phụ trách
+  // Loại trừ các kế hoạch đã hoàn thành, từ chối hoặc hủy
   const existingPlans = await ProductionPlan.find({
-    $or: [
-      // Kế hoạch bắt đầu trong khoảng thời gian của kế hoạch mới
+    $and: [
       {
-        ngayBatDauDuKien: { $gte: ngayBatDau, $lte: ngayKetThuc }
+        $or: [
+          // Kế hoạch bắt đầu trong khoảng thời gian của kế hoạch mới
+          {
+            ngayBatDauDuKien: { $gte: ngayBatDau, $lte: ngayKetThuc }
+          },
+          // Kế hoạch kết thúc trong khoảng thời gian của kế hoạch mới
+          {
+            ngayKetThucDuKien: { $gte: ngayBatDau, $lte: ngayKetThuc }
+          },
+          // Kế hoạch bao trùm kế hoạch mới
+          {
+            ngayBatDauDuKien: { $lte: ngayBatDau },
+            ngayKetThucDuKien: { $gte: ngayKetThuc }
+          }
+        ]
       },
-      // Kế hoạch kết thúc trong khoảng thời gian của kế hoạch mới
+      // Chỉ kiểm tra với các kế hoạch cùng xưởng phụ trách
       {
-        ngayKetThucDuKien: { $gte: ngayBatDau, $lte: ngayKetThuc }
+        xuongPhuTrach: orderData.xuongPhuTrach
       },
-      // Kế hoạch bao trùm kế hoạch mới
+      // Bỏ qua các kế hoạch đã hoàn thành, từ chối hoặc hủy
       {
-        ngayBatDauDuKien: { $lte: ngayBatDau },
-        ngayKetThucDuKien: { $gte: ngayKetThuc }
+        trangThai: { $nin: ["Hoàn thành", "Từ chối", "Đã hủy"] }
       }
-    ],
-    trangThai: { $nin: ["Từ chối", "Đã hủy"] } // Bỏ qua các kế hoạch đã hủy
+    ]
   });
 
   if (existingPlans.length > 0) {

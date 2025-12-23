@@ -151,17 +151,19 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ message: "Ngày yêu cầu giao hàng không được để trống." });
     }
     
-    const ngayDat = new Date();
+    const ngayHienTai = new Date();
+    ngayHienTai.setHours(0, 0, 0, 0); // Chuẩn hóa về 00:00:00 để so sánh chính xác
     const ngayGiao = new Date(ngayYeuCauGiao);
+    ngayGiao.setHours(0, 0, 0, 0); // Chuẩn hóa về 00:00:00 để so sánh chính xác
     
     if (isNaN(ngayGiao.getTime())) {
       return res.status(400).json({ message: "Ngày yêu cầu giao hàng không hợp lệ." });
     }
     
-    // Ngày giao phải sau ngày tạo ít nhất 30 ngày
-    const soNgay = Math.floor((ngayGiao - ngayDat) / (1000 * 60 * 60 * 24));
-    if (soNgay < 30) {
-      return res.status(400).json({ message: "Ngày yêu cầu giao hàng phải sau ngày tạo đơn ít nhất 30 ngày." });
+    // Ngày giao phải cách ngày hiện tại ít nhất 15 ngày
+    const soNgay = Math.floor((ngayGiao - ngayHienTai) / (1000 * 60 * 60 * 24));
+    if (soNgay < 15) {
+      return res.status(400).json({ message: `Ngày yêu cầu giao hàng phải cách ngày hiện tại ít nhất 15 ngày. Hiện tại: ${soNgay} ngày.` });
     }
 
     const customer = await Customer.findOneAndUpdate(

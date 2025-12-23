@@ -6,7 +6,7 @@ import {
 } from "../../../api/directorAPI";
 import { enrichPlanData } from "../utils/dataMapper";
 import { toVietnameseStatus } from "../../../utils/statusMapper";
-import useAutoRefresh from "../../../hooks/useAutoRefresh";
+import useRealtime from "../../../hooks/useRealtime";
 
 export default function ApprovePlans() {
   const [plans, setPlans] = useState([]);
@@ -42,7 +42,18 @@ export default function ApprovePlans() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-  useAutoRefresh(loadData, { interval: 12000 });
+  
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      PLAN_READY: loadData,
+      PLAN_UPDATED: loadData,
+      PLAN_DELETED: loadData,
+      PLAN_APPROVED: loadData,
+      PLAN_REJECTED: loadData,
+      plan_events: loadData, // Generic plan events
+    },
+  });
 
   // Xử lý Duyệt
   const handleApprove = async (id) => {

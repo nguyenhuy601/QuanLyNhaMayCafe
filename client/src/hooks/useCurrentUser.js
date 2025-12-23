@@ -70,11 +70,26 @@ export default function useCurrentUser() {
         }
       }
 
-      // 6. Nếu tìm được trong bảng nhân sự thì dùng, ngược lại fallback token
+      // 5b. Fallback: thử tìm theo maNV nếu có trong payload
+      if (!user && payload) {
+        const maNV = payload.maNV || payload.employee?.maNV;
+        if (maNV) {
+          user = users.find((u) => {
+            return u.maNV && u.maNV.toString() === maNV.toString();
+          });
+        }
+      }
+
+      // 6. Nếu tìm được trong bảng nhân sự thì dùng (ưu tiên hoTen từ User model)
       if (user) {
-        setCurrentUser(user);
+        // Đảm bảo hoTen được ưu tiên từ User model
+        setCurrentUser({
+          ...user,
+          hoTen: user.hoTen || payload.hoTen || payload.name || payload.fullName || null,
+        });
         sessionStorage.setItem("user", JSON.stringify(user));
       } else {
+        // Fallback: dùng thông tin từ token
         setCurrentUser({
           email: payload.email || emailToSearch,
           hoTen: payload.hoTen || payload.name || payload.fullName || null,

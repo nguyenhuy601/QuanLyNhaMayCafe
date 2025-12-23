@@ -5,9 +5,6 @@ import {
   UserPlus,
   LogOut,
   Shield,
-  Lock,
-  Building2,
-  BadgeDollarSign,
   UserCog,
 } from "lucide-react";
 
@@ -90,39 +87,6 @@ const AdminSidebar = () => {
           <UserCog size={18} />
           <span>Quản lý Xưởng trưởng</span>
         </button>
-
-        <div className="pt-2">
-          <p className="text-xs uppercase tracking-widest text-amber-400 mb-1 px-2">
-            Danh mục
-          </p>
-          <button
-            onClick={() => navigate("/admin/roles")}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${isActive(
-              "/admin/roles"
-            )}`}
-          >
-            <Lock size={18} />
-            <span>Vai trò</span>
-          </button>
-          <button
-            onClick={() => navigate("/admin/departments")}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${isActive(
-              "/admin/departments"
-            )}`}
-          >
-            <Building2 size={18} />
-            <span>Phòng ban</span>
-          </button>
-          <button
-            onClick={() => navigate("/admin/positions")}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${isActive(
-              "/admin/positions"
-            )}`}
-          >
-            <BadgeDollarSign size={18} />
-            <span>Chức vụ</span>
-          </button>
-        </div>
       </nav>
 
       <div className="p-4 border-t border-amber-800">

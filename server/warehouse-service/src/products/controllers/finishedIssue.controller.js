@@ -91,6 +91,35 @@ exports.approveFinishedIssue = async (req, res) => {
   }
 };
 
+/**
+ * Từ chối phiếu xuất thành phẩm (chuyển từ "Cho duyet" sang "Tu choi")
+ */
+exports.rejectFinishedIssue = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const issue = await FinishedIssue.findById(id);
+    
+    if (!issue) {
+      return res.status(404).json({ error: "Không tìm thấy phiếu xuất" });
+    }
+
+    if (issue.trangThai !== "Cho duyet") {
+      return res.status(400).json({ 
+        error: `Không thể từ chối phiếu. Trạng thái hiện tại: ${issue.trangThai}. Chỉ có thể từ chối phiếu có trạng thái "Cho duyet".` 
+      });
+    }
+
+    // Cập nhật trạng thái thành "Tu choi"
+    issue.trangThai = "Tu choi";
+    await issue.save();
+
+    res.status(200).json({ message: "Đã từ chối phiếu xuất thành phẩm", issue });
+  } catch (err) {
+    console.error("❌ [rejectFinishedIssue] Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.createFinishedIssue = async (req, res) => {
   try {
     // Generate mã phiếu xuất tự động

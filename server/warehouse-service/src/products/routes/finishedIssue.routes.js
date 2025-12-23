@@ -9,5 +9,6 @@ router.get("/", verifyToken, authorizeRoles(["khotp", "admin"]), issueCtrl.getAl
 router.get("/pending", verifyToken, authorizeRoles(["director", "admin"]), issueCtrl.getPendingFinishedIssues);
 router.post("/", verifyToken, authorizeRoles(["khotp", "admin"]), issueCtrl.createFinishedIssue);
 router.put("/:id/approve", verifyToken, authorizeRoles(["director", "admin"]), issueCtrl.approveFinishedIssue);
+router.put("/:id/reject", verifyToken, authorizeRoles(["director", "admin"]), issueCtrl.rejectFinishedIssue);
 
 module.exports = router;

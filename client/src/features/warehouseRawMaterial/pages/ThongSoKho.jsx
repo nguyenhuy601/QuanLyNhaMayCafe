@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axiosInstance from '../../../api/axiosConfig';
-import useAutoRefresh from '../../../hooks/useAutoRefresh';
+import useRealtime from '../../../hooks/useRealtime';
 
 export default function ThongSoKho() {
   const [materials, setMaterials] = useState([]);
@@ -31,13 +31,24 @@ export default function ThongSoKho() {
     fetchInventoryData();
   }, [fetchInventoryData]);
 
-  // Auto-refresh mỗi 10 giây để đảm bảo dữ liệu luôn mới nhất
-  useAutoRefresh(fetchInventoryData, { interval: 10000 });
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      MATERIAL_RECEIPT_APPROVED: fetchInventoryData,
+      MATERIAL_RECEIPT_CREATED: fetchInventoryData,
+      MATERIAL_ISSUE_APPROVED: fetchInventoryData,
+      MATERIAL_ISSUE_CREATED: fetchInventoryData,
+      FINISHED_RECEIPT_APPROVED: fetchInventoryData,
+      FINISHED_RECEIPT_CREATED: fetchInventoryData,
+      FINISHED_ISSUE_APPROVED: fetchInventoryData,
+      FINISHED_ISSUE_CREATED: fetchInventoryData,
+      warehouse_events: fetchInventoryData, // Generic warehouse events
+    },
+  });
 
-  // Lắng nghe sự kiện cập nhật kho khi Ban giám đốc duyệt phiếu nhập/xuất
+  // Lắng nghe sự kiện cập nhật kho khi Ban giám đốc duyệt phiếu nhập/xuất (fallback)
   useEffect(() => {
     const onInventoryUpdated = () => {
-      // Refresh ngay lập tức khi nhận được event
       fetchInventoryData();
     };
     window.addEventListener('inventory-updated', onInventoryUpdated);

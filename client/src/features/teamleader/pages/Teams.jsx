@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { User, Users, ClipboardList, Clock4 } from "lucide-react";
 import {
   getAllUsers,
@@ -15,6 +15,7 @@ import {
 } from "../../../services/factoryService";
 import { fetchPlanById } from "../../../services/planService";
 import { createQcRequest, getAllQcResults } from "../../../services/qcService";
+import useRealtime from "../../../hooks/useRealtime";
 
 // Lấy thông tin user từ JWT token
 const getCurrentUser = () => {
@@ -56,30 +57,29 @@ export default function ToTruongInfo() {
   const [qcResultsModalOpen, setQcResultsModalOpen] = useState(false);
   const [loadingQcResults, setLoadingQcResults] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const [u, r, d, p, t, s, at, as] = await Promise.all([
-          getAllUsers(),
-          getAllRoles(),
-          getAllDepartments(),
-          getAllPositions(),
-          fetchTeams(),
-          fetchTeamLeaderShifts(),
-          fetchAttendanceSheets({
-            date: new Date().toISOString().substring(0, 10),
-          }),
-          fetchManagerAssignments(),
-        ]);
-        setUsers(Array.isArray(u) ? u : []);
-        setRoles(Array.isArray(r) ? r : []);
-        setDepartments(Array.isArray(d) ? d : []);
-        setPositions(Array.isArray(p) ? p : []);
-        setTeams(Array.isArray(t) ? t : []);
-        setShifts(Array.isArray(s) ? s : []);
-        setAttendanceSheets(Array.isArray(at) ? at : []);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [u, r, d, p, t, s, at, as] = await Promise.all([
+        getAllUsers(),
+        getAllRoles(),
+        getAllDepartments(),
+        getAllPositions(),
+        fetchTeams(),
+        fetchTeamLeaderShifts(),
+        fetchAttendanceSheets({
+          date: new Date().toISOString().substring(0, 10),
+        }),
+        fetchManagerAssignments(),
+      ]);
+      setUsers(Array.isArray(u) ? u : []);
+      setRoles(Array.isArray(r) ? r : []);
+      setDepartments(Array.isArray(d) ? d : []);
+      setPositions(Array.isArray(p) ? p : []);
+      setTeams(Array.isArray(t) ? t : []);
+      setShifts(Array.isArray(s) ? s : []);
+      setAttendanceSheets(Array.isArray(at) ? at : []);
         setAssignments(Array.isArray(as) ? as : []);
       } catch (err) {
         setError("Không thể tải danh sách nhân sự. Kiểm tra quyền/đăng nhập.");
@@ -90,9 +90,22 @@ export default function ToTruongInfo() {
       } finally {
         setLoading(false);
       }
-    };
-    load();
-  }, []);
+    }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Realtime updates
+  useRealtime({
+    eventHandlers: {
+      ASSIGNMENT_CREATED: loadData,
+      ASSIGNMENT_UPDATED: loadData,
+      QC_REQUEST_CREATED: loadData,
+      QC_RESULT_CREATED: loadData,
+      factory_events: loadData, // Generic factory events
+    },
+  });
 
   const currentUser = useMemo(() => getCurrentUser(), []);
 

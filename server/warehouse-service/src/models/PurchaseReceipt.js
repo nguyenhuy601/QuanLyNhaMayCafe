@@ -20,7 +20,7 @@ const PurchaseReceiptSchema = new mongoose.Schema({
      hanSuDung: Date
    }
  ],
- trangThai: { type: String, enum: ["Da nhap","Cho nhap"], default: "Cho nhap" }
+ trangThai: { type: String, enum: ["Da nhap","Cho nhap","Tu choi"], default: "Cho nhap" }
 }, { timestamps: true });
 
 module.exports = mongoose.model("PurchaseReceipt", PurchaseReceiptSchema);

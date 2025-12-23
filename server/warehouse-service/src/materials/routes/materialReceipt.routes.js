@@ -17,5 +17,6 @@ router.put("/:id/approve", verifyToken, authorizeRoles(["khonvl", "khotp", "admi
   console.log("🟢 [warehouse-service] PUT /materials/receipts/:id/approve - Approving receipt:", req.params.id);
   next();
 }, receiptCtrl.approveReceipt);
+router.put("/:id/reject", verifyToken, authorizeRoles(["director", "admin"]), receiptCtrl.rejectReceipt);
 
 module.exports = router;
