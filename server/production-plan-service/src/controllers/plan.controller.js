@@ -3,7 +3,6 @@ const { publishEvent } = require("../utils/eventPublisher");
 const axios = require("axios");
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://api-gateway:4000";
-const FACTORY_SERVICE_URL = process.env.FACTORY_SERVICE_URL || "http://factory-service:3003";
 
 /**
  * Kiểm tra tồn kho NVL (giả lập — sau này gọi warehouse-service)
@@ -474,7 +473,7 @@ exports.deleteProductionPlan = async (req, res) => {
     // 2. Xóa tất cả lô sản xuất (LoSanXuat) liên quan
     try {
       await axios.delete(
-        `${FACTORY_SERVICE_URL}/api/lot/plan/${planId}`,
+        `${GATEWAY_URL}/factory/api/lot/plan/${planId}`,
         { headers }
       );
       console.log(`✅ [deleteProductionPlan] Đã xóa lô sản xuất cho kế hoạch ${planId}`);

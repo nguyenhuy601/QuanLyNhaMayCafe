@@ -159,11 +159,14 @@ const rejectPlan = async (req) => {
     req.body?.ghiChu ||
     "Không đạt yêu cầu";
   const payload = {
-    trangThai: "Chưa duyệt",
+    trangThai: "Từ chối",
+    nguoiDuyet: req.user?.username || "director",
+    ngayDuyet: new Date().toISOString(),
     ghiChu: `[Director Reject] ${reason}`,
   };
 
   const updated = await productionPlanClient.updatePlan(req, req.params.id, payload);
+  await publishEvent("PLAN_REJECTED", updated);
   return updated;
 };
 

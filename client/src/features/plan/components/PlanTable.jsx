@@ -65,9 +65,10 @@ const PlanTable = ({ orders = [], onModalStateChange, plans = [] }) => {
     if (!currentOrder) return;
 
     // Kiểm tra đơn hàng đã thuộc kế hoạch nào chưa
+    // Chỉ chặn nếu kế hoạch không bị từ chối
     const orderId = currentOrder._id?.toString() || currentOrder.maDH;
     const existingPlan = orderInPlanMap.get(orderId);
-    if (existingPlan) {
+    if (existingPlan && existingPlan.trangThai !== "Từ chối") {
       alert(`❌ Đơn hàng ${maDH} đã thuộc kế hoạch ${existingPlan.maKeHoach} (${existingPlan.trangThai})\n\nKhông thể chọn đơn hàng đã thuộc kế hoạch khác.`);
       return;
     }
@@ -278,7 +279,8 @@ const PlanTable = ({ orders = [], onModalStateChange, plans = [] }) => {
                     const orderId = order._id?.toString() || order.maDH;
                     const existingPlan = orderInPlanMap.get(orderId);
                     const isSelected = selectedOrders.includes(order.maDH);
-                    const isDisabled = !!existingPlan;
+                    // Chỉ khóa nếu kế hoạch tồn tại và không bị từ chối
+                    const isDisabled = existingPlan && existingPlan.trangThai !== "Từ chối";
 
                     return (
                       <button
@@ -291,7 +293,7 @@ const PlanTable = ({ orders = [], onModalStateChange, plans = [] }) => {
                             ? 'text-[#8B4513] hover:text-[#5A2E0E]'
                             : 'text-gray-400 hover:text-[#8B4513]'
                         }`}
-                        title={isDisabled ? `Đơn hàng đã thuộc kế hoạch ${existingPlan?.maKeHoach}` : ''}
+                        title={isDisabled ? `Đơn hàng đã thuộc kế hoạch ${existingPlan?.maKeHoach}` : existingPlan?.trangThai === "Từ chối" ? `Kế hoạch ${existingPlan?.maKeHoach} đã bị từ chối, có thể chọn lại` : ''}
                       >
                         {isSelected ? (
                           <CheckSquare size={20} />

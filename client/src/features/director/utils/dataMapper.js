@@ -89,6 +89,9 @@ export async function enrichPlanData(plan) {
     plan.chiTiet?.soLuong ??
     0;
 
+  const soLuongBaoBi = plan.soLuongBaoBi ?? 0;
+  const soLuongTemNhan = plan.soLuongTemNhan ?? 0;
+
   const startDate = getSafeDate(
     plan.startDate ||
       plan.ngayBatDau ||
@@ -110,6 +113,8 @@ export async function enrichPlanData(plan) {
     materialName,
     workshopName,
     soLuongCanSanXuat,
+    soLuongBaoBi,
+    soLuongTemNhan,
     startDate,
     endDate,
     trangThai: toVietnameseStatus(plan.trangThai),

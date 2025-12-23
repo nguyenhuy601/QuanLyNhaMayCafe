@@ -87,7 +87,7 @@ router.put(
 router.delete(
   "/production-logs/plan/:planId",
   verifyToken,
-  authorizeRoles(MANAGER_ROLES),
+  authorizeRoles([...MANAGER_ROLES, "plan", "director"]),
   controller.deleteLogsByPlanId
 );
 

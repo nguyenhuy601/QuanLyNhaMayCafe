@@ -56,33 +56,39 @@ const PlanListView = ({
             let soLuongNVL = plan.soLuongNVLThucTe || plan.soLuongNVLUocTinh || 0;
             
             // Tính toán lại từ nvlCanThiet nếu các field riêng lẻ không có
-            let soLuongNVLTho = plan.soLuongNVLTho;
-            let soLuongBaoBi = plan.soLuongBaoBi;
-            let soLuongTemNhan = plan.soLuongTemNhan;
+            let soLuongNVLTho = plan.soLuongNVLTho || 0;
+            let soLuongBaoBi = plan.soLuongBaoBi || 0;
+            let soLuongTemNhan = plan.soLuongTemNhan || 0;
             
-            // Nếu các giá trị này không có hoặc bằng 0, thử tính từ nvlCanThiet
-            if ((soLuongNVLTho === null || soLuongNVLTho === undefined || soLuongNVLTho === 0) &&
-                (soLuongBaoBi === null || soLuongBaoBi === undefined || soLuongBaoBi === 0) &&
-                (soLuongTemNhan === null || soLuongTemNhan === undefined || soLuongTemNhan === 0)) {
-              if (plan.nvlCanThiet && Array.isArray(plan.nvlCanThiet) && plan.nvlCanThiet.length > 0) {
-                // Tính lại từ nvlCanThiet dựa trên tên NVL
-                plan.nvlCanThiet.forEach(nvl => {
-                  const tenNVL = (nvl.tenNVL || "").toLowerCase();
-                  const maSP = (nvl.maSP || "").toLowerCase();
-                  const soLuong = nvl.soLuong || 0;
-                  
-                  // Kiểm tra xem là bao bì, tem nhãn hay NVL thô
-                  if (tenNVL.includes("túi") || tenNVL.includes("hộp") || tenNVL.includes("bao bì") || 
-                      maSP.includes("bag") || maSP.includes("box") || maSP.includes("sachet")) {
-                    soLuongBaoBi += soLuong;
-                  } else if (tenNVL.includes("tem") || tenNVL.includes("nhãn") || maSP.includes("label")) {
-                    soLuongTemNhan += soLuong;
-                  } else {
-                    // Mặc định là NVL thô (hạt cà phê)
-                    soLuongNVLTho += soLuong;
-                  }
-                });
-              }
+            // Luôn tính lại từ nvlCanThiet nếu có, để đảm bảo dữ liệu chính xác
+            if (plan.nvlCanThiet && Array.isArray(plan.nvlCanThiet) && plan.nvlCanThiet.length > 0) {
+              // Reset các giá trị trước khi tính lại
+              let tempNVLTho = 0;
+              let tempBaoBi = 0;
+              let tempTemNhan = 0;
+              
+              // Tính lại từ nvlCanThiet dựa trên tên NVL
+              plan.nvlCanThiet.forEach(nvl => {
+                const tenNVL = (nvl.tenNVL || "").toLowerCase();
+                const maSP = (nvl.maSP || "").toLowerCase();
+                const soLuong = nvl.soLuong || 0;
+                
+                // Kiểm tra xem là bao bì, tem nhãn hay NVL thô
+                if (tenNVL.includes("túi") || tenNVL.includes("hộp") || tenNVL.includes("bao bì") || 
+                    maSP.includes("bag") || maSP.includes("box") || maSP.includes("sachet")) {
+                  tempBaoBi += soLuong;
+                } else if (tenNVL.includes("tem") || tenNVL.includes("nhãn") || maSP.includes("label")) {
+                  tempTemNhan += soLuong;
+                } else {
+                  // Mặc định là NVL thô (hạt cà phê)
+                  tempNVLTho += soLuong;
+                }
+              });
+              
+              // Ưu tiên giá trị từ nvlCanThiet, fallback về giá trị từ plan nếu nvlCanThiet = 0
+              soLuongNVLTho = tempNVLTho > 0 ? tempNVLTho : (plan.soLuongNVLTho || 0);
+              soLuongBaoBi = tempBaoBi > 0 ? tempBaoBi : (plan.soLuongBaoBi || 0);
+              soLuongTemNhan = tempTemNhan > 0 ? tempTemNhan : (plan.soLuongTemNhan || 0);
             }
             
             // Đảm bảo các giá trị không phải null/undefined
@@ -275,12 +281,9 @@ const PlanListView = ({
               <th className="px-3 py-3 text-left">Mã kế hoạch</th>
               <th className="px-3 py-3 text-left">Tên sản phẩm</th>
               <th className="px-3 py-3 text-left">NVL thô (kg)</th>
-              <th className="px-3 py-3 text-left">Bao bì (túi)</th>
-              <th className="px-3 py-3 text-left">Tem nhãn</th>
               <th className="px-3 py-3 text-left">Ngày bắt đầu</th>
               <th className="px-3 py-3 text-left">Ngày kết thúc</th>
               <th className="px-3 py-3 text-left">Trạng thái</th>
-              <th className="px-3 py-3 text-center">Thao tác</th>
             </tr>
           </thead>
 
@@ -298,14 +301,6 @@ const PlanListView = ({
 
                 <td className="px-3 py-3 text-sm">
                   {plan.soLuongNVLTho || 0} kg
-                </td>
-
-                <td className="px-3 py-3 text-sm">
-                  {plan.soLuongBaoBi || 0} túi
-                </td>
-
-                <td className="px-3 py-3 text-sm">
-                  {plan.soLuongTemNhan || 0}
                 </td>
 
                 <td className="px-3 py-3 text-sm">
@@ -332,20 +327,6 @@ const PlanListView = ({
                   >
                     {plan.trangThai}
                   </span>
-                </td>
-
-                <td className="px-5 py-5 text-center">
-                  <button
-                    onClick={() => handleSendToDirector(plan)}
-                    disabled={sendingIds.has(plan._id)}
-                    className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-medium transition ${
-                      sendingIds.has(plan._id)
-                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                        : "bg-green-500 hover:bg-green-600 text-white cursor-pointer"
-                    }`}
-                  >
-                    {sendingIds.has(plan._id) ? "Đang gửi..." : "Xong"}
-                  </button>
                 </td>
               </tr>
             ))}

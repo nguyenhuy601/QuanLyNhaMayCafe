@@ -3,10 +3,6 @@ const axios = require("axios");
 const { updateProductQuantity } = require("../../utils/productClient");
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://api-gateway:4000";
-const FACTORY_SERVICE_URL = process.env.FACTORY_SERVICE_URL || "http://factory-service:3003";
-const QC_SERVICE_URL = process.env.QC_SERVICE_URL || "http://qc-service:3004";
-const PRODUCTION_PLAN_SERVICE_URL = process.env.PRODUCTION_PLAN_SERVICE_URL || "http://production-plan-service:3002";
-const SALES_SERVICE_URL = process.env.SALES_SERVICE_URL || "http://sales-service:3008";
 
 exports.getAllFinishedReceipts = async (req, res) => {
   try {
@@ -89,12 +85,12 @@ exports.createFinishedReceipt = async (req, res) => {
                 : qcRequest.keHoach;
               
               if (planId) {
-                console.log(`🔍 [createFinishedReceipt] Bước 3: Lấy kế hoạch từ planService. planId: ${planId}`);
-                console.log(`🔍 [createFinishedReceipt] URL: ${PRODUCTION_PLAN_SERVICE_URL}/plan/${planId}`);
+                console.log(`🔍 [createFinishedReceipt] Bước 3: Lấy kế hoạch từ planService qua gateway. planId: ${planId}`);
+                console.log(`🔍 [createFinishedReceipt] URL: ${GATEWAY_URL}/plan/${planId}`);
                 
                 try {
-                  // Gọi trực tiếp production-plan-service
-                  const planResponse = await axios.get(`${PRODUCTION_PLAN_SERVICE_URL}/plan/${planId}`, {
+                  // Gọi qua API Gateway
+                  const planResponse = await axios.get(`${GATEWAY_URL}/plan/${planId}`, {
                     headers: req.headers.authorization ? { Authorization: req.headers.authorization } : {},
                     timeout: 10000
                   });
@@ -122,22 +118,14 @@ exports.createFinishedReceipt = async (req, res) => {
                   console.warn(`⚠️ [createFinishedReceipt] Kế hoạch ${planId} không có sanPham hoặc sanPham là null/undefined`);
                 }
                 } catch (planErr) {
-                  console.error("❌ [createFinishedReceipt] Lỗi lấy kế hoạch từ planService:", {
+                  console.error("❌ [createFinishedReceipt] Lỗi lấy kế hoạch từ planService qua gateway:", {
                     message: planErr.message,
                     code: planErr.code,
                     status: planErr.response?.status,
                     statusText: planErr.response?.statusText,
                     data: planErr.response?.data,
-                    url: `${PRODUCTION_PLAN_SERVICE_URL}/plan/${planId}`
+                    url: `${GATEWAY_URL}/plan/${planId}`
                   });
-                  
-                  // Fallback: Thử qua gateway nếu gọi trực tiếp lỗi
-                  try {
-                    console.log(`🔍 [createFinishedReceipt] Thử lấy kế hoạch qua gateway: ${planId}`);
-                    const planResponse = await axios.get(`${GATEWAY_URL}/plan/${planId}`, {
-                      headers: req.headers.authorization ? { Authorization: req.headers.authorization } : {},
-                      timeout: 10000
-                    });
                     const plan = planResponse.data;
                     
                     console.log(`🔍 [createFinishedReceipt] Plan data từ gateway:`, JSON.stringify({
@@ -760,7 +748,7 @@ async function updateLotStatusToCompleted(phieuQCId, receiptId, headers) {
     // Bước 2: Tìm lô theo phieuQC (QCRequest ID)
     // Lấy tất cả lô và filter theo phieuQC
     const lotsResponse = await axios.get(
-      `${FACTORY_SERVICE_URL}/api/lot`,
+      `${GATEWAY_URL}/factory/api/lot`,
       { headers }
     );
     
@@ -806,7 +794,7 @@ async function updateLotStatusToCompleted(phieuQCId, receiptId, headers) {
             console.log(`✅ [updateLotStatusToCompleted] Tìm thấy lô bằng planId (fallback): ${fallbackLot.maLo || fallbackLot._id}`);
             // Cập nhật lô này
             const updateResponse = await axios.put(
-              `${FACTORY_SERVICE_URL}/api/lot/${fallbackLot._id}`,
+              `${GATEWAY_URL}/factory/api/lot/${fallbackLot._id}`,
               { 
                 trangThai: "Hoan thanh",
                 phieuNhapKho: receiptId,
@@ -834,7 +822,7 @@ async function updateLotStatusToCompleted(phieuQCId, receiptId, headers) {
     console.log(`✅ [updateLotStatusToCompleted] Tìm thấy lô: ${lot.maLo || lot._id}, trạng thái hiện tại: ${lot.trangThai}`);
     
     const updateResponse = await axios.put(
-      `${FACTORY_SERVICE_URL}/api/lot/${lot._id}`,
+      `${GATEWAY_URL}/factory/api/lot/${lot._id}`,
       { 
         trangThai: "Hoan thanh",
         phieuNhapKho: receiptId // Lưu ID phiếu nhập kho (FinishedReceipt)

@@ -3,7 +3,6 @@ const QCResult = require("../models/QCResult");
 const axios = require("axios");
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://api-gateway:4000";
-const FACTORY_SERVICE_URL = process.env.FACTORY_SERVICE_URL || "http://factory-service:3003";
 
 /** Tạo phiếu yêu cầu kiểm tra tạm thời */
 exports.createTempRequest = async (req, res) => {

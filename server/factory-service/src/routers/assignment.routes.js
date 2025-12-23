@@ -36,7 +36,7 @@ router.put(
 router.delete(
   "/manager/assignments/plan/:planId",
   verifyToken,
-  authorizeRoles(MANAGER_ROLES),
+  authorizeRoles([...MANAGER_ROLES, "plan", "director"]),
   controller.deleteAssignmentsByPlanId
 );
 

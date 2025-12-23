@@ -6,7 +6,7 @@ const { authorizeRoles } = require("../middlewares/role.middleware");
 
 router.get("/", verifyToken, authorizeRoles(["orders","plan","director","khotp"]), controller.getAllOrders);
 router.get("/pending", verifyToken, authorizeRoles(["orders","plan","director","khotp"]), controller.getPendingOrders);
-router.get("/:id", verifyToken, authorizeRoles(["orders", "sales", "director"]), controller.getOrderById);
+router.get("/:id", verifyToken, authorizeRoles(["orders", "sales", "director", "plan"]), controller.getOrderById);
 // Create order: accept POST /orders
 router.post("/", verifyToken, authorizeRoles(["orders", "sales"]), controller.createOrder);
 // Update order

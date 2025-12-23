@@ -5,7 +5,6 @@ const DefectCategory = require("../models/QCDefectCategory");
 const axios = require("axios");
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://api-gateway:4000";
-const FACTORY_SERVICE_URL = process.env.FACTORY_SERVICE_URL || "http://factory-service:3003";
 
 
 /** Ghi nhận kết quả QC */

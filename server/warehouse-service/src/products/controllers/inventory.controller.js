@@ -1,7 +1,6 @@
 const axios = require('axios');
 
 const GATEWAY_URL = process.env.GATEWAY_URL || 'http://api-gateway:4000';
-const SALES_SERVICE_URL = process.env.SALES_SERVICE_URL || 'http://localhost:3008';
 
 /**
  * Lấy danh sách nguyên vật liệu với thông tin tồn kho
@@ -19,20 +18,10 @@ exports.getMaterials = async (req, res) => {
     res.status(200).json(materials);
   } catch (error) {
     console.error('❌ Error fetching materials:', error.message);
-    // Nếu lỗi từ API Gateway, thử gọi trực tiếp sales-service
-    try {
-      const token = req.headers.authorization;
-      const headers = token ? { Authorization: token } : {};
-      const directResponse = await axios.get(`${SALES_SERVICE_URL}/products/materials`, { headers });
-      const materials = Array.isArray(directResponse.data) ? directResponse.data : [];
-      res.status(200).json(materials);
-    } catch (directError) {
-      console.error('❌ Error fetching materials directly:', directError.message);
-      res.status(500).json({ 
-        error: 'Không thể tải danh sách nguyên vật liệu',
-        message: directError.message 
-      });
-    }
+    res.status(error.response?.status || 500).json({ 
+      error: 'Không thể tải danh sách nguyên vật liệu',
+      message: error.response?.data?.message || error.message 
+    });
   }
 };
 
@@ -52,20 +41,10 @@ exports.getFinishedProducts = async (req, res) => {
     res.status(200).json(products);
   } catch (error) {
     console.error('❌ Error fetching finished products:', error.message);
-    // Nếu lỗi từ API Gateway, thử gọi trực tiếp sales-service
-    try {
-      const token = req.headers.authorization;
-      const headers = token ? { Authorization: token } : {};
-      const directResponse = await axios.get(`${SALES_SERVICE_URL}/products/finished`, { headers });
-      const products = Array.isArray(directResponse.data) ? directResponse.data : [];
-      res.status(200).json(products);
-    } catch (directError) {
-      console.error('❌ Error fetching finished products directly:', directError.message);
-      res.status(500).json({ 
-        error: 'Không thể tải danh sách thành phẩm',
-        message: directError.message 
-      });
-    }
+    res.status(error.response?.status || 500).json({ 
+      error: 'Không thể tải danh sách thành phẩm',
+      message: error.response?.data?.message || error.message 
+    });
   }
 };
 
@@ -78,12 +57,8 @@ exports.getInventorySummary = async (req, res) => {
     const headers = token ? { Authorization: token } : {};
     
     const [materialsRes, productsRes] = await Promise.all([
-      axios.get(`${GATEWAY_URL}/products/materials`, { headers }).catch(() => 
-        axios.get(`${SALES_SERVICE_URL}/products/materials`, { headers })
-      ),
-      axios.get(`${GATEWAY_URL}/products/finished`, { headers }).catch(() => 
-        axios.get(`${SALES_SERVICE_URL}/products/finished`, { headers })
-      ),
+      axios.get(`${GATEWAY_URL}/products/materials`, { headers }),
+      axios.get(`${GATEWAY_URL}/products/finished`, { headers }),
     ]);
     
     const materials = Array.isArray(materialsRes.data) ? materialsRes.data : [];

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { createProductionPlan } from "../../../services/planService";
+import { createProductionPlan, fetchProductionPlans, deleteProductionPlan } from "../../../services/planService";
 import { fetchMaterials } from "../../../services/productService";
 import { fetchXuongs } from "../../../services/factoryService";
 
@@ -179,10 +179,10 @@ const CreatePlanModal = ({ onClose, orders }) => {
     const calculateNVLQuantity = (item, isBag = false, isLabel = false) => {
       if (donVi === "kg") {
         if (isBag) {
-          // Bao bì: không cần khi đơn vị là kg
+          // Bao bì: khi đơn vị là kg, không cần bao bì
           return 0;
         } else if (isLabel) {
-          // Tem nhãn: không cần khi đơn vị là kg
+          // Tem nhãn: khi đơn vị là kg, không cần tem nhãn
           return 0;
         } else {
           // NVL thô: số lượng NVL = số lượng sản phẩm * 1.1
@@ -219,21 +219,36 @@ const CreatePlanModal = ({ onClose, orders }) => {
 
       const soLuong = calculateNVLQuantity(item, isBag, isLabel);
       
-      if (soLuong > 0) {
-        nvlCanThiet.push({
-          productId: item._id,
-          tenNVL: item.tenSP,
-          maSP: item.maSP,
-          soLuong: soLuong,
-          loai: "nguyenvatlieu",
-        });
-
-        // Cập nhật số lượng riêng từng loại
+      // Đối với bao bì và tem nhãn, luôn cập nhật số lượng khi đã chọn
+      if (isBag || isLabel) {
+        // Luôn cập nhật số lượng riêng từng loại khi đã chọn
         if (isBag) {
           soLuongBaoBi = soLuong;
         } else if (isLabel) {
           soLuongTemNhan = soLuong;
-        } else {
+        }
+        
+        // Chỉ thêm vào nvlCanThiet khi soLuong > 0
+        if (soLuong > 0) {
+          nvlCanThiet.push({
+            productId: item._id,
+            tenNVL: item.tenSP,
+            maSP: item.maSP,
+            soLuong: soLuong,
+            loai: "nguyenvatlieu",
+          });
+        }
+      } else {
+        // NVL thô: chỉ thêm khi soLuong > 0
+        if (soLuong > 0) {
+          nvlCanThiet.push({
+            productId: item._id,
+            tenNVL: item.tenSP,
+            maSP: item.maSP,
+            soLuong: soLuong,
+            loai: "nguyenvatlieu",
+          });
+
           soLuongNVLTho = soLuong;
         }
       }
@@ -242,6 +257,49 @@ const CreatePlanModal = ({ onClose, orders }) => {
     pushNVL(selectedBean, false, false); // Hạt cà phê (NVL thô)
     pushNVL(selectedBag, true, false); // Túi/bao bì
     pushNVL(selectedLabel, false, true); // Tem/nhãn
+
+    // Debug: Log số lượng để kiểm tra
+    console.log("📊 Debug - Số lượng NVL sau pushNVL:", {
+      donVi,
+      soLuongCanSanXuat,
+      selectedBag: selectedBag ? "Đã chọn" : "Chưa chọn",
+      selectedLabel: selectedLabel ? "Đã chọn" : "Chưa chọn",
+      soLuongBaoBi,
+      soLuongTemNhan,
+      soLuongNVLTho,
+      nvlCanThiet: nvlCanThiet.map(nvl => ({ tenNVL: nvl.tenNVL, maSP: nvl.maSP, soLuong: nvl.soLuong }))
+    });
+
+    // Xóa các kế hoạch cũ bị từ chối có cùng đơn hàng
+    try {
+      const allPlans = await fetchProductionPlans();
+      const orderIds = orders.map(o => o._id?.toString() || o.maDH);
+      
+      // Tìm các kế hoạch có cùng đơn hàng và trạng thái "Từ chối"
+      const rejectedPlans = allPlans.filter(plan => {
+        if (plan.trangThai !== "Từ chối") return false;
+        
+        // Kiểm tra xem kế hoạch có chứa đơn hàng nào trong danh sách không
+        if (plan.donHangLienQuan && Array.isArray(plan.donHangLienQuan)) {
+          return plan.donHangLienQuan.some(dh => {
+            const planOrderId = dh.orderId?.toString() || dh.maDonHang;
+            return orderIds.includes(planOrderId);
+          });
+        }
+        return false;
+      });
+
+      // Xóa từng kế hoạch bị từ chối
+      for (const rejectedPlan of rejectedPlans) {
+        if (rejectedPlan._id) {
+          await deleteProductionPlan(rejectedPlan._id);
+          console.log(`✅ Đã xóa kế hoạch bị từ chối: ${rejectedPlan.maKeHoach || rejectedPlan._id}`);
+        }
+      }
+    } catch (error) {
+      console.warn("⚠️ Không thể xóa kế hoạch cũ bị từ chối:", error);
+      // Không chặn việc tạo kế hoạch mới nếu xóa thất bại
+    }
 
     const payload = {
       donHangLienQuan: orders.map((o) => ({
@@ -262,9 +320,9 @@ const CreatePlanModal = ({ onClose, orders }) => {
       donVi: formData.donVi || "kg", // Lưu đơn vị
       soLuongNVLUocTinh: nvlCanThiet.reduce((sum, nvl) => sum + (nvl.soLuong || 0), 0), // Tính từ bảng thống kê
       soLuongNVLThucTe: nvlCanThiet.reduce((sum, nvl) => sum + (nvl.soLuong || 0), 0), // Tổng số lượng NVL thực tế đã tính
-      soLuongNVLTho: soLuongNVLTho, // Số lượng NVL thô (hạt cà phê) - kg
-      soLuongBaoBi: soLuongBaoBi, // Số lượng bao bì - túi
-      soLuongTemNhan: soLuongTemNhan, // Số lượng tem nhãn
+      soLuongNVLTho: soLuongNVLTho || 0, // Số lượng NVL thô (hạt cà phê) - kg
+      soLuongBaoBi: soLuongBaoBi || 0, // Số lượng bao bì - túi
+      soLuongTemNhan: soLuongTemNhan || 0, // Số lượng tem nhãn
       ngayBatDauDuKien: new Date(formData.ngayBatDauDuKien),
       ngayKetThucDuKien: new Date(formData.ngayKetThucDuKien),
 
@@ -274,6 +332,15 @@ const CreatePlanModal = ({ onClose, orders }) => {
       nvlCanThiet,
       ghiChu: "",
     };
+
+    // Debug: Log payload trước khi gửi
+    console.log("📤 Debug - Payload gửi lên:", {
+      soLuongBaoBi: payload.soLuongBaoBi,
+      soLuongTemNhan: payload.soLuongTemNhan,
+      soLuongNVLTho: payload.soLuongNVLTho,
+      donVi: payload.donVi,
+      soLuongCanSanXuat: payload.soLuongCanSanXuat
+    });
 
     const result = await createProductionPlan(payload);
 
@@ -395,6 +462,9 @@ const CreatePlanModal = ({ onClose, orders }) => {
                 </div>
                 <span className="text-yellow-200 font-bold text-sm">
                   {(() => {
+                    if (!selectedBean) {
+                      return "0 kg";
+                    }
                     const donVi = formData.donVi || "kg";
                     const soLuong = Number(formData.soLuongCanSanXuat) || 0;
                     if (donVi === "kg") {
@@ -420,6 +490,8 @@ const CreatePlanModal = ({ onClose, orders }) => {
                             const bagCode = bagItem.maSP?.toLowerCase() || "";
                             if (bagCode === "nvl_bag_500g" || bagCode.includes("500")) {
                               trongLuongTui = 0.5;
+                            } else if (bagCode === "nvl_bag_1kg" || bagCode.includes("1kg") || bagCode.includes("1000")) {
+                              trongLuongTui = 1;
                             }
                           }
                         }
@@ -439,13 +511,21 @@ const CreatePlanModal = ({ onClose, orders }) => {
                 </div>
                 <span className="text-yellow-200 font-bold text-sm">
                   {(() => {
-                    const loaiTui = orders?.[0]?.chiTiet?.[0]?.loaiTui;
+                    if (!selectedBag) {
+                      return "0 túi";
+                    }
+                    const donVi = formData.donVi || "kg";
+                    const soLuong = Number(formData.soLuongCanSanXuat) || 0;
+                    const loaiTui = orders?.[0]?.chiTiet?.[0]?.loaiTui || formData.loaiTui;
                     const isHop = loaiTui === "hop";
                     
-                    if (formData.donVi === "túi" && selectedBag) {
-                      return `${Number(formData.soLuongCanSanXuat) || 0} ${isHop ? "hộp" : "túi"}`;
+                    // Hiển thị số lượng khi đã chọn bao bì
+                    // Nếu đơn vị là túi hoặc có loaiTui, hiển thị số lượng
+                    if (donVi === "túi" || loaiTui) {
+                      return `${soLuong} ${isHop ? "hộp" : "túi"}`;
                     }
-                    return "0 túi";
+                    // Nếu đơn vị là kg và không có loaiTui, vẫn hiển thị số lượng nếu đã chọn
+                    return `${soLuong} túi`;
                   })()}
                 </span>
               </div>
@@ -457,9 +537,22 @@ const CreatePlanModal = ({ onClose, orders }) => {
                   <span className="text-white text-sm font-medium">Tem nhãn</span>
                 </div>
                 <span className="text-yellow-200 font-bold text-sm">
-                  {formData.donVi === "túi" && selectedLabel 
-                    ? `${Number(formData.soLuongCanSanXuat) || 0} cái`
-                    : "0 cái"}
+                  {(() => {
+                    if (!selectedLabel) {
+                      return "0 cái";
+                    }
+                    const donVi = formData.donVi || "kg";
+                    const soLuong = Number(formData.soLuongCanSanXuat) || 0;
+                    const loaiTui = orders?.[0]?.chiTiet?.[0]?.loaiTui || formData.loaiTui;
+                    
+                    // Hiển thị số lượng khi đã chọn tem nhãn
+                    // Nếu đơn vị là túi hoặc có loaiTui, hiển thị số lượng
+                    if (donVi === "túi" || loaiTui) {
+                      return `${soLuong} cái`;
+                    }
+                    // Nếu đơn vị là kg và không có loaiTui, vẫn hiển thị số lượng nếu đã chọn
+                    return `${soLuong} cái`;
+                  })()}
                 </span>
               </div>
             </div>
@@ -470,6 +563,9 @@ const CreatePlanModal = ({ onClose, orders }) => {
                 <span className="text-white text-sm font-semibold">Tổng NVL cần thiết:</span>
                 <span className="text-yellow-300 font-bold">
                   {(() => {
+                    if (!selectedBean) {
+                      return "0 kg";
+                    }
                     const donVi = formData.donVi || "kg";
                     const soLuong = Number(formData.soLuongCanSanXuat) || 0;
                     let total = 0;
@@ -497,6 +593,8 @@ const CreatePlanModal = ({ onClose, orders }) => {
                             const bagCode = bagItem.maSP?.toLowerCase() || "";
                             if (bagCode === "nvl_bag_500g" || bagCode.includes("500")) {
                               trongLuongTui = 0.5;
+                            } else if (bagCode === "nvl_bag_1kg" || bagCode.includes("1kg") || bagCode.includes("1000")) {
+                              trongLuongTui = 1;
                             }
                           }
                         }

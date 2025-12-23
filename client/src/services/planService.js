@@ -160,7 +160,7 @@ export const updateProductionPlan = async (id, updateData) => {
  */
 export const deleteProductionPlan = async (id) => {
   try {
-    const response = await fetch(`${API_URL}/plans/${id}`, {
+    const response = await fetch(`${API_URL}/plan/${id}`, {
       method: "DELETE",
       headers: getHeaders(),
     });
