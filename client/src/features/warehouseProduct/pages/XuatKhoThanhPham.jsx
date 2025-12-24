@@ -22,10 +22,8 @@ export default function XuatKhoThanhPham() {
     try {
       setLoading(true);
       const data = await fetchProductionPlans();
-      // Chỉ lấy kế hoạch đã duyệt và đang thực hiện
+      // Chỉ lấy kế hoạch đã hoàn thành
       const filteredPlans = data.filter(plan => 
-        plan.trangThai === 'Đã duyệt' || 
-        plan.trangThai === 'Đang thực hiện' ||
         plan.trangThai === 'Hoàn thành'
       );
       setPlans(filteredPlans);

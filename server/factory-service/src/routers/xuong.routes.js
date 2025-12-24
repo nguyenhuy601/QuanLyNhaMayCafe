@@ -46,6 +46,14 @@ router.delete(
   controller.deleteXuong
 );
 
+// Hard delete (chỉ admin)
+router.delete(
+  "/:id/hard",
+  verifyToken,
+  authorizeRoles(["admin"]),
+  controller.hardDeleteXuong
+);
+
 // ============================================
 // QUẢN LÝ TỔ TRONG XƯỞNG
 // ============================================

@@ -41,6 +41,13 @@ const STATUS_DICTIONARY = {
   "dang giao": "Đang giao",
   delivering: "Đang giao",
 
+  "da xuat kho": "Đã xuất kho",
+  "da xuat": "Đã xuất kho",
+  exported: "Đã xuất kho",
+
+  "hoan thanh": "Hoàn thành",
+  completed: "Hoàn thành",
+
   "da huy": "Đã hủy",
   cancelled: "Đã hủy",
   cancel: "Đã hủy",
@@ -160,10 +167,10 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ message: "Ngày yêu cầu giao hàng không hợp lệ." });
     }
     
-    // Ngày giao phải cách ngày hiện tại ít nhất 15 ngày
+    // Ngày giao phải cách ngày hiện tại ít nhất 30 ngày
     const soNgay = Math.floor((ngayGiao - ngayHienTai) / (1000 * 60 * 60 * 24));
-    if (soNgay < 15) {
-      return res.status(400).json({ message: `Ngày yêu cầu giao hàng phải cách ngày hiện tại ít nhất 15 ngày. Hiện tại: ${soNgay} ngày.` });
+    if (soNgay < 30) {
+      return res.status(400).json({ message: `Ngày giao phải lớn hơn ngày đặt hàng 30 ngày. Hiện tại: ${soNgay} ngày.` });
     }
 
     const customer = await Customer.findOneAndUpdate(
@@ -312,25 +319,151 @@ exports.createOrder = async (req, res) => {
 /** ✏️ Cập nhật đơn hàng */
 exports.updateOrder = async (req, res) => {
   try {
-    const payload = {
-      ...req.body,
-      trangThai: req.body.trangThai
-        ? normalizeToVietnameseStatus(req.body.trangThai)
-        : undefined,
-    };
-    const updated = await Order.findByIdAndUpdate(req.params.id, payload, {
-      new: true,
-    });
-    res
-      .status(200)
-      .json({
-        message: "Cập nhật đơn hàng thành công",
-        order: {
-          ...updated.toObject(),
-          trangThai: normalizeToVietnameseStatus(updated.trangThai),
+    const { khachHang, chiTiet, ngayYeuCauGiao, diaChiGiao, ghiChu, trangThai } = req.body;
+    const orderId = req.params.id;
+
+    // Kiểm tra đơn hàng có tồn tại không
+    const existingOrder = await Order.findById(orderId);
+    if (!existingOrder) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng." });
+    }
+
+    // Xử lý khách hàng - tìm hoặc tạo Customer
+    let customerId = existingOrder.khachHang; // Giữ nguyên customer cũ nếu không có thay đổi
+    if (khachHang && khachHang.sdt) {
+      const customer = await Customer.findOneAndUpdate(
+        { sdt: khachHang.sdt },
+        {
+          tenKH: khachHang.tenKH,
+          sdt: khachHang.sdt,
+          email: khachHang.email || "",
+          diaChi: khachHang.diaChi || "",
         },
-      });
+        { upsert: true, new: true }
+      );
+      customerId = customer._id;
+    }
+
+    // Xử lý chi tiết đơn hàng - validate và tính toán
+    let tongTien = 0;
+    let chiTietDonHang = existingOrder.chiTiet; // Giữ nguyên chi tiết cũ nếu không có thay đổi
+    
+    if (chiTiet && Array.isArray(chiTiet) && chiTiet.length > 0) {
+      chiTietDonHang = [];
+      
+      for (let i = 0; i < chiTiet.length; i++) {
+        const item = chiTiet[i];
+        
+        // Kiểm tra sản phẩm có tồn tại
+        if (!item.sanPham) {
+          return res.status(400).json({ message: `Sản phẩm thứ ${i + 1}: Thiếu thông tin sản phẩm.` });
+        }
+        
+        const product = await Product.findById(item.sanPham);
+        if (!product) {
+          return res.status(404).json({ message: `Không tìm thấy sản phẩm với ID ${item.sanPham}` });
+        }
+
+        // Kiểm tra số lượng
+        const soLuong = parseInt(item.soLuong, 10);
+        if (isNaN(soLuong) || soLuong <= 0) {
+          return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Số lượng phải là số nguyên dương.` });
+        }
+        
+        if (soLuong > 1000000) {
+          return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Số lượng quá lớn (tối đa 1,000,000).` });
+        }
+
+        // Kiểm tra đơn giá
+        const donGia = item.donGia || product.donGia || 0;
+        if (donGia <= 0) {
+          return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Đơn giá không hợp lệ.` });
+        }
+
+        // Kiểm tra đơn vị
+        const donVi = item.donVi || null;
+        if (donVi !== null && donVi !== undefined && donVi !== "" && !["kg", "túi"].includes(donVi)) {
+          return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Đơn vị không hợp lệ. Chỉ chấp nhận "kg" hoặc "túi".` });
+        }
+
+        // Kiểm tra loại túi
+        const loaiTui = item.loaiTui || null;
+        if (loaiTui !== null && loaiTui !== undefined && loaiTui !== "" && !["500g", "1kg", "hop"].includes(loaiTui)) {
+          return res.status(400).json({ message: `Sản phẩm "${product.tenSP}": Loại túi không hợp lệ.` });
+        }
+
+        const thanhTien = soLuong * donGia;
+        tongTien += thanhTien;
+
+        chiTietDonHang.push({
+          sanPham: product._id,
+          soLuong,
+          donVi: donVi || null,
+          loaiTui: loaiTui || null,
+          donGia,
+          thanhTien,
+        });
+      }
+    } else {
+      // Nếu không có chiTiet mới, tính lại tongTien từ chiTiet cũ
+      tongTien = existingOrder.chiTiet.reduce((total, item) => {
+        return total + (item.thanhTien || (item.soLuong || 0) * (item.donGia || 0));
+      }, 0);
+    }
+
+    // Kiểm tra tổng tiền
+    if (tongTien > 1000000000) {
+      return res.status(400).json({ message: "Tổng tiền đơn hàng quá lớn." });
+    }
+
+    // Xử lý ngày giao (nếu có)
+    let ngayGiao = existingOrder.ngayYeuCauGiao;
+    if (ngayYeuCauGiao) {
+      const ngayGiaoMoi = new Date(ngayYeuCauGiao);
+      if (isNaN(ngayGiaoMoi.getTime())) {
+        return res.status(400).json({ message: "Ngày yêu cầu giao hàng không hợp lệ." });
+      }
+      ngayGiao = ngayGiaoMoi;
+    }
+
+    // Xử lý trạng thái
+    let trangThaiMoi = existingOrder.trangThai;
+    if (trangThai !== undefined && trangThai !== null) {
+      // Nếu đơn hàng hiện tại có trạng thái "Từ chối" và đang cập nhật, chuyển về "Chờ duyệt"
+      const currentStatusNormalized = normalizeToVietnameseStatus(existingOrder.trangThai || "");
+      if (currentStatusNormalized === "Từ chối" || existingOrder.trangThai === "Từ chối") {
+        trangThaiMoi = "Chờ duyệt";
+        console.log(`🔄 Chuyển trạng thái từ "${existingOrder.trangThai}" sang "Chờ duyệt"`);
+      } else {
+        // Nếu không phải "Từ chối", dùng trạng thái mới từ request
+        trangThaiMoi = normalizeToVietnameseStatus(trangThai);
+      }
+    }
+
+    // Cập nhật đơn hàng
+    const updated = await Order.findByIdAndUpdate(
+      orderId,
+      {
+        khachHang: customerId,
+        chiTiet: chiTietDonHang,
+        tongTien,
+        ngayYeuCauGiao: ngayGiao,
+        diaChiGiao: diaChiGiao !== undefined ? diaChiGiao : existingOrder.diaChiGiao,
+        ghiChu: ghiChu !== undefined ? ghiChu : existingOrder.ghiChu,
+        trangThai: trangThaiMoi,
+      },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      message: "Cập nhật đơn hàng thành công",
+      order: {
+        ...updated.toObject(),
+        trangThai: normalizeToVietnameseStatus(updated.trangThai),
+      },
+    });
   } catch (err) {
+    console.error("❌ Error updating order:", err);
     res.status(500).json({ error: err.message });
   }
 };

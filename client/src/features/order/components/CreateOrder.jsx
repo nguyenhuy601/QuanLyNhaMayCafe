@@ -10,6 +10,7 @@ const CreateOrder = () => {
 
   const [searchPhone, setSearchPhone] = useState("");
   const [customerFound, setCustomerFound] = useState(null);
+  const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -115,6 +116,7 @@ const CreateOrder = () => {
 
     try {
       setLoading(true);
+      setHasSearched(true);
       const customer = await searchCustomerByPhone(searchPhone);
 
       if (customer) {
@@ -137,6 +139,8 @@ const CreateOrder = () => {
         }));
       }
     } catch (error) {
+      setHasSearched(true);
+      setCustomerFound(null);
       alert("Không thể tìm kiếm khách hàng. Vui lòng thử lại.");
     } finally {
       setLoading(false);
@@ -156,6 +160,45 @@ const CreateOrder = () => {
         ...formData,
         [name]: value,
         donVi: isHoaTan ? "Hộp" : "kg", // Reset đơn vị theo loại sản phẩm
+      });
+    } else if (name === "quantity") {
+      // Chỉ cho phép nhập số nguyên dương - loại bỏ tất cả ký tự không phải số
+      const numericValue = value.replace(/[^0-9]/g, '');
+      setFormData({
+        ...formData,
+        [name]: numericValue,
+      });
+    } else if (name === "phone") {
+      // Chỉ cho phép nhập số cho số điện thoại
+      const numericValue = value.replace(/[^0-9]/g, '');
+      // Giới hạn tối đa 11 số
+      const limitedValue = numericValue.slice(0, 11);
+      setFormData({
+        ...formData,
+        [name]: limitedValue,
+      });
+    } else if (name === "customerName") {
+      // Loại bỏ các ký tự đặc biệt không hợp lệ, giữ lại chữ cái, số, dấu cách và dấu tiếng Việt
+      const cleanedValue = value.replace(/[<>{}[\]\\\/]/g, '');
+      // Giới hạn độ dài
+      const limitedValue = cleanedValue.slice(0, 100);
+      setFormData({
+        ...formData,
+        [name]: limitedValue,
+      });
+    } else if (name === "address") {
+      // Giới hạn độ dài địa chỉ
+      const limitedValue = value.slice(0, 500);
+      setFormData({
+        ...formData,
+        [name]: limitedValue,
+      });
+    } else if (name === "email") {
+      // Giới hạn độ dài email
+      const limitedValue = value.slice(0, 100);
+      setFormData({
+        ...formData,
+        [name]: limitedValue,
       });
     } else {
       setFormData({
@@ -183,6 +226,7 @@ const CreateOrder = () => {
   };
 
   const handleSubmit = async () => {
+    // Kiểm tra các trường bắt buộc
     if (
       !formData.product ||
       !formData.deliveryDate ||
@@ -192,6 +236,44 @@ const CreateOrder = () => {
     ) {
       alert("Vui lòng điền đầy đủ thông tin!");
       return;
+    }
+
+    // Validation: Họ tên khách hàng
+    const trimmedCustomerName = formData.customerName.trim();
+    if (trimmedCustomerName.length < 2) {
+      alert("Họ tên khách hàng phải có ít nhất 2 ký tự!");
+      return;
+    }
+    if (trimmedCustomerName.length > 100) {
+      alert("Họ tên khách hàng không được vượt quá 100 ký tự!");
+      return;
+    }
+
+    // Validation: Số điện thoại
+    const phoneRegex = /^[0-9]{10,11}$/;
+    const cleanPhone = formData.phone.replace(/\s+/g, "");
+    if (!phoneRegex.test(cleanPhone)) {
+      alert("Số điện thoại không hợp lệ. Vui lòng nhập 10-11 chữ số!");
+      return;
+    }
+
+    // Validation: Địa chỉ (nếu có nhập)
+    if (formData.address && formData.address.trim().length > 500) {
+      alert("Địa chỉ không được vượt quá 500 ký tự!");
+      return;
+    }
+
+    // Validation: Email (nếu có nhập)
+    if (formData.email && formData.email.trim() !== "") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        alert("Email không hợp lệ. Vui lòng nhập đúng định dạng email!");
+        return;
+      }
+      if (formData.email.trim().length > 100) {
+        alert("Email không được vượt quá 100 ký tự!");
+        return;
+      }
     }
 
     // Validation đã được xử lý bởi select (required), không cần kiểm tra thêm
@@ -206,6 +288,16 @@ const CreateOrder = () => {
 
   if (deliveryDate < today) {
     alert("Ngày giao hàng phải lớn hơn hoặc bằng ngày hôm nay!");
+    return;
+  }
+
+  // Kiểm tra ngày giao phải >= ngày đặt hàng + 30 ngày
+  const minDeliveryDate = new Date(today);
+  minDeliveryDate.setDate(minDeliveryDate.getDate() + 30);
+  minDeliveryDate.setHours(0, 0, 0, 0);
+
+  if (deliveryDate < minDeliveryDate) {
+    alert("Ngày giao phải lớn hơn ngày đặt hàng 30 ngày!");
     return;
   }
 
@@ -268,8 +360,36 @@ const CreateOrder = () => {
       tongTien:
         parseInt(formData.quantity, 10) * (selectedProduct.price || 0),
       ghiChu: "",
-      trangThai: "Chờ duyệt",
     };
+
+    // Nếu đang chỉnh sửa đơn hàng
+    if (editingOrder) {
+      // Nếu đơn hàng có trạng thái "Từ chối", chuyển về "Chờ duyệt"
+      const currentStatus = (editingOrder.trangThai || "").toString().trim();
+      const normalizedStatus = currentStatus.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ");
+      
+      // Kiểm tra nhiều cách viết "Từ chối"
+      if (
+        currentStatus === "Từ chối" || 
+        currentStatus === "Tu choi" ||
+        currentStatus === "Từ Chối" ||
+        normalizedStatus.includes("tu choi") ||
+        normalizedStatus.includes("từ chối")
+      ) {
+        orderData.trangThai = "Chờ duyệt";
+        console.log(`🔄 Chuyển trạng thái từ "${currentStatus}" sang "Chờ duyệt"`);
+      }
+      // Nếu không phải "Từ chối", giữ nguyên trạng thái hiện tại
+      else if (editingOrder.trangThai) {
+        orderData.trangThai = editingOrder.trangThai;
+      } else {
+        // Nếu không có trạng thái, mặc định là "Chờ duyệt"
+        orderData.trangThai = "Chờ duyệt";
+      }
+    } else {
+      // Tạo mới: mặc định là "Chờ duyệt"
+      orderData.trangThai = "Chờ duyệt";
+    }
 
     try {
       let success;
@@ -292,7 +412,9 @@ const CreateOrder = () => {
         // Đã redirect về login, không cần làm gì thêm
         return;
       }
-      alert("Có lỗi xảy ra: " + error.message);
+      // Hiển thị thông báo lỗi cụ thể từ backend hoặc error message
+      const errorMessage = error.message || "Có lỗi xảy ra!";
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -325,7 +447,11 @@ const CreateOrder = () => {
             <input
               type="text"
               value={searchPhone}
-              onChange={(e) => setSearchPhone(e.target.value)}
+              onChange={(e) => {
+                setSearchPhone(e.target.value);
+                setHasSearched(false);
+                setCustomerFound(null);
+              }}
               placeholder="Nhập số điện thoại khách hàng"
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
@@ -344,9 +470,9 @@ const CreateOrder = () => {
               <strong>{customerFound.name}</strong>
             </div>
           )}
-          {searchPhone && !customerFound && customerFound !== null && (
-            <div className="mt-3 text-orange-600 text-sm">
-              ⚠️ Không tìm thấy khách hàng. Vui lòng nhập thông tin mới.
+          {hasSearched && !customerFound && (
+            <div className="mt-3 text-red-600 text-sm">
+              ⚠️ Không tìm thấy khách hàng với số điện thoại này. Vui lòng nhập thông tin mới.
             </div>
           )}
         </div>
@@ -402,8 +528,15 @@ const CreateOrder = () => {
               name="quantity"
               value={formData.quantity}
               onChange={handleInputChange}
+              onKeyPress={(e) => {
+                // Chỉ cho phép nhập số (0-9)
+                if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+                  e.preventDefault();
+                }
+              }}
               placeholder="Số lượng"
               min="1"
+              step="1"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
             />
           </div>
@@ -465,7 +598,14 @@ const CreateOrder = () => {
             name="phone"
             value={formData.phone}
             onChange={handleInputChange}
-            placeholder="Số điện thoại"
+            onKeyPress={(e) => {
+              // Chỉ cho phép nhập số (0-9)
+              if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+                e.preventDefault();
+              }
+            }}
+            placeholder="Số điện thoại (10-11 chữ số)"
+            maxLength={11}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
           />
         </div>

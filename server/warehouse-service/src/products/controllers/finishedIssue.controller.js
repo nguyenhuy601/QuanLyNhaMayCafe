@@ -46,6 +46,18 @@ exports.approveFinishedIssue = async (req, res) => {
     if (issue.chiTiet && Array.isArray(issue.chiTiet) && issue.chiTiet.length > 0) {
       const token = req.headers.authorization || req.headers.Authorization;
       
+      // Debug: Kiểm tra token và role
+      if (token) {
+        try {
+          const payload = JSON.parse(Buffer.from(token.replace('Bearer ', '').split('.')[1], 'base64').toString());
+          console.log(`🔍 [approveFinishedIssue] Token role: ${payload.role}, user: ${payload.id}`);
+        } catch (e) {
+          console.warn(`⚠️ [approveFinishedIssue] Không thể decode token:`, e.message);
+        }
+      } else {
+        console.warn(`⚠️ [approveFinishedIssue] Không có token trong request headers`);
+      }
+      
       for (const item of issue.chiTiet) {
         if (item.sanPham && item.soLuong && item.soLuong > 0) {
           try {
@@ -53,7 +65,13 @@ exports.approveFinishedIssue = async (req, res) => {
             await updateProductQuantity(item.sanPham, -item.soLuong, token);
             console.log(`✅ [approveFinishedIssue] Đã trừ số lượng sản phẩm ${item.sanPham}: -${item.soLuong}`);
           } catch (qtyError) {
-            console.error(`❌ [approveFinishedIssue] Lỗi trừ số lượng sản phẩm ${item.sanPham}:`, qtyError.message);
+            console.error(`❌ [approveFinishedIssue] Lỗi trừ số lượng sản phẩm ${item.sanPham}:`, {
+              message: qtyError.message,
+              status: qtyError.response?.status,
+              statusText: qtyError.response?.statusText,
+              data: qtyError.response?.data,
+              hasToken: !!token
+            });
             // Không block response nếu lỗi cập nhật số lượng
           }
         }
@@ -148,7 +166,14 @@ exports.createFinishedIssue = async (req, res) => {
         );
         console.log(`✅ [createFinishedIssue] Đã cập nhật trạng thái đơn hàng ${issue.donHang} thành "Đã xuất kho"`);
       } catch (orderError) {
-        console.error(`❌ [createFinishedIssue] Lỗi cập nhật trạng thái đơn hàng:`, orderError.message);
+        console.error(`❌ [createFinishedIssue] Lỗi cập nhật trạng thái đơn hàng:`, {
+          message: orderError.message,
+          status: orderError.response?.status,
+          statusText: orderError.response?.statusText,
+          data: orderError.response?.data,
+          donHang: issue.donHang,
+          url: `${GATEWAY_URL}/orders/${issue.donHang}`
+        });
         // Không block response nếu lỗi
       }
     }

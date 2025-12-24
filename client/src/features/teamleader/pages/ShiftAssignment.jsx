@@ -7,6 +7,7 @@ import {
   fetchTeamLeaderShifts,
   saveShiftSchedule,
   addShiftMember,
+  fetchAttendanceSheets,
 } from "../../../services/factoryService";
 
 const getCurrentUser = () => {
@@ -42,6 +43,7 @@ export default function ShiftAssignment() {
   const [assignments, setAssignments] = useState([]);
   const currentUser = useMemo(() => getCurrentUser(), []);
   const [teams, setTeams] = useState([]);
+  const [attendanceSheets, setAttendanceSheets] = useState([]);
 
   const normalizeRoleVal = (r) => {
     if (!r) return "";
@@ -58,18 +60,58 @@ export default function ShiftAssignment() {
     return String(r).toLowerCase();
   };
 
+  // Helper function: Tìm isOvertime từ chấm công dựa trên workerId, date, và caLam
+  const getOvertimeFromAttendance = (workerId, date, caLam) => {
+    if (!attendanceSheets || attendanceSheets.length === 0) return false;
+    
+    // Chuyển đổi caLam từ code sang label để so sánh
+    const caLamCode = caLam === "Ca chiều (14h - 22h)" ? "ca_chieu" :
+                      caLam === "Ca tối (22h - 06h)" ? "ca_toi" :
+                      "ca_sang";
+    
+    // Tìm bảng chấm công phù hợp
+    for (const sheet of attendanceSheets) {
+      // So sánh ngày
+      let sheetDateStr = "";
+      if (sheet.ngay) {
+        if (sheet.ngay instanceof Date) {
+          sheetDateStr = sheet.ngay.toISOString().substring(0, 10);
+        } else if (typeof sheet.ngay === "string") {
+          sheetDateStr = sheet.ngay.substring(0, 10);
+        }
+      }
+      
+      if (sheetDateStr !== date) continue;
+      if (sheet.caLam !== caLamCode) continue;
+      
+      // Tìm entry của công nhân này
+      if (sheet.entries && Array.isArray(sheet.entries)) {
+        const entry = sheet.entries.find(
+          (e) => e.workerId === workerId || e.maCongNhan === workerId
+        );
+        if (entry && entry.isOvertime === true) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
-        const [u, r, t, schedules] = await Promise.all([
+        const [u, r, t, schedules, attendance] = await Promise.all([
           getAllUsers(),
           getAllRoles(),
           fetchTeams(),
           fetchTeamLeaderShifts(),
+          fetchAttendanceSheets(),
         ]);
         setUsers(Array.isArray(u) ? u : []);
         setRoles(Array.isArray(r) ? r : []);
         setTeams(Array.isArray(t) ? t : []);
+        setAttendanceSheets(Array.isArray(attendance) ? attendance : []);
 
         // Map dữ liệu lịch phân ca (ShiftSchedule) sang format hiển thị
         const mapped =
@@ -101,6 +143,10 @@ export default function ShiftAssignment() {
               const dateValue = dateStr; // "yyyy-mm-dd"
               const tasksValue = (m.nhiemVu || m.ghiChu || s.ghiChu || "").trim();
               
+              // Lấy isOvertime từ chấm công, fallback về giá trị từ phân công ca làm
+              const overtimeFromAttendance = getOvertimeFromAttendance(workerId, dateValue, shiftValue);
+              const finalOvertime = overtimeFromAttendance || m.isOvertime || false;
+              
               return {
                 id: m._id || `${s._id}-${workerId}`,
                 workerId: workerId,
@@ -112,7 +158,7 @@ export default function ShiftAssignment() {
                 shift: shiftValue,
                 date: dateValue,
                 tasks: tasksValue,
-                isOvertime: m.isOvertime || false,
+                isOvertime: finalOvertime,
               };
             });
           });
@@ -266,10 +312,23 @@ export default function ShiftAssignment() {
 
     const workerInfo = workerOptions.find((w) => w.id === formData.workerId);
 
-    const shiftCode =
-      formData.shift.includes("Chiều") ? "ca_chieu" :
-      formData.shift.includes("Tối") ? "ca_toi" :
-      "ca_sang";
+    // Chuyển đổi label ca làm sang code - kiểm tra chính xác hơn
+    let shiftCode = "ca_sang"; // Mặc định
+    const shiftValue = formData.shift || "";
+    if (shiftValue.includes("chiều") || shiftValue.includes("Chiều")) {
+      shiftCode = "ca_chieu";
+    } else if (shiftValue.includes("tối") || shiftValue.includes("Tối")) {
+      shiftCode = "ca_toi";
+    } else if (shiftValue.includes("sáng") || shiftValue.includes("Sáng")) {
+      shiftCode = "ca_sang";
+    }
+    
+    // Debug log để kiểm tra
+    console.log("🔍 [ShiftAssignment] Chuyển đổi ca làm:", {
+      formDataShift: formData.shift,
+      shiftValue: shiftValue,
+      shiftCode: shiftCode
+    });
 
     try {
       // 1) Tìm lịch phân ca hiện có cho ngày + ca + tổ
@@ -283,6 +342,15 @@ export default function ShiftAssignment() {
         ? existing[0]
         : null;
 
+      // Kiểm tra schedule tìm được có đúng ca làm không
+      if (schedule && schedule.caLam !== shiftCode) {
+        console.warn("⚠️ [ShiftAssignment] Schedule tìm được có ca làm không khớp:", {
+          expected: shiftCode,
+          found: schedule.caLam
+        });
+        schedule = null; // Bỏ qua schedule không đúng, tạo mới
+      }
+
       // 2) Nếu chưa có lịch, tạo mới (không có members)
       if (!schedule) {
         schedule = await saveShiftSchedule({
@@ -294,6 +362,14 @@ export default function ShiftAssignment() {
           },
           members: [],
         });
+        
+        // Đảm bảo schedule mới tạo có đúng caLam
+        if (schedule && schedule.caLam !== shiftCode) {
+          console.error("❌ [ShiftAssignment] Schedule mới tạo có ca làm sai:", {
+            expected: shiftCode,
+            received: schedule.caLam
+          });
+        }
       }
 
       // 3) Thêm công nhân vào lịch phân ca
@@ -315,6 +391,14 @@ export default function ShiftAssignment() {
         memberPayload
       );
 
+      // Debug: Kiểm tra ca làm sau khi thêm member
+      console.log("🔍 [ShiftAssignment] Schedule sau khi thêm member:", {
+        scheduleId: updatedSchedule._id || updatedSchedule.id,
+        caLam: updatedSchedule.caLam,
+        expectedShiftCode: shiftCode,
+        match: updatedSchedule.caLam === shiftCode
+      });
+
       // 4) Cập nhật bảng hiển thị từ lịch mới
       let dateStr = formData.date;
       if (updatedSchedule.ngay) {
@@ -325,30 +409,46 @@ export default function ShiftAssignment() {
         }
       }
       
+      // Đảm bảo dùng caLam từ updatedSchedule, không dùng shiftCode
+      const actualCaLam = updatedSchedule.caLam || shiftCode;
       const shiftLabel =
-        updatedSchedule.caLam === "ca_chieu"
+        actualCaLam === "ca_chieu"
           ? "Ca chiều (14h - 22h)"
-          : updatedSchedule.caLam === "ca_toi"
+          : actualCaLam === "ca_toi"
           ? "Ca tối (22h - 06h)"
           : "Ca sáng (06h - 14h)";
+      
+      // Cảnh báo nếu ca làm không khớp
+      if (actualCaLam !== shiftCode) {
+        console.error("❌ [ShiftAssignment] Ca làm không khớp sau khi lưu:", {
+          expected: shiftCode,
+          actual: actualCaLam,
+          formDataShift: formData.shift
+        });
+      }
 
       const lastMember =
         updatedSchedule.members[updatedSchedule.members.length - 1];
 
       if (lastMember) {
+        const workerId = lastMember.workerId || lastMember.maCongNhan || "";
+        // Lấy isOvertime từ chấm công
+        const overtimeFromAttendance = getOvertimeFromAttendance(workerId, dateStr, shiftLabel);
+        const finalOvertime = overtimeFromAttendance || lastMember.isOvertime || false;
+        
         setAssignments((prev) => [
           {
-            id: lastMember._id || `${updatedSchedule._id}-${lastMember.workerId}`,
-            workerId: lastMember.workerId || lastMember.maCongNhan || "",
+            id: lastMember._id || `${updatedSchedule._id}-${workerId}`,
+            workerId: workerId,
             worker: {
-              id: lastMember.workerId || lastMember.maCongNhan || "",
+              id: workerId,
               name: lastMember.hoTen || workerInfo?.name || "",
               team: updatedSchedule.toSanXuat?.tenTo || currentTeam.tenTo,
             },
             shift: shiftLabel,
             date: dateStr,
             tasks: lastMember.nhiemVu || lastMember.ghiChu || formData.tasks,
-            isOvertime: lastMember.isOvertime || false,
+            isOvertime: finalOvertime,
           },
           ...prev,
         ]);
@@ -365,8 +465,15 @@ export default function ShiftAssignment() {
         isOvertime: false,
       });
 
-      // Reload lại danh sách lịch phân ca để đảm bảo đồng bộ
-      const refreshed = await fetchTeamLeaderShifts();
+      // Reload lại danh sách lịch phân ca và chấm công để đảm bảo đồng bộ
+      const [refreshed, refreshedAttendance] = await Promise.all([
+        fetchTeamLeaderShifts(),
+        fetchAttendanceSheets(),
+      ]);
+      
+      // Cập nhật danh sách chấm công
+      setAttendanceSheets(Array.isArray(refreshedAttendance) ? refreshedAttendance : []);
+      
       if (Array.isArray(refreshed)) {
         const remapped = refreshed.flatMap((s) => {
           let dateStr = "";
@@ -393,6 +500,10 @@ export default function ShiftAssignment() {
             const dateValue = dateStr;
             const tasksValue = (m.nhiemVu || m.ghiChu || s.ghiChu || "").trim();
             
+            // Lấy isOvertime từ chấm công (sử dụng dữ liệu đã refresh)
+            const overtimeFromAttendance = getOvertimeFromAttendance(workerId, dateValue, shiftValue);
+            const finalOvertime = overtimeFromAttendance || m.isOvertime || false;
+            
             return {
               id: m._id || `${s._id}-${workerId}`,
               workerId: workerId,
@@ -404,7 +515,7 @@ export default function ShiftAssignment() {
               shift: shiftValue,
               date: dateValue,
               tasks: tasksValue,
-              isOvertime: m.isOvertime || false,
+              isOvertime: finalOvertime,
             };
           });
         });

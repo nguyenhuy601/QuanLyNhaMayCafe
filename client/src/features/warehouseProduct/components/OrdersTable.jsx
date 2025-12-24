@@ -22,7 +22,6 @@ export default function OrdersTable({ orders = [], selectedIds = [], onToggleSel
             <th className="px-4 py-3 text-left text-white text-sm font-semibold uppercase tracking-wider">Tên sản phẩm</th>
             <th className="px-4 py-3 text-right text-white text-sm font-semibold uppercase tracking-wider">Số lượng xuất</th>
             <th className="px-4 py-3 text-left text-white text-sm font-semibold uppercase tracking-wider">Ngày tạo</th>
-            <th className="px-4 py-3 text-left text-white text-sm font-semibold uppercase tracking-wider">Người tạo</th>
             <th className="px-4 py-3 text-left text-white text-sm font-semibold uppercase tracking-wider">Trạng thái</th>
           </tr>
         </thead>
@@ -42,7 +41,6 @@ export default function OrdersTable({ orders = [], selectedIds = [], onToggleSel
               <td className="px-4 py-3 text-sm text-gray-700">{o.productName}</td>
               <td className="px-4 py-3 text-sm text-gray-700 text-right">{o.quantity}</td>
               <td className="px-4 py-3 text-sm text-gray-700">{o.createdAt}</td>
-              <td className="px-4 py-3 text-sm text-gray-700">{o.creator}</td>
               <td className="px-4 py-3 text-sm">
                 {o.status === 'Đã duyệt' ? (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f1dfc6] text-[#5d2f18]">Đã duyệt</span>

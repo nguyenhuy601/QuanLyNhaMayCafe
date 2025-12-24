@@ -243,31 +243,14 @@ export const salesAPI = {
       
       // Nếu có API backend
       if (API_URL) {
+        // Gửi đúng format dữ liệu từ CreateOrder
         const response = await fetch(`${API_URL}/orders/${orderId}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            khachHang: {
-              tenKH: orderData.customerName,
-              sdt: orderData.phone,
-              email: orderData.email,
-              diaChi: orderData.address
-            },
-            ngayYeuCauGiao: new Date(orderData.deliveryDate).toISOString(),
-            chiTiet: [
-              {
-                sanPham: {
-                  tenSP: orderData.product,
-                  donViTinh: 'Túi'
-                },
-                soLuong: parseInt(orderData.quantity.replace('/Túi', '')),
-                donGia: mockProducts.find(p => p.name === orderData.product)?.price || 0
-              }
-            ]
-          })
+          body: JSON.stringify(orderData)
         });
 
         // Xử lý lỗi 401
@@ -276,9 +259,19 @@ export const salesAPI = {
           return null;
         }
 
-        if (response.ok) {
-          return await response.json();
+        if (!response.ok) {
+          let errorMessage = "Có lỗi xảy ra khi cập nhật đơn hàng";
+          try {
+            const errorText = await response.text();
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.message || errorJson.error || errorText;
+          } catch (e) {
+            // Nếu không parse được, dùng message mặc định
+          }
+          throw new Error(errorMessage);
         }
+
+        return await response.json();
       }
       
       // Fallback: Cập nhật localStorage

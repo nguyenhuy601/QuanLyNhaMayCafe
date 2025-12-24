@@ -86,6 +86,16 @@ exports.login = async (req, res) => {
       return res.status(403).json({ message: "Role không phù hợp" });
     }
 
+    // Kiểm tra xưởng trưởng phải có sản phẩm phụ trách
+    if (account.role === "xuongtruong") {
+      const sanPhamPhuTrach = account.sanPhamPhuTrach || [];
+      if (!sanPhamPhuTrach || sanPhamPhuTrach.length === 0) {
+        return res.status(403).json({ 
+          message: "Chưa có xưởng. Vui lòng liên hệ admin để được gán sản phẩm phụ trách." 
+        });
+      }
+    }
+
     const token = jwt.sign(
       { 
         id: account._id, 
@@ -155,22 +165,15 @@ exports.assignProductsToManager = async (req, res) => {
       });
     }
 
-    // Kiểm tra: chỉ cho phép 1 sản phẩm
+    // Kiểm tra: chỉ cho phép 0 hoặc 1 sản phẩm (0 để xóa sản phẩm phụ trách)
     if (sanPhamPhuTrach.length > 1) {
       return res.status(400).json({ 
         message: "Một xưởng trưởng chỉ có thể phụ trách 1 sản phẩm duy nhất" 
       });
     }
 
-    // Kiểm tra: chỉ cho phép 1 sản phẩm
-    if (sanPhamPhuTrach.length !== 1) {
-      return res.status(400).json({ 
-        message: "Mỗi xưởng trưởng chỉ có thể phụ trách 1 sản phẩm duy nhất" 
-      });
-    }
-
     // Nếu có sản phẩm được gán, kiểm tra xem sản phẩm đó đã được gán cho account khác chưa
-    const productId = sanPhamPhuTrach[0].productId;
+    const productId = sanPhamPhuTrach.length > 0 ? sanPhamPhuTrach[0].productId : null;
     if (productId) {
       // Tìm account khác đã có sản phẩm này (trừ account hiện tại)
       const existingAccount = await Account.findOne({
@@ -191,7 +194,11 @@ exports.assignProductsToManager = async (req, res) => {
     
     // Đồng bộ với xưởng: Tìm xưởng có xưởng trưởng này và cập nhật sản phẩm phụ trách
     // Đồng thời lấy thông tin tổ trưởng từ các tổ thuộc xưởng
+    // Lưu ý: Nếu mảng rỗng (xóa sản phẩm phụ trách), chỉ cập nhật account, không đồng bộ với xưởng
     let toTruongInfo = [];
+    
+    // Chỉ đồng bộ với xưởng khi có sản phẩm được gán (mảng không rỗng)
+    if (sanPhamPhuTrach.length > 0) {
     try {
       const token = req.headers.authorization || req.headers.Authorization;
       if (token) {
@@ -480,6 +487,10 @@ exports.assignProductsToManager = async (req, res) => {
     } catch (xuongErr) {
       console.warn("⚠️ Không thể đồng bộ với xưởng:", xuongErr.message);
       // Không block response nếu lỗi đồng bộ xưởng
+    }
+    } else {
+      // Khi mảng rỗng (xóa sản phẩm phụ trách), chỉ cập nhật account, không đồng bộ với xưởng
+      console.log(`ℹ️ Đã xóa sản phẩm phụ trách cho xưởng trưởng ${account.email}. Không đồng bộ với xưởng.`);
     }
     
     // Lưu thông tin tổ trưởng vào account

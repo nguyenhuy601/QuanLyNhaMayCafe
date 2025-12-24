@@ -41,16 +41,16 @@ const XuongTruongManager = () => {
 
   const handleAssignRole = async (accountId, currentRole) => {
     if (currentRole === "xuongtruong") {
-      if (!window.confirm("Tài khoản này đã là xưởng trưởng. Bạn có muốn hủy quyền xưởng trưởng?")) {
+      if (!window.confirm("Bạn có muốn hủy quyền quản lý sản phẩm phụ trách của xưởng trưởng này? (Role sẽ không thay đổi)")) {
         return;
       }
-      // Hủy quyền xưởng trưởng - đổi sang role khác (ví dụ: worker)
+      // Hủy quyền xưởng trưởng - chỉ xóa sản phẩm phụ trách, không đổi role
       try {
-        await authAPI.updateAccountRole(accountId, "worker");
-        alert("Đã hủy quyền xưởng trưởng thành công");
+        await authAPI.assignProductsToManager(accountId, []);
+        alert("Đã hủy quyền quản lý sản phẩm phụ trách thành công");
         loadAccounts();
       } catch (err) {
-        alert(err.message || "Không thể cập nhật quyền");
+        alert(err.message || "Không thể hủy quyền");
       }
     } else {
       if (!window.confirm("Bạn có muốn gán quyền xưởng trưởng cho tài khoản này?")) {

@@ -39,6 +39,16 @@ exports.updateProductQuantity = async (productId, quantityChange, token = null) 
     if (error.response) {
       console.error(`❌ Status: ${error.response.status}`);
       console.error(`❌ Response data:`, error.response.data);
+      console.error(`❌ Request URL: ${GATEWAY_URL}/products/${productId}`);
+      console.error(`❌ Has token: ${!!token}`);
+      if (token) {
+        try {
+          const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+          console.error(`❌ Token role: ${payload.role}`);
+        } catch (e) {
+          console.error(`❌ Cannot decode token`);
+        }
+      }
     }
     throw error;
   }

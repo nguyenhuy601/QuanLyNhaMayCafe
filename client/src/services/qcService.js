@@ -37,9 +37,32 @@ export const getAllQcRequests = async () => {
  */
 export const createQcRequest = async (payload) => {
   try {
+    // Đảm bảo keHoach được gửi đúng
+    if (!payload.keHoach || !payload.keHoach.planId) {
+      console.error("❌ [createQcRequest] Payload thiếu keHoach hoặc planId:", {
+        hasKeHoach: !!payload.keHoach,
+        keHoach: payload.keHoach,
+        planId: payload.keHoach?.planId
+      });
+      throw new Error("Thiếu thông tin kế hoạch (keHoach.planId) trong payload");
+    }
+    
+    // Debug log để kiểm tra payload trước khi gửi
+    console.log("🔍 [createQcRequest] Payload trước khi gửi:", {
+      maPhieuQC: payload.maPhieuQC,
+      hasKeHoach: !!payload.keHoach,
+      keHoach: payload.keHoach,
+      planId: payload.keHoach?.planId,
+      planIdType: typeof payload.keHoach?.planId,
+      planIdValue: payload.keHoach?.planId,
+      planIdLength: payload.keHoach?.planId?.length,
+      fullPayload: JSON.stringify(payload, null, 2)
+    });
+    
     const res = await axiosInstance.post(`/qc-request`, payload);
     return res.data;
   } catch (err) {
+    console.error("❌ [createQcRequest] Lỗi khi gửi request:", err);
     throw err;
   }
 };

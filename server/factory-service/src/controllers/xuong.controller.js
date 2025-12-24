@@ -186,6 +186,26 @@ exports.deleteXuong = async (req, res) => {
 };
 
 /**
+ * Xóa vĩnh viễn xưởng sản xuất (hard delete)
+ */
+exports.hardDeleteXuong = async (req, res) => {
+  try {
+    const xuong = await XuongSanXuat.findByIdAndDelete(req.params.id);
+
+    if (!xuong) {
+      return res.status(404).json({ message: "Không tìm thấy xưởng sản xuất" });
+    }
+
+    res.status(200).json({ 
+      message: "Đã xóa xưởng sản xuất vĩnh viễn",
+      deletedXuong: xuong
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
  * Thêm tổ vào xưởng
  */
 exports.addTo = async (req, res) => {

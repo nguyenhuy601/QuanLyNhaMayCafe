@@ -12,8 +12,9 @@ const axiosInstance = axios.create({
 // Interceptor để tự động thêm token vào header
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Lấy token từ sessionStorage (do đã patch localStorage) hoặc localStorage
-    const token = sessionStorage.getItem('token') || localStorage.getItem('token') || window.userToken;
+    // Ưu tiên sessionStorage (per-tab) để tránh conflict giữa các tab
+    const sessionToken = sessionStorage.getItem('token');
+    const token = sessionToken || localStorage.getItem('token') || window.userToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

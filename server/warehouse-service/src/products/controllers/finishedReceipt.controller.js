@@ -126,29 +126,6 @@ exports.createFinishedReceipt = async (req, res) => {
                     data: planErr.response?.data,
                     url: `${GATEWAY_URL}/plan/${planId}`
                   });
-                    const plan = planResponse.data;
-                    
-                    console.log(`🔍 [createFinishedReceipt] Plan data từ gateway:`, JSON.stringify({
-                      _id: plan?._id,
-                      maKeHoach: plan?.maKeHoach,
-                      sanPham: plan?.sanPham,
-                      sanPhamProductId: plan?.sanPham?.productId
-                    }, null, 2));
-                    
-                    if (plan?.sanPham) {
-                      // Lấy tên sản phẩm từ kế hoạch
-                      if (plan.sanPham.tenSanPham) {
-                        finalSanPhamName = plan.sanPham.tenSanPham;
-                        console.log(`✅ [createFinishedReceipt] Đã lấy sanPham.tenSanPham từ kế hoạch (gateway): ${finalSanPhamName}`);
-                      }
-                    }
-                  } catch (gatewayErr) {
-                    console.error("❌ [createFinishedReceipt] Lỗi lấy kế hoạch qua gateway:", {
-                      message: gatewayErr.message,
-                      status: gatewayErr.response?.status,
-                      data: gatewayErr.response?.data
-                    });
-                  }
                 }
             } else {
               console.warn(`⚠️ [createFinishedReceipt] QCRequest có keHoach nhưng planId là null/undefined:`, qcRequest.keHoach);

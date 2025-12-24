@@ -13,8 +13,8 @@ import {
   fetchManagerAssignments,
   confirmMemberCompletion,
 } from "../../../services/factoryService";
-import { fetchPlanById } from "../../../services/planService";
-import { createQcRequest, getAllQcResults } from "../../../services/qcService";
+import { fetchPlanById, fetchProductionPlans } from "../../../services/planService";
+import { createQcRequest, getAllQcResults, getAllQcRequests } from "../../../services/qcService";
 import useRealtime from "../../../hooks/useRealtime";
 
 // Lấy thông tin user từ JWT token
@@ -56,12 +56,13 @@ export default function ToTruongInfo() {
   const [qcResults, setQcResults] = useState([]);
   const [qcResultsModalOpen, setQcResultsModalOpen] = useState(false);
   const [loadingQcResults, setLoadingQcResults] = useState(false);
+  const [qcRequests, setQcRequests] = useState([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [u, r, d, p, t, s, at, as] = await Promise.all([
+      const [u, r, d, p, t, s, at, as, qcReqs] = await Promise.all([
         getAllUsers(),
         getAllRoles(),
         getAllDepartments(),
@@ -72,6 +73,7 @@ export default function ToTruongInfo() {
           date: new Date().toISOString().substring(0, 10),
         }),
         fetchManagerAssignments(),
+        getAllQcRequests().catch(() => []), // Load QC requests, fallback về [] nếu lỗi
       ]);
       setUsers(Array.isArray(u) ? u : []);
       setRoles(Array.isArray(r) ? r : []);
@@ -80,7 +82,8 @@ export default function ToTruongInfo() {
       setTeams(Array.isArray(t) ? t : []);
       setShifts(Array.isArray(s) ? s : []);
       setAttendanceSheets(Array.isArray(at) ? at : []);
-        setAssignments(Array.isArray(as) ? as : []);
+      setAssignments(Array.isArray(as) ? as : []);
+      setQcRequests(Array.isArray(qcReqs) ? qcReqs : []);
       } catch (err) {
         setError("Không thể tải danh sách nhân sự. Kiểm tra quyền/đăng nhập.");
         setUsers([]);
@@ -394,9 +397,33 @@ export default function ToTruongInfo() {
     }
 
     const name = (currentTeam.tenTo || "").toLowerCase();
-    if (!name.includes("sàng lọc") && !name.includes("phan loai") && !name.includes("phân loại")) {
-      // Chỉ cho phép tổ Sàng lọc & Phân loại
-      alert("Chỉ tổ Sàng lọc & Phân loại mới được tạo phiếu QC.");
+    const nhomSanPham = currentTeam.nhomSanPham || "";
+    
+    // Kiểm tra tổ đặc biệt theo nhomSanPham
+    const isSpecialTeamForRangXay = 
+      (name.includes("sàng lọc") || name.includes("phan loai") || name.includes("phân loại")) &&
+      nhomSanPham === "rangxay";
+    
+    const isSpecialTeamForHoaTan = 
+      (name.includes("sấy") || name.includes("say")) &&
+      nhomSanPham === "hoatan";
+    
+    if (!isSpecialTeamForRangXay && !isSpecialTeamForHoaTan) {
+      // Chỉ cho phép tổ đặc biệt: Sàng lọc & Phân loại (rangxay) hoặc Sấy (hoatan)
+      alert("Chỉ tổ Sàng lọc & Phân loại (rang xay) hoặc Tổ Sấy (hòa tan) mới được tạo phiếu QC.");
+      return;
+    }
+
+    // Kiểm tra ràng buộc: tất cả công nhân trong tổ phải đã hoàn thành
+    if (!isTeamCompleted(currentTeam)) {
+      const totalMembers = currentTeam.thanhVien?.length || 0;
+      const completedMembers = currentTeam.thanhVien?.filter(tv => tv.hoanThanh === true).length || 0;
+      alert(
+        `Chưa thể tạo phiếu yêu cầu kiểm tra thành phẩm. ` +
+        `Tổ "${currentTeam.tenTo}" chưa hoàn thành. ` +
+        `Đã hoàn thành: ${completedMembers}/${totalMembers} công nhân. ` +
+        `Vui lòng đợi tất cả công nhân xác nhận hoàn thành.`
+      );
       return;
     }
 
@@ -489,12 +516,47 @@ export default function ToTruongInfo() {
         alert("❌ Lỗi: Không tìm thấy thông tin kế hoạch. Vui lòng đảm bảo tổ đã được phân công công việc từ kế hoạch sản xuất.");
         return; // Dừng lại, không cho tạo phiếu QC nếu không có planId
       }
+
+      // Kiểm tra ràng buộc: chỉ cho phép tạo 1 phiếu QC cho 1 kế hoạch
+      const existingQcRequest = qcRequests.find((req) => {
+        const reqPlanId = req.keHoach?.planId?.toString() || 
+                         req.keHoach?._id?.toString() || 
+                         (typeof req.keHoach === 'string' ? req.keHoach : null);
+        return reqPlanId && reqPlanId === planId.toString();
+      });
+
+      if (existingQcRequest) {
+        const maPhieuQC = existingQcRequest.maPhieuQC || existingQcRequest._id;
+        alert(
+          `Đã tồn tại phiếu yêu cầu kiểm tra thành phẩm cho kế hoạch này.\n\n` +
+          `Mã phiếu: ${maPhieuQC}\n` +
+          `Trạng thái: ${existingQcRequest.trangThai || "Chưa xác định"}\n\n` +
+          `Mỗi kế hoạch chỉ được tạo 1 phiếu yêu cầu kiểm tra thành phẩm.`
+        );
+        return;
+      }
+      
+      // Đảm bảo planId là string không rỗng
+      const planIdString = planId?.toString()?.trim();
+      if (!planIdString || planIdString === "") {
+        alert("❌ Lỗi: Không tìm thấy thông tin kế hoạch. Vui lòng đảm bảo tổ đã được phân công công việc từ kế hoạch sản xuất.");
+        return;
+      }
       
       const keHoachObject = {
-        planId: planId, // Đảm bảo planId không rỗng
+        planId: planIdString, // Đảm bảo planId là string không rỗng
         maKeHoach: keHoach.maKeHoach || keHoach.maKH || "",
         sanPham: keHoach.sanPham || {},
       };
+      
+      // Debug log để kiểm tra keHoachObject
+      console.log("🔍 [handleCreateQcRequest] keHoachObject được tạo:", {
+        planId: keHoachObject.planId,
+        planIdType: typeof keHoachObject.planId,
+        planIdLength: keHoachObject.planId?.length,
+        maKeHoach: keHoachObject.maKeHoach,
+        hasSanPham: !!keHoachObject.sanPham
+      });
       
       // Lưu thông tin preview và mở modal xác nhận
       setQcPreview({
@@ -520,16 +582,64 @@ export default function ToTruongInfo() {
     try {
       setCreatingQc(true);
       
+      // Đảm bảo keHoach có planId hợp lệ
+      const keHoachToSend = qcPreview.keHoach;
+      if (!keHoachToSend) {
+        alert("❌ Lỗi: Không tìm thấy thông tin kế hoạch. Vui lòng thử lại.");
+        setCreatingQc(false);
+        return;
+      }
+      
+      // Đảm bảo planId tồn tại và không rỗng
+      const planIdToSend = keHoachToSend.planId?.toString()?.trim();
+      if (!planIdToSend || planIdToSend === "") {
+        alert("❌ Lỗi: Không tìm thấy ID kế hoạch. Vui lòng đảm bảo tổ đã được phân công công việc từ kế hoạch sản xuất.");
+        setCreatingQc(false);
+        return;
+      }
+      
+      // Tạo lại keHoach object để đảm bảo planId là string không rỗng
+      const keHoachPayload = {
+        planId: planIdToSend,
+        maKeHoach: keHoachToSend.maKeHoach || "",
+        sanPham: keHoachToSend.sanPham || {},
+      };
+      
       const payload = {
         maPhieuQC: qcPreview.maPhieuQC,
         loSanXuat: qcPreview.loSanXuat,
         xuong: qcPreview.xuong,
         soLuong: qcPreview.soLuong,
         sanPhamName: qcPreview.sanPhamName,
-        keHoach: qcPreview.keHoach, // Lấy từ qcPreview đã lưu
+        keHoach: keHoachPayload, // Đảm bảo keHoach có planId hợp lệ
       };
       
+      // Debug log để kiểm tra payload
+      console.log("🔍 [handleConfirmCreateQcRequest] Payload gửi lên:", {
+        maPhieuQC: payload.maPhieuQC,
+        keHoach: payload.keHoach,
+        keHoachType: typeof payload.keHoach,
+        hasPlanId: !!payload.keHoach?.planId,
+        planId: payload.keHoach?.planId,
+        planIdType: typeof payload.keHoach?.planId,
+        hasKeHoach: !!payload.keHoach,
+        keHoach: payload.keHoach,
+        planId: payload.keHoach?.planId,
+        planIdType: typeof payload.keHoach?.planId,
+        planIdIsEmpty: payload.keHoach?.planId === "" || payload.keHoach?.planId === null || payload.keHoach?.planId === undefined
+      });
+      
       await createQcRequest(payload);
+      
+      // Reload danh sách QC requests để cập nhật trạng thái
+      try {
+        const refreshedQcRequests = await getAllQcRequests();
+        setQcRequests(Array.isArray(refreshedQcRequests) ? refreshedQcRequests : []);
+      } catch (err) {
+        // Không block nếu reload QC requests thất bại
+        console.warn("Không thể reload danh sách QC requests:", err);
+      }
+      
       setQcModalOpen(false);
       setQcPreview(null);
       alert("Đã tạo phiếu yêu cầu kiểm tra thành phẩm (chờ xưởng trưởng duyệt).");
@@ -548,11 +658,47 @@ export default function ToTruongInfo() {
     return team.thanhVien.every((tv) => tv.hoanThanh === true);
   };
 
+  // Kiểm tra xem đã có QC request cho kế hoạch của tổ hiện tại chưa
+  const hasExistingQcRequestForPlan = useMemo(() => {
+    if (!currentTeam || !assignments || assignments.length === 0 || !qcRequests || qcRequests.length === 0) {
+      return false;
+    }
+
+    // Lấy planId từ assignment của tổ hiện tại
+    const teamAssignment = assignments.find((a) => {
+      const toId = a.congViec?.to?.id?.toString() || a.congViec?.to?.toString();
+      const teamId = (currentTeam._id || currentTeam.id)?.toString();
+      return toId === teamId;
+    });
+
+    if (!teamAssignment || !teamAssignment.keHoach) {
+      return false;
+    }
+
+    const planId = teamAssignment.keHoach?.planId?.toString() || 
+                   teamAssignment.keHoach?._id?.toString() || 
+                   (typeof teamAssignment.keHoach === 'string' ? teamAssignment.keHoach : null);
+
+    if (!planId) {
+      return false;
+    }
+
+    // Kiểm tra xem đã có QC request nào với cùng planId chưa
+    return qcRequests.some((req) => {
+      const reqPlanId = req.keHoach?.planId?.toString() || 
+                       req.keHoach?._id?.toString() || 
+                       (typeof req.keHoach === 'string' ? req.keHoach : null);
+      return reqPlanId && reqPlanId === planId;
+    });
+  }, [currentTeam, assignments, qcRequests]);
+
   // Lấy thứ tự của tổ trong quy trình sản xuất
-  const getTeamOrder = (teamName) => {
+  const getTeamOrder = (teamName, nhomSanPham) => {
     if (!teamName) return -1;
     const lower = teamName.toLowerCase();
-    const stepOrder = [
+    
+    // Quy trình cho rangxay
+    const stepOrderRangXay = [
       "chuẩn bị & phối trộn",
       "rang",
       "ủ nghỉ",
@@ -561,6 +707,17 @@ export default function ToTruongInfo() {
       "đóng gói",
       "dán nhãn",
     ];
+    
+    // Quy trình cho hoatan
+    const stepOrderHoaTan = [
+      "chuẩn bị & phối trộn",
+      "hòa tan",
+      "sấy",
+      "đóng hộp",
+      "dán nhãn",
+    ];
+    
+    const stepOrder = nhomSanPham === "hoatan" ? stepOrderHoaTan : stepOrderRangXay;
     return stepOrder.findIndex((step) => lower.includes(step));
   };
 
@@ -568,7 +725,8 @@ export default function ToTruongInfo() {
   const canConfirmCompletion = (currentTeam) => {
     if (!currentTeam) return false;
     
-    const currentOrder = getTeamOrder(currentTeam.tenTo);
+    const nhomSanPham = currentTeam.nhomSanPham || "";
+    const currentOrder = getTeamOrder(currentTeam.tenTo, nhomSanPham);
     
     // Tổ đầu tiên (Chuẩn bị & Phối trộn) luôn được phép
     if (currentOrder === 0) return true;
@@ -577,7 +735,7 @@ export default function ToTruongInfo() {
     if (currentOrder === -1) return true;
     
     // Tìm tổ trước đó trong cùng xưởng và cùng nhóm sản phẩm/nguyên liệu
-    const previousStepOrder = [
+    const previousStepOrderRangXay = [
       "chuẩn bị & phối trộn",
       "rang",
       "ủ nghỉ",
@@ -586,6 +744,16 @@ export default function ToTruongInfo() {
       "đóng gói",
       "dán nhãn",
     ];
+    
+    const previousStepOrderHoaTan = [
+      "chuẩn bị & phối trộn",
+      "hòa tan",
+      "sấy",
+      "đóng hộp",
+      "dán nhãn",
+    ];
+    
+    const previousStepOrder = nhomSanPham === "hoatan" ? previousStepOrderHoaTan : previousStepOrderRangXay;
     
     if (currentOrder === 0) return true; // Tổ đầu tiên
     
@@ -621,10 +789,83 @@ export default function ToTruongInfo() {
       return;
     }
 
+    // Kiểm tra ràng buộc: công nhân phải có ca hiện tại
+    const memberStat = statsByMemberId[memberId?.toString()];
+    const hasCurrentShift = memberStat?.currentShift && memberStat.currentShift !== "—";
+    
+    if (!hasCurrentShift) {
+      alert("Không thể xác nhận hoàn thành. Công nhân chưa có ca làm hiện tại.");
+      return;
+    }
+
+    // Kiểm tra ràng buộc: xưởng phụ trách phải có kế hoạch đang thực hiện
+    try {
+      const allPlans = await fetchProductionPlans();
+      const xuongPhuTrach = currentTeam.xuongInfo?.tenXuong || currentTeam.xuongPhuTrach || "";
+      const nhomSanPham = currentTeam.nhomSanPham || "";
+      const nguyenLieu = currentTeam.nguyenLieu || "";
+      
+      // Lọc kế hoạch theo xưởng, nhóm sản phẩm và trạng thái "Đang thực hiện"
+      const activePlans = allPlans.filter(plan => {
+        // Kiểm tra trạng thái "Đang thực hiện" trước
+        if (plan.trangThai !== "Đang thực hiện") {
+          return false;
+        }
+        
+        const planXuong = plan.xuongPhuTrach || "";
+        
+        // Kiểm tra xưởng phụ trách khớp (nếu có thông tin xưởng)
+        if (xuongPhuTrach && planXuong) {
+          const xuongMatch = 
+            planXuong.toLowerCase().includes(xuongPhuTrach.toLowerCase()) ||
+            xuongPhuTrach.toLowerCase().includes(planXuong.toLowerCase());
+          if (!xuongMatch) {
+            return false;
+          }
+        }
+        
+        // Xác định nhóm sản phẩm từ kế hoạch
+        const planTenSP = (plan.sanPham?.tenSanPham || "").toLowerCase();
+        const planMaSP = (plan.sanPham?.maSP || "").toLowerCase();
+        let planNhomSP = "";
+        
+        if (planTenSP.includes("rang xay") || planTenSP.includes("rangxay") || 
+            planMaSP.includes("rangxay") || planMaSP.includes("rang xay")) {
+          planNhomSP = "rangxay";
+        } else if (planTenSP.includes("hòa tan") || planTenSP.includes("hoa tan") ||
+                   planMaSP.includes("hoatan") || planMaSP.includes("hoa tan")) {
+          planNhomSP = "hoatan";
+        }
+        
+        // Kiểm tra nhóm sản phẩm khớp (nếu có thông tin nhóm sản phẩm)
+        if (nhomSanPham && planNhomSP) {
+          if (planNhomSP !== nhomSanPham) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+      
+      if (activePlans.length === 0) {
+        alert(
+          `Không thể xác nhận hoàn thành. ` +
+          `Xưởng "${xuongPhuTrach || 'hiện tại'}" chưa có kế hoạch nào đang ở trạng thái "Đang thực hiện". ` +
+          `Vui lòng đảm bảo có kế hoạch đang thực hiện trước khi xác nhận hoàn thành.`
+        );
+        return;
+      }
+    } catch (planError) {
+      console.error("❌ Lỗi khi kiểm tra kế hoạch đang thực hiện:", planError);
+      // Nếu lỗi khi kiểm tra, vẫn cho phép xác nhận (fallback)
+      console.warn("⚠️ Không thể kiểm tra kế hoạch, cho phép xác nhận hoàn thành");
+    }
+
     // Kiểm tra ràng buộc: tổ trước phải hoàn thành
     if (!canConfirmCompletion(currentTeam)) {
-      const currentOrder = getTeamOrder(currentTeam.tenTo);
-      const stepOrder = [
+      const nhomSanPham = currentTeam.nhomSanPham || "";
+      const currentOrder = getTeamOrder(currentTeam.tenTo, nhomSanPham);
+      const stepOrderRangXay = [
         "Chuẩn bị & Phối trộn",
         "Rang",
         "Ủ nghỉ",
@@ -633,6 +874,14 @@ export default function ToTruongInfo() {
         "Đóng gói",
         "Dán nhãn",
       ];
+      const stepOrderHoaTan = [
+        "Chuẩn bị & Phối trộn",
+        "Hòa tan",
+        "Sấy",
+        "Đóng hộp",
+        "Dán nhãn",
+      ];
+      const stepOrder = nhomSanPham === "hoatan" ? stepOrderHoaTan : stepOrderRangXay;
       
       if (currentOrder > 0) {
         const previousStepName = stepOrder[currentOrder - 1];
@@ -716,29 +965,68 @@ export default function ToTruongInfo() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {currentTeam?.tenTo &&
-              (currentTeam.tenTo.toLowerCase().includes("sàng lọc") ||
-                currentTeam.tenTo.toLowerCase().includes("phan loai") ||
-                currentTeam.tenTo.toLowerCase().includes("phân loại")) && (
-                <button
-                  type="button"
-                  onClick={handleCreateQcRequest}
-                  className="text-xs font-semibold rounded-full bg-amber-600 text-white px-4 py-2 hover:bg-amber-700"
-                >
-                  Tạo phiếu yêu cầu kiểm tra thành phẩm
-                </button>
-              )}
-            {currentTeam?.tenTo &&
-              (currentTeam.tenTo.toLowerCase().includes("đóng gói") ||
-                currentTeam.tenTo.toLowerCase().includes("dong goi")) && (
-                <button
-                  type="button"
-                  onClick={handleViewQcResults}
-                  className="text-xs font-semibold rounded-full bg-emerald-600 text-white px-4 py-2 hover:bg-emerald-700"
-                >
-                  Thông tin kiểm định QC
-                </button>
-              )}
+            {currentTeam?.tenTo && (() => {
+              const name = (currentTeam.tenTo || "").toLowerCase();
+              const nhomSanPham = currentTeam.nhomSanPham || "";
+              
+              // Tổ đặc biệt cho rangxay: Sàng lọc & Phân loại
+              const isSpecialTeamForRangXay = 
+                (name.includes("sàng lọc") || name.includes("phan loai") || name.includes("phân loại")) &&
+                nhomSanPham === "rangxay";
+              
+              // Tổ đặc biệt cho hoatan: Sấy
+              const isSpecialTeamForHoaTan = 
+                (name.includes("sấy") || name.includes("say")) &&
+                nhomSanPham === "hoatan";
+              
+              if (isSpecialTeamForRangXay || isSpecialTeamForHoaTan) {
+                return (
+                  <button
+                    type="button"
+                    onClick={handleCreateQcRequest}
+                    disabled={!isTeamCompleted(currentTeam) || hasExistingQcRequestForPlan}
+                    className="text-xs font-semibold rounded-full bg-amber-600 text-white px-4 py-2 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={
+                      hasExistingQcRequestForPlan
+                        ? "Đã tồn tại phiếu yêu cầu kiểm tra thành phẩm cho kế hoạch này. Mỗi kế hoạch chỉ được tạo 1 phiếu."
+                        : !isTeamCompleted(currentTeam)
+                        ? "Tất cả công nhân trong tổ phải xác nhận hoàn thành trước khi tạo phiếu yêu cầu kiểm tra thành phẩm"
+                        : "Tạo phiếu yêu cầu kiểm tra thành phẩm"
+                    }
+                  >
+                    Tạo phiếu yêu cầu kiểm tra thành phẩm
+                  </button>
+                );
+              }
+              return null;
+            })()}
+            {currentTeam?.tenTo && (() => {
+              const name = (currentTeam.tenTo || "").toLowerCase();
+              const nhomSanPham = currentTeam.nhomSanPham || "";
+              
+              // Tổ đặc biệt cho rangxay: Đóng gói
+              const isSpecialTeamForRangXay = 
+                (name.includes("đóng gói") || name.includes("dong goi")) &&
+                nhomSanPham === "rangxay";
+              
+              // Tổ đặc biệt cho hoatan: Đóng hộp
+              const isSpecialTeamForHoaTan = 
+                (name.includes("đóng hộp") || name.includes("dong hop")) &&
+                nhomSanPham === "hoatan";
+              
+              if (isSpecialTeamForRangXay || isSpecialTeamForHoaTan) {
+                return (
+                  <button
+                    type="button"
+                    onClick={handleViewQcResults}
+                    className="text-xs font-semibold rounded-full bg-emerald-600 text-white px-4 py-2 hover:bg-emerald-700"
+                  >
+                    Thông tin kiểm định QC
+                  </button>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
@@ -800,19 +1088,26 @@ export default function ToTruongInfo() {
                           {stat?.isOvertime ? "Có" : "Không"}
                         </span>
                       </p>
-                      <p className="text-amber-700">
-                        Tiến độ:{" "}
-                        <span className="font-semibold">
-                          {stat?.progressLabel || "Chưa có dữ liệu"}
-                        </span>
-                      </p>
                       {(() => {
                         const memberInTeam = currentTeam?.thanhVien?.find(
                           (tv) => tv.id === (member._id || member.id)?.toString()
                         );
                         const isCompleted = memberInTeam?.hoanThanh === true;
                         const canConfirm = canConfirmCompletion(currentTeam);
-                        const isDisabled = !canConfirm || confirmingMember === (member._id || member.id);
+                        
+                        // Kiểm tra công nhân có ca hiện tại không
+                        const memberStat = statsByMemberId[(member._id || member.id)?.toString()];
+                        const hasCurrentShift = memberStat?.currentShift && memberStat.currentShift !== "—";
+                        
+                        const isDisabled = !canConfirm || !hasCurrentShift || confirmingMember === (member._id || member.id);
+                        
+                        // Xác định thông báo tooltip
+                        let tooltipMessage = "";
+                        if (!hasCurrentShift) {
+                          tooltipMessage = "Công nhân chưa có ca làm hiện tại. Vui lòng phân công ca làm trước.";
+                        } else if (!canConfirm) {
+                          tooltipMessage = "Tổ trước đó chưa hoàn thành. Vui lòng đợi tổ trước hoàn thành trước.";
+                        }
                         
                         return (
                           <div className="mt-2">
@@ -828,17 +1123,18 @@ export default function ToTruongInfo() {
                                   onClick={() => handleConfirmMemberCompletion(member._id || member.id)}
                                   disabled={isDisabled}
                                   className="text-xs font-semibold rounded-full bg-amber-600 text-white px-3 py-1.5 hover:bg-amber-700 disabled:opacity-60 disabled:cursor-not-allowed w-full"
-                                  title={
-                                    !canConfirm
-                                      ? "Tổ trước đó chưa hoàn thành. Vui lòng đợi tổ trước hoàn thành trước."
-                                      : ""
-                                  }
+                                  title={tooltipMessage}
                                 >
                                   {confirmingMember === (member._id || member.id)
                                     ? "Đang xác nhận..."
                                     : "Xác nhận hoàn thành"}
                                 </button>
-                                {!canConfirm && (
+                                {!hasCurrentShift && (
+                                  <p className="text-xs text-red-600 text-center">
+                                    Chưa có ca làm
+                                  </p>
+                                )}
+                                {hasCurrentShift && !canConfirm && (
                                   <p className="text-xs text-red-600 text-center">
                                     Tổ trước chưa hoàn thành
                                   </p>

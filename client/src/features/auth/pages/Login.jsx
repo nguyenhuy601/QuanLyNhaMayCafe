@@ -96,23 +96,17 @@ const Login = () => {
       sessionStorage.removeItem("user");
       
       // Lưu token và role theo phiên (per-tab) để có thể đăng nhập nhiều tài khoản ở nhiều tab
-      // Ưu tiên sessionStorage (per-tab), chỉ lưu vào localStorage nếu cần cho backward compatibility
+      // Chỉ dùng sessionStorage để mỗi tab có token riêng, không ghi đè localStorage
       if (data.token) {
         sessionStorage.setItem("token", data.token);
-        // Chỉ lưu vào localStorage nếu chưa có token trong sessionStorage của tab khác
-        // Để tránh ghi đè token của tab khác
-        if (!localStorage.getItem("token")) {
-          localStorage.setItem("token", data.token); // fallback cho các chỗ cũ nếu cần
-        }
+        // Không lưu vào localStorage để tránh conflict giữa các tab
+        // Mỗi tab sẽ dùng sessionStorage riêng
         window.userToken = data.token;
       }
 
       if (data.role) {
         sessionStorage.setItem("role", data.role);
-        // Chỉ lưu vào localStorage nếu chưa có role trong localStorage
-        if (!localStorage.getItem("role")) {
-          localStorage.setItem("role", data.role); // fallback
-        }
+        // Không lưu vào localStorage để tránh conflict giữa các tab
         window.userRole = data.role;
       }
 

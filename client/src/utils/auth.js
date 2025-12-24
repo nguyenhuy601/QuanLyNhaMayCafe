@@ -1,7 +1,15 @@
 // Helper function để lấy token (dùng ở mọi nơi)
-// Ưu tiên sessionStorage (per-tab) để tránh conflict giữa các tab
+// Chỉ dùng sessionStorage (per-tab) để tránh conflict giữa các tab
+// Không dùng localStorage để tránh bị lẫn token giữa các tab
 export const getToken = () => {
-  return sessionStorage.getItem("token") || localStorage.getItem("token") || window.userToken || null;
+  // Ưu tiên sessionStorage (per-tab), chỉ fallback localStorage nếu sessionStorage trống
+  // Điều này đảm bảo mỗi tab có token riêng
+  const sessionToken = sessionStorage.getItem("token");
+  if (sessionToken) {
+    return sessionToken;
+  }
+  // Fallback cho các tab cũ chưa có sessionStorage
+  return localStorage.getItem("token") || window.userToken || null;
 };
 
 // Helper function để lấy role (ưu tiên sessionStorage)

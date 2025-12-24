@@ -352,9 +352,13 @@ exports.checkStartConditions = async (req, res) => {
     // (2) Kiểm tra nguyên vật liệu đã sẵn sàng
     try {
       // Kiểm tra MaterialRequest - endpoint đúng là /warehouse/materials/requests
+      // Thêm timeout để tránh chờ quá lâu
       const materialRequestResponse = await axios.get(
         `${GATEWAY_URL}/warehouse/materials/requests`,
-        { headers }
+        { 
+          headers,
+          timeout: 10000 // 10 giây timeout
+        }
       );
       let materialRequests = Array.isArray(materialRequestResponse.data) 
         ? materialRequestResponse.data 
@@ -369,7 +373,7 @@ exports.checkStartConditions = async (req, res) => {
         // Không có MaterialRequest = đủ NVL trong kho
         conditions.materialsReady.status = true;
         conditions.materialsReady.message = "Nguyên vật liệu đã sẵn sàng (không cần bổ sung)";
-        conditions.materialsReady.details = { hasMaterialRequest: false };
+        conditions.materialsReady.details = {};
       } else {
         // Kiểm tra MaterialRequest đã duyệt và MaterialReceipt đã nhập kho
         const approvedRequest = materialRequests.find(
@@ -378,33 +382,48 @@ exports.checkStartConditions = async (req, res) => {
         
         if (approvedRequest) {
           // Kiểm tra MaterialReceipt đã nhập kho - endpoint đúng là /warehouse/materials/receipts
-          const receiptResponse = await axios.get(
-            `${GATEWAY_URL}/warehouse/materials/receipts`,
-            { headers }
-          );
-          let receipts = Array.isArray(receiptResponse.data) 
-            ? receiptResponse.data 
-            : [];
-          
-          // Lọc theo keHoach
-          receipts = receipts.filter(r => 
-            r.keHoach === planId || r.keHoach === plan._id
-          );
-          
-          const receivedReceipt = receipts.find(r => r.trangThai === "Da nhap");
-          
-          if (receivedReceipt) {
-            conditions.materialsReady.status = true;
-            conditions.materialsReady.message = "Nguyên vật liệu đã nhập kho và sẵn sàng";
+          try {
+            const receiptResponse = await axios.get(
+              `${GATEWAY_URL}/warehouse/materials/receipts`,
+              { 
+                headers,
+                timeout: 10000 // 10 giây timeout
+              }
+            );
+            let receipts = Array.isArray(receiptResponse.data) 
+              ? receiptResponse.data 
+              : [];
+            
+            // Lọc theo keHoach
+            receipts = receipts.filter(r => 
+              r.keHoach === planId || r.keHoach === plan._id
+            );
+            
+            const receivedReceipt = receipts.find(r => r.trangThai === "Da nhap");
+            
+            if (receivedReceipt) {
+              conditions.materialsReady.status = true;
+              conditions.materialsReady.message = "Nguyên vật liệu đã nhập kho và sẵn sàng";
+              conditions.materialsReady.details = {
+                materialRequest: approvedRequest.maPhieu,
+                receipt: receivedReceipt.maPhieuNhap || receivedReceipt._id
+              };
+            } else {
+              conditions.materialsReady.message = "Phiếu yêu cầu NVL đã duyệt nhưng chưa nhập kho";
+              conditions.materialsReady.details = {
+                materialRequest: approvedRequest.maPhieu,
+                receiptStatus: "Chưa nhập kho"
+              };
+            }
+          } catch (receiptErr) {
+            // Nếu không thể kiểm tra receipt, vẫn hiển thị thông tin về material request
+            console.error("❌ Error checking material receipts:", receiptErr.message);
+            conditions.materialsReady.message = `Phiếu yêu cầu NVL (${approvedRequest.maPhieu}) đã duyệt, nhưng không thể kiểm tra trạng thái nhập kho`;
             conditions.materialsReady.details = {
               materialRequest: approvedRequest.maPhieu,
-              receipt: receivedReceipt.maPhieuNhap || receivedReceipt._id
-            };
-          } else {
-            conditions.materialsReady.message = "Phiếu yêu cầu NVL đã duyệt nhưng chưa nhập kho";
-            conditions.materialsReady.details = {
-              materialRequest: approvedRequest.maPhieu,
-              receiptStatus: "Chưa nhập kho"
+              error: receiptErr.response?.status === 503 
+                ? "Dịch vụ kho không khả dụng" 
+                : receiptErr.message
             };
           }
         } else {
@@ -422,8 +441,24 @@ exports.checkStartConditions = async (req, res) => {
       }
     } catch (err) {
       console.error("❌ Error checking materials:", err.message);
-      conditions.materialsReady.message = "Không thể kiểm tra trạng thái nguyên vật liệu";
-      conditions.materialsReady.details = { error: err.message };
+      const errorStatus = err.response?.status;
+      const errorCode = err.code;
+      
+      let errorMessage = "Không thể kiểm tra trạng thái nguyên vật liệu";
+      if (errorStatus === 503 || errorCode === "ECONNREFUSED") {
+        errorMessage = "Dịch vụ kho không khả dụng. Vui lòng thử lại sau.";
+      } else if (errorCode === "ECONNABORTED" || errorCode === "ETIMEDOUT") {
+        errorMessage = "Yêu cầu kiểm tra trạng thái nguyên vật liệu đã hết thời gian chờ. Vui lòng thử lại.";
+      } else if (err.message) {
+        errorMessage = `Không thể kiểm tra trạng thái nguyên vật liệu: ${err.message}`;
+      }
+      
+      conditions.materialsReady.message = errorMessage;
+      conditions.materialsReady.details = { 
+        error: err.message,
+        status: errorStatus,
+        code: errorCode
+      };
     }
 
     // (3) Kiểm tra năng lực sản xuất sẵn sàng
@@ -502,8 +537,9 @@ exports.checkStartConditions = async (req, res) => {
             const startDate = new Date(plan.ngayBatDauDuKien);
             const endDate = new Date(plan.ngayKetThucDuKien);
             
+            // Lấy tất cả các kế hoạch (không chỉ "Đang thực hiện") để kiểm tra conflict
             const otherPlansResponse = await axios.get(
-              `${GATEWAY_URL}/plan?trangThai=Đang thực hiện`,
+              `${GATEWAY_URL}/plan`,
               { headers }
             );
             const otherPlans = Array.isArray(otherPlansResponse.data) 
@@ -511,7 +547,10 @@ exports.checkStartConditions = async (req, res) => {
               : [];
             
             const conflictingPlans = otherPlans.filter(p => {
+              // Bỏ qua kế hoạch hiện tại
               if (p._id === planId || p._id?.toString() === planId?.toString()) return false;
+              // Bỏ qua các kế hoạch đã hoàn thành - không coi là conflict
+              if (p.trangThai === "Hoàn thành") return false;
               // Chỉ kiểm tra chồng lấp với các kế hoạch cùng xưởng phụ trách
               if (p.xuongPhuTrach !== plan.xuongPhuTrach) return false;
               const pStart = new Date(p.ngayBatDauDuKien);
@@ -602,18 +641,10 @@ exports.checkStartConditions = async (req, res) => {
       if (conflictingAssignments.length === 0 && conflictingShifts.length === 0) {
         conditions.managerConfirmation.status = true;
         conditions.managerConfirmation.message = "Lịch xưởng trống, có thể triển khai";
-        conditions.managerConfirmation.details = {
-          scheduleEmpty: true,
-          conflictingAssignments: 0,
-          conflictingShifts: 0
-        };
+        conditions.managerConfirmation.details = {};
       } else {
         conditions.managerConfirmation.message = `Lịch xưởng có ${conflictingAssignments.length} phân công và ${conflictingShifts.length} ca làm trong khoảng thời gian này`;
-        conditions.managerConfirmation.details = {
-          scheduleEmpty: false,
-          conflictingAssignments: conflictingAssignments.length,
-          conflictingShifts: conflictingShifts.length
-        };
+        conditions.managerConfirmation.details = {};
       }
     } catch (err) {
       console.error("❌ Error checking schedule:", err.message);

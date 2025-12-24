@@ -162,17 +162,16 @@ const NhapKhoNVL = () => {
               </thead>
               <tbody>
                 {plans.length > 0 ? (
-                  plans.map((plan) => {
-                    const isUsed = usedPlanIds.has(plan._id.toString());
+                  plans
+                    .filter(plan => !usedPlanIds.has(plan._id.toString())) // Chỉ hiển thị kế hoạch chưa được nhập
+                    .map((plan) => {
                     return (
                       <tr
                         key={plan._id}
                         className={`border-b transition ${
-                          isUsed 
-                            ? "bg-gray-100 opacity-60" 
-                            : selectedPlan?._id === plan._id 
-                              ? "bg-[#f1dfc6]" 
-                              : "hover:bg-[#f9f4ef]"
+                          selectedPlan?._id === plan._id 
+                            ? "bg-[#f1dfc6]" 
+                            : "hover:bg-[#f9f4ef]"
                         }`}
                       >
                         <td className="py-2 px-4 text-center">
@@ -181,37 +180,41 @@ const NhapKhoNVL = () => {
                             name="plan"
                             checked={selectedPlan?._id === plan._id}
                             onChange={() => handleSelectPlan(plan)}
-                            disabled={isUsed}
-                            className={`${isUsed ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                            className="cursor-pointer"
                           />
                         </td>
-                        <td className={`py-2 px-4 ${isUsed ? "text-gray-500" : ""}`}>
+                        <td className="py-2 px-4">
                           {plan.maKeHoach || plan._id}
-                          {isUsed && <span className="ml-2 text-xs text-red-600">(Đã nhập)</span>}
                         </td>
-                        <td className={`py-2 px-4 ${isUsed ? "text-gray-500" : ""}`}>
+                        <td className="py-2 px-4">
                           {plan.sanPham?.tenSanPham || plan.maKeHoach || 'Kế hoạch sản xuất'}
                         </td>
-                        <td className={`py-2 px-4 ${isUsed ? "text-gray-500" : ""}`}>
+                        <td className="py-2 px-4">
                           {plan.ngayBatDauDuKien
                             ? new Date(plan.ngayBatDauDuKien).toLocaleDateString('vi-VN')
                             : 'N/A'}
                         </td>
-                        <td className={`py-2 px-4 ${isUsed ? "text-gray-500" : ""}`}>
+                        <td className="py-2 px-4">
                           {plan.ngayKetThucDuKien
                             ? new Date(plan.ngayKetThucDuKien).toLocaleDateString('vi-VN')
                             : 'N/A'}
                         </td>
-                        <td className={`py-2 px-4 ${isUsed ? "text-gray-500" : ""}`}>
+                        <td className="py-2 px-4">
                           {plan.xuongPhuTrach || 'N/A'}
                         </td>
                       </tr>
                     );
                   })
-                ) : (
+                ) : plans.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="py-4 px-4 text-center text-gray-500">
                       Không có kế hoạch nào đã được duyệt
+                    </td>
+                  </tr>
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="py-4 px-4 text-center text-gray-500">
+                      Tất cả kế hoạch đã được nhập kho
                     </td>
                   </tr>
                 )}

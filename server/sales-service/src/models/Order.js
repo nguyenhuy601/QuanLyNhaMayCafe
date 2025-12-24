@@ -10,7 +10,7 @@ const OrderSchema = new mongoose.Schema({
   ngayDat: { type: Date, default: Date.now },
   ngayYeuCauGiao: Date,
   diaChiGiao: String,
-  trangThai: { type: String, enum: ["Chờ duyệt", "Đã duyệt", "Đang giao", "Hoàn thành", "Đã hủy"], default: "Chờ duyệt" },
+  trangThai: { type: String, enum: ["Chờ duyệt", "Đã duyệt", "Đang giao", "Hoàn thành", "Đã hủy", "Từ chối", "Đã xuất kho"], default: "Chờ duyệt" },
   chiTiet: [
     {
       sanPham: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
